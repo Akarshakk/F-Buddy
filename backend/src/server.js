@@ -11,6 +11,7 @@ const expenseRoutes = require('./routes/expense');
 const analyticsRoutes = require('./routes/analytics');
 const categoryRoutes = require('./routes/category');
 const billRoutes = require('./routes/bill');
+const debtRoutes = require('./routes/debt');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/bill', billRoutes);
+app.use('/api/debts', debtRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -2,14 +2,23 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
 enum SavingsAlertType {
-  warning,      // About to exceed savings target
-  danger,       // Exceeded savings target
+  warning,      // Savings rate approaching target (within buffer)
+  danger,       // Savings rate below target - limit reached!
   success,      // On track to meet savings target
-  celebration,  // Great progress towards savings
+  celebration,  // Great progress - saving more than target
 }
 
 class SavingsAlertService {
+  // Buffer percentage before target to show warning
+  static const double warningBuffer = 5.0;
+
   /// Calculate savings status based on income, expenses, and target
+  /// 
+  /// Example: If savings target is 20%
+  /// - If current savings is >= 25% (target + buffer) → Celebration/Success
+  /// - If current savings is 20-25% (at target but within buffer) → Success  
+  /// - If current savings is 15-20% (below target but within buffer) → Warning
+  /// - If current savings is < 15% (below target - buffer) → Danger
   static Map<String, dynamic> calculateSavingsStatus({
     required double totalIncome,
     required double totalExpenses,
@@ -19,54 +28,61 @@ class SavingsAlertService {
       return {
         'status': 'no_target',
         'message': 'Set a savings target to track your progress',
-        'percentUsed': 0.0,
-        'maxSpendingAllowed': totalIncome,
+        'currentSavingsPercent': 0.0,
+        'savingsTargetPercent': savingsTargetPercent,
+        'savingsAmount': 0.0,
         'remainingBudget': totalIncome - totalExpenses,
       };
     }
 
+    // Calculate current savings
+    final savingsAmount = totalIncome - totalExpenses;
+    final currentSavingsPercent = (savingsAmount / totalIncome) * 100;
+    
     // Calculate max spending allowed to meet savings target
-    // If savings target is 20%, max spending is 80% of income
     final maxSpendingPercent = 100 - savingsTargetPercent;
     final maxSpendingAllowed = (maxSpendingPercent / 100) * totalIncome;
     final remainingBudget = maxSpendingAllowed - totalExpenses;
-    final percentUsed = (totalExpenses / maxSpendingAllowed) * 100;
-    final savingsAmount = totalIncome - totalExpenses;
-    final currentSavingsPercent = totalIncome > 0 ? (savingsAmount / totalIncome) * 100 : 0;
+    
+    // Calculate thresholds
+    final warningThreshold = savingsTargetPercent + warningBuffer; // e.g., 25% if target is 20%
+    final dangerThreshold = savingsTargetPercent; // e.g., 20%
 
     SavingsAlertType alertType;
     String message;
     String title;
 
-    if (totalExpenses >= maxSpendingAllowed) {
-      // Exceeded limit
+    if (currentSavingsPercent < dangerThreshold) {
+      // DANGER: Savings rate is BELOW the target
+      // e.g., Current is 18%, target is 20% → Savings limit reached!
       alertType = SavingsAlertType.danger;
-      title = '⚠️ Budget Exceeded!';
-      message = 'You\'ve exceeded your spending limit by ₹${(totalExpenses - maxSpendingAllowed).toStringAsFixed(0)}. '
-          'Your savings target of ${savingsTargetPercent.toStringAsFixed(0)}% is at risk!';
-    } else if (percentUsed >= 90) {
-      // About to exceed (90%+)
+      title = '🚨 Savings Limit Reached!';
+      final shortfall = savingsTargetPercent - currentSavingsPercent;
+      message = 'Your current savings rate is ${currentSavingsPercent.toStringAsFixed(1)}%, '
+          'which is ${shortfall.toStringAsFixed(1)}% below your ${savingsTargetPercent.toStringAsFixed(0)}% target. '
+          'Consider reducing expenses to protect your savings!';
+    } else if (currentSavingsPercent < warningThreshold) {
+      // WARNING: Savings rate is at target but within buffer zone
+      // e.g., Current is 22%, target is 20%, buffer is 5% → Warning: approaching limit
       alertType = SavingsAlertType.warning;
-      title = '⚡ Almost at Limit!';
-      message = 'Only ₹${remainingBudget.toStringAsFixed(0)} left before you exceed your spending limit. '
-          'Be careful with your next expense!';
-    } else if (percentUsed >= 75) {
-      // Warning zone (75-90%)
-      alertType = SavingsAlertType.warning;
-      title = '📊 Spending Alert';
-      message = 'You\'ve used ${percentUsed.toStringAsFixed(0)}% of your spending budget. '
-          '₹${remainingBudget.toStringAsFixed(0)} remaining to meet your ${savingsTargetPercent.toStringAsFixed(0)}% savings goal.';
-    } else if (percentUsed <= 50 && totalExpenses > 0) {
-      // Great progress
+      title = '⚠️ Savings Limit Approaching!';
+      final buffer = currentSavingsPercent - savingsTargetPercent;
+      message = 'Your savings rate is ${currentSavingsPercent.toStringAsFixed(1)}%, '
+          'only ${buffer.toStringAsFixed(1)}% above your ${savingsTargetPercent.toStringAsFixed(0)}% target. '
+          'You have ₹${remainingBudget.toStringAsFixed(0)} left before reaching your limit.';
+    } else if (currentSavingsPercent >= warningThreshold + 10) {
+      // CELEBRATION: Savings rate is well above target (10%+ above warning threshold)
       alertType = SavingsAlertType.celebration;
-      title = '🎉 Excellent Progress!';
-      message = 'You\'re doing great! At this rate, you\'ll save ${currentSavingsPercent.toStringAsFixed(0)}% this month - '
-          'even better than your ${savingsTargetPercent.toStringAsFixed(0)}% target!';
+      title = '🎉 Excellent Savings!';
+      message = 'Amazing! You\'re saving ${currentSavingsPercent.toStringAsFixed(1)}% of your income - '
+          'that\'s ${(currentSavingsPercent - savingsTargetPercent).toStringAsFixed(1)}% more than your target! '
+          'Keep up the great work!';
     } else {
-      // On track
+      // SUCCESS: Savings rate is comfortably above target
       alertType = SavingsAlertType.success;
       title = '✅ On Track!';
-      message = 'You\'re on track to meet your ${savingsTargetPercent.toStringAsFixed(0)}% savings target. '
+      message = 'Great job! You\'re saving ${currentSavingsPercent.toStringAsFixed(1)}% of your income, '
+          'comfortably above your ${savingsTargetPercent.toStringAsFixed(0)}% target. '
           '₹${remainingBudget.toStringAsFixed(0)} spending budget remaining.';
     }
 
@@ -74,12 +90,14 @@ class SavingsAlertService {
       'alertType': alertType,
       'title': title,
       'message': message,
-      'percentUsed': percentUsed,
+      'currentSavingsPercent': currentSavingsPercent,
+      'savingsTargetPercent': savingsTargetPercent,
+      'warningThreshold': warningThreshold,
+      'savingsAmount': savingsAmount,
       'maxSpendingAllowed': maxSpendingAllowed,
       'remainingBudget': remainingBudget,
-      'savingsAmount': savingsAmount,
-      'currentSavingsPercent': currentSavingsPercent,
-      'isOverBudget': totalExpenses >= maxSpendingAllowed,
+      'isOverBudget': currentSavingsPercent < dangerThreshold,
+      'isApproachingLimit': currentSavingsPercent >= dangerThreshold && currentSavingsPercent < warningThreshold,
     };
   }
 
@@ -145,29 +163,90 @@ class SavingsAlertService {
               style: const TextStyle(fontSize: 15, height: 1.4),
             ),
             const SizedBox(height: 16),
-            // Progress bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: ((status['percentUsed'] as double) / 100).clamp(0.0, 1.0),
-                minHeight: 10,
-                backgroundColor: Colors.grey.shade300,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  status['percentUsed'] >= 100 
-                      ? Colors.red 
-                      : status['percentUsed'] >= 75 
-                          ? Colors.orange 
-                          : Colors.green,
+            // Savings rate progress bar
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Current Savings: ${(status['currentSavingsPercent'] as double).toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    Text(
+                      'Target: ${(status['savingsTargetPercent'] as double).toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Budget used: ${(status['percentUsed'] as double).toStringAsFixed(1)}%',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade700,
-              ),
+                const SizedBox(height: 8),
+                Stack(
+                  children: [
+                    // Background bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        height: 14,
+                        width: double.infinity,
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    // Current savings bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        height: 14,
+                        width: MediaQuery.of(context).size.width * 0.6 * 
+                            ((status['currentSavingsPercent'] as double) / 100).clamp(0.0, 1.0),
+                        color: (status['currentSavingsPercent'] as double) < (status['savingsTargetPercent'] as double)
+                            ? Colors.red
+                            : (status['currentSavingsPercent'] as double) < (status['warningThreshold'] as double)
+                                ? Colors.orange
+                                : Colors.green,
+                      ),
+                    ),
+                    // Target marker
+                    Positioned(
+                      left: MediaQuery.of(context).size.width * 0.6 * 
+                          ((status['savingsTargetPercent'] as double) / 100).clamp(0.0, 1.0) - 2,
+                      child: Container(
+                        height: 14,
+                        width: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '0%',
+                      style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    ),
+                    Text(
+                      '▲ Target',
+                      style: TextStyle(fontSize: 10, color: Colors.grey.shade700),
+                    ),
+                    Text(
+                      '100%',
+                      style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),

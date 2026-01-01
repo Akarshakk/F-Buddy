@@ -5,6 +5,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/analytics_provider.dart';
+import '../../providers/debt_provider.dart';
+import '../../services/debt_reminder_service.dart';
 import '../auth/login_screen.dart';
 import 'dashboard_tab.dart';
 import 'expenses_tab.dart';
@@ -40,13 +42,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
     final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
     final analyticsProvider = Provider.of<AnalyticsProvider>(context, listen: false);
+    final debtProvider = Provider.of<DebtProvider>(context, listen: false);
 
     await Future.wait([
       expenseProvider.fetchLatestExpenses(),
       incomeProvider.fetchCurrentMonthIncome(),
       analyticsProvider.fetchDashboardData(),
       analyticsProvider.fetchBalanceChartData(),
+      debtProvider.fetchDebts(),
     ]);
+
+    // Check for debt reminders after loading data
+    if (mounted) {
+      DebtReminderService.checkAndShowReminders(
+        context,
+        debtProvider.fetchDebtsDueToday,
+      );
+    }
   }
 
   @override

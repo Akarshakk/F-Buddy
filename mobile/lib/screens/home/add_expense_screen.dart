@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../services/bill_scan_service.dart';
 import '../../services/savings_alert_service.dart';
+import 'add_debt_screen.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -247,7 +248,117 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  Future<void> _selectDate() async {
+  Widget _buildSavingsAlertDialog(BuildContext context, Map<String, dynamic> status) {
+    final alertType = status['alertType'] as SavingsAlertType;
+    Color backgroundColor;
+    Color iconColor;
+    IconData icon;
+
+    switch (alertType) {
+      case SavingsAlertType.danger:
+        backgroundColor = Colors.red.shade50;
+        iconColor = Colors.red;
+        icon = Icons.warning_rounded;
+        break;
+      case SavingsAlertType.warning:
+        backgroundColor = Colors.orange.shade50;
+        iconColor = Colors.orange;
+        icon = Icons.info_outline;
+        break;
+      case SavingsAlertType.success:
+        backgroundColor = Colors.green.shade50;
+        iconColor = Colors.green;
+        icon = Icons.check_circle_outline;
+        break;
+      case SavingsAlertType.celebration:
+        backgroundColor = Colors.blue.shade50;
+        iconColor = Colors.blue;
+        icon = Icons.celebration;
+        break;
+    }
+
+    return AlertDialog(
+      backgroundColor: backgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              status['title'],
+              style: TextStyle(
+                color: iconColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            status['message'],
+            style: const TextStyle(fontSize: 15, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          // Savings info
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Current Savings:', style: TextStyle(fontSize: 13)),
+                    Text(
+                      '${(status['currentSavingsPercent'] as double).toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: iconColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Target:', style: TextStyle(fontSize: 13)),
+                    Text(
+                      '${(status['savingsTargetPercent'] as double).toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: iconColor,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Got it'),
+        ),
+      ],
+    );
+  }  Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -430,15 +541,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           savingsTargetPercent: user.savingsTarget,
         );
 
-        // Show alert based on status
+        // Show alert based on status - BEFORE popping the screen
         if (status['alertType'] == SavingsAlertType.danger ||
             status['alertType'] == SavingsAlertType.warning) {
-          // Show dialog for warnings and danger
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              SavingsAlertService.showSavingsAlert(context, status);
-            }
-          });
+          // Show dialog for warnings and danger immediately
+          if (mounted) {
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => _buildSavingsAlertDialog(ctx, status),
+            );
+          }
         } else {
           // Show snackbar for success messages
           ScaffoldMessenger.of(context).showSnackBar(
@@ -457,7 +570,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         );
       }
       
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -539,6 +652,83 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             const SizedBox(height: 4),
                             Text(
                               'Auto-fill amount & category from bill photo',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Debt/IOU Button
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddDebtScreen()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.green.shade400,
+                        Colors.orange.shade400,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.swap_horiz,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '💰 Track Debt / IOU',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Track money you owe or are owed',
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.8),
                                 fontSize: 12,

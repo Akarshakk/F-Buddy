@@ -7,7 +7,9 @@ import 'providers/auth_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/income_provider.dart';
 import 'providers/analytics_provider.dart';
+import 'providers/debt_provider.dart';
 import 'screens/splash_screen.dart';
+import 'screens/home/debt_list_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
         ChangeNotifierProvider(create: (_) => IncomeProvider()),
         ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
+        ChangeNotifierProvider(create: (_) => DebtProvider()),
       ],
       child: MaterialApp(
         title: 'F Buddy',
@@ -47,6 +50,9 @@ class MyApp extends StatelessWidget {
         ),
         themeMode: ThemeMode.system,
         home: const SplashScreen(),
+        routes: {
+          '/debts': (context) => const DebtListScreen(),
+        },
       ),
     );
   }
