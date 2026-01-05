@@ -2,23 +2,15 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
 enum SavingsAlertType {
-  warning,      // Savings rate approaching target (within buffer)
-  danger,       // Savings rate below target - limit reached!
-  success,      // On track to meet savings target
-  celebration,  // Great progress - saving more than target
+  warning,
+  danger,
+  success,
+  celebration,
 }
 
 class SavingsAlertService {
-  // Buffer percentage before target to show warning
   static const double warningBuffer = 5.0;
 
-  /// Calculate savings status based on income, expenses, and target
-  /// 
-  /// Example: If savings target is 20%
-  /// - If current savings is >= 25% (target + buffer) → Celebration/Success
-  /// - If current savings is 20-25% (at target but within buffer) → Success  
-  /// - If current savings is 15-20% (below target but within buffer) → Warning
-  /// - If current savings is < 15% (below target - buffer) → Danger
   static Map<String, dynamic> calculateSavingsStatus({
     required double totalIncome,
     required double totalExpenses,
@@ -35,26 +27,21 @@ class SavingsAlertService {
       };
     }
 
-    // Calculate current savings
     final savingsAmount = totalIncome - totalExpenses;
     final currentSavingsPercent = (savingsAmount / totalIncome) * 100;
     
-    // Calculate max spending allowed to meet savings target
     final maxSpendingPercent = 100 - savingsTargetPercent;
     final maxSpendingAllowed = (maxSpendingPercent / 100) * totalIncome;
     final remainingBudget = maxSpendingAllowed - totalExpenses;
     
-    // Calculate thresholds
-    final warningThreshold = savingsTargetPercent + warningBuffer; // e.g., 25% if target is 20%
-    final dangerThreshold = savingsTargetPercent; // e.g., 20%
+    final warningThreshold = savingsTargetPercent + warningBuffer;
+    final dangerThreshold = savingsTargetPercent;
 
     SavingsAlertType alertType;
     String message;
     String title;
 
     if (currentSavingsPercent < dangerThreshold) {
-      // DANGER: Savings rate is BELOW the target
-      // e.g., Current is 18%, target is 20% → Savings limit reached!
       alertType = SavingsAlertType.danger;
       title = '🚨 Savings Limit Reached!';
       final shortfall = savingsTargetPercent - currentSavingsPercent;
@@ -62,8 +49,6 @@ class SavingsAlertService {
           'which is ${shortfall.toStringAsFixed(1)}% below your ${savingsTargetPercent.toStringAsFixed(0)}% target. '
           'Consider reducing expenses to protect your savings!';
     } else if (currentSavingsPercent < warningThreshold) {
-      // WARNING: Savings rate is at target but within buffer zone
-      // e.g., Current is 22%, target is 20%, buffer is 5% → Warning: approaching limit
       alertType = SavingsAlertType.warning;
       title = '⚠️ Savings Limit Approaching!';
       final buffer = currentSavingsPercent - savingsTargetPercent;
@@ -71,14 +56,12 @@ class SavingsAlertService {
           'only ${buffer.toStringAsFixed(1)}% above your ${savingsTargetPercent.toStringAsFixed(0)}% target. '
           'You have ₹${remainingBudget.toStringAsFixed(0)} left before reaching your limit.';
     } else if (currentSavingsPercent >= warningThreshold + 10) {
-      // CELEBRATION: Savings rate is well above target (10%+ above warning threshold)
       alertType = SavingsAlertType.celebration;
       title = '🎉 Excellent Savings!';
       message = 'Amazing! You\'re saving ${currentSavingsPercent.toStringAsFixed(1)}% of your income - '
           'that\'s ${(currentSavingsPercent - savingsTargetPercent).toStringAsFixed(1)}% more than your target! '
           'Keep up the great work!';
     } else {
-      // SUCCESS: Savings rate is comfortably above target
       alertType = SavingsAlertType.success;
       title = '✅ On Track!';
       message = 'Great job! You\'re saving ${currentSavingsPercent.toStringAsFixed(1)}% of your income, '
@@ -101,7 +84,6 @@ class SavingsAlertService {
     };
   }
 
-  /// Show savings alert dialog
   static void showSavingsAlert(BuildContext context, Map<String, dynamic> status) {
     if (status['status'] == 'no_target') return;
 
@@ -163,7 +145,6 @@ class SavingsAlertService {
               style: const TextStyle(fontSize: 15, height: 1.4),
             ),
             const SizedBox(height: 16),
-            // Savings rate progress bar
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -190,7 +171,6 @@ class SavingsAlertService {
                 const SizedBox(height: 8),
                 Stack(
                   children: [
-                    // Background bar
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
@@ -199,7 +179,6 @@ class SavingsAlertService {
                         color: Colors.grey.shade300,
                       ),
                     ),
-                    // Current savings bar
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
@@ -213,7 +192,6 @@ class SavingsAlertService {
                                 : Colors.green,
                       ),
                     ),
-                    // Target marker
                     Positioned(
                       left: MediaQuery.of(context).size.width * 0.6 * 
                           ((status['savingsTargetPercent'] as double) / 100).clamp(0.0, 1.0) - 2,
@@ -263,7 +241,6 @@ class SavingsAlertService {
     );
   }
 
-  /// Show quick snackbar notification
   static void showQuickAlert(BuildContext context, Map<String, dynamic> status) {
     if (status['status'] == 'no_target') return;
 

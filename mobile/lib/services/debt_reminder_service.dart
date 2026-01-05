@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/debt.dart';
+import '../providers/debt_provider.dart';
+import '../providers/income_provider.dart';
+import '../providers/expense_provider.dart';
+import '../providers/analytics_provider.dart';
 
 class DebtReminderService {
-  /// Show a popup dialog for debts due today
   static void showDebtDueReminder(BuildContext context, List<Debt> debtsDueToday) {
     if (debtsDueToday.isEmpty) return;
 
@@ -13,7 +17,6 @@ class DebtReminderService {
     );
   }
 
-  /// Check if there are any debts due today and show reminder
   static Future<void> checkAndShowReminders(
     BuildContext context,
     Future<List<Debt>> Function() fetchDebtsDueToday,
@@ -36,7 +39,6 @@ class _DebtReminderDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Separate debts by type
     final theyOweMe = debts.where((d) => d.type == DebtType.theyOweMe).toList();
     final iOwe = debts.where((d) => d.type == DebtType.iOwe).toList();
 
@@ -48,7 +50,6 @@ class _DebtReminderDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Bell Icon with animation effect
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -76,7 +77,6 @@ class _DebtReminderDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Debts to collect (They owe me)
             if (theyOweMe.isNotEmpty) ...[
               _buildDebtSection(
                 title: '💰 To Collect Today',
@@ -86,7 +86,6 @@ class _DebtReminderDialog extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            // Debts to pay (I owe)
             if (iOwe.isNotEmpty) ...[
               _buildDebtSection(
                 title: '💸 To Pay Today',
@@ -98,7 +97,6 @@ class _DebtReminderDialog extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // Action Buttons
             Row(
               children: [
                 Expanded(
@@ -113,12 +111,26 @@ class _DebtReminderDialog extends StatelessWidget {
                     child: const Text('Remind Later'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _handleSettled(context, theyOweMe, iOwe),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Settled'),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      // Navigate to debt list screen
                       Navigator.pushNamed(context, '/debts');
                     },
                     style: ElevatedButton.styleFrom(
@@ -214,5 +226,81 @@ class _DebtReminderDialog extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleSettled(
+    BuildContext context,
+    List<Debt> theyOweMe,
+    List<Debt> iOwe,
+  ) async {
+    try {
+      final debtProvider = Provider.of<DebtProvider>(context, listen: false);
+      final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+      final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
+      final analyticsProvider = Provider.of<AnalyticsProvider>(context, listen: false);
+
+      final totalOwedToMe = theyOweMe.fold<double>(0, (sum, debt) => sum + debt.amount);
+      final totalIOwe = iOwe.fold<double>(0, (sum, debt) => sum + debt.amount);
+
+      if (totalOwedToMe > 0) {
+        await incomeProvider.addIncome(
+          amount: totalOwedToMe,
+          description: 'Debt collection from ${theyOweMe.length} debt${theyOweMe.length > 1 ? 's' : ''}',
+          source: 'debt_settlement',
+        );
+      }
+
+      if (totalIOwe > 0) {
+        await expenseProvider.addExpense(
+          amount: totalIOwe,
+          category: 'Debt Payment',
+          description: 'Debt payment to ${iOwe.length} person${iOwe.length > 1 ? 's' : ''}',
+        );
+      }
+
+      for (final debt in [...theyOweMe, ...iOwe]) {
+        await debtProvider.settleDebt(debt.id);
+      }
+
+      await Future.wait([
+        incomeProvider.fetchCurrentMonthIncome(),
+        expenseProvider.fetchLatestExpenses(),
+      ]);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      await Future.wait([
+        analyticsProvider.fetchDashboardData(),
+        analyticsProvider.fetchBalanceChartData(),
+      ]);
+
+      if (context.mounted) {
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ All debts settled! ${totalOwedToMe > 0 ? 'Received ₹${totalOwedToMe.toStringAsFixed(0)}. ' : ''}${totalIOwe > 0 ? 'Paid ₹${totalIOwe.toStringAsFixed(0)}.' : ''}Balance updated!',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (context.mounted) {
+          await analyticsProvider.fetchDashboardData();
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Failed to settle debts: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

@@ -142,7 +142,6 @@ class AppColorsDark {
   ];
 }
 
-// Helper class to get theme-aware colors
 class ColorHelper {
   static Color getPrimaryColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark

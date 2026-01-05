@@ -259,15 +259,6 @@ class _ProfileTabState extends State<ProfileTab> {
                   child: Column(
                     children: [
                       _buildListTile(
-                        icon: Icons.account_balance_wallet_outlined,
-                        title: 'Monthly Budget',
-                        subtitle: '₹${user?.monthlyBudget.toStringAsFixed(0) ?? '0'}',
-                        onTap: () => _showEditBudgetDialog(context),
-                        textColor: textPrimaryColor,
-                        subtitleColor: textSecondaryColor,
-                      ),
-                      const Divider(height: 1),
-                      _buildListTile(
                         icon: Icons.savings_outlined,
                         title: 'Savings Target',
                         subtitle: '${user?.savingsTarget.toStringAsFixed(0) ?? '0'}% of income',
@@ -300,14 +291,14 @@ class _ProfileTabState extends State<ProfileTab> {
                       const Divider(height: 1),
                       _buildListTile(
                         icon: Icons.switch_account,
-                        title: 'Switch to Splitwise',
+                        title: 'Switch to SmartSplit',
                         subtitle: 'Manage group expenses',
                         onTap: () {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Switch Feature'),
-                              content: const Text('Switch to Group Expenses (Splitwise)?'),
+                              content: const Text('Switch to Group Expenses (SmartSplit)?'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
@@ -413,66 +404,6 @@ class _ProfileTabState extends State<ProfileTab> {
       trailing: Icon(Icons.chevron_right, color: subtitleColorFinal, size: 20),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    );
-  }
-
-  void _showEditBudgetDialog(BuildContext context) {
-    final controller = TextEditingController(
-      text: Provider.of<AuthProvider>(context, listen: false)
-          .user
-          ?.monthlyBudget
-          .toStringAsFixed(0),
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Monthly Budget', style: TextStyle(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        )),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Monthly Budget',
-            prefixText: '₹ ',
-            filled: true,
-            fillColor: const Color(0xFFFDFCFB),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade200),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final budget = double.tryParse(controller.text);
-              if (budget != null) {
-                await Provider.of<AuthProvider>(context, listen: false)
-                    .updateProfile(monthlyBudget: budget);
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 

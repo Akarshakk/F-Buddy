@@ -186,6 +186,39 @@ exports.deleteDebt = async (req, res) => {
   }
 };
 
+// @desc    Mark reminder as sent
+// @route   PUT /api/debts/:id/reminder-sent
+// @access  Private
+exports.markReminderSent = async (req, res) => {
+  try {
+    const debt = await Debt.findOne({
+      _id: req.params.id,
+      user: req.user.id
+    });
+
+    if (!debt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Debt not found'
+      });
+    }
+
+    debt.reminderSent = true;
+    await debt.save();
+
+    res.json({
+      success: true,
+      data: debt
+    });
+  } catch (error) {
+    console.error('Mark reminder sent error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
+  }
+};
+
 // @desc    Settle a debt
 // @route   PUT /api/debts/:id/settle
 // @access  Private
@@ -203,13 +236,19 @@ exports.settleDebt = async (req, res) => {
       });
     }
 
+    if (debt.isSettled) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debt is already settled'
+      });
+    }
+
     debt.isSettled = true;
     debt.settledDate = new Date();
     await debt.save();
 
     res.json({
       success: true,
-      message: 'Debt settled successfully',
       data: debt
     });
   } catch (error) {
@@ -280,39 +319,6 @@ exports.getUpcomingDebts = async (req, res) => {
     });
   } catch (error) {
     console.error('Get upcoming debts error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server Error'
-    });
-  }
-};
-
-// @desc    Mark reminder as sent
-// @route   PUT /api/debts/:id/reminder-sent
-// @access  Private
-exports.markReminderSent = async (req, res) => {
-  try {
-    const debt = await Debt.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
-
-    if (!debt) {
-      return res.status(404).json({
-        success: false,
-        message: 'Debt not found'
-      });
-    }
-
-    debt.reminderSent = true;
-    await debt.save();
-
-    res.json({
-      success: true,
-      data: debt
-    });
-  } catch (error) {
-    console.error('Mark reminder sent error:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error'

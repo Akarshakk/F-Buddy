@@ -77,7 +77,7 @@ class FeatureSelectionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Feature Card 2: Group Expenses (Splitwise)
+              // Feature Card 2: Group Expenses (SmartSplit)
               _buildFeatureCard(
                 context,
                 icon: Icons.group,

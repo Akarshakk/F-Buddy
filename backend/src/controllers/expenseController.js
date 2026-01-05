@@ -1,7 +1,6 @@
 const Expense = require('../models/Expense');
 const { EXPENSE_CATEGORIES } = require('../models/Expense');
 
-// Helper function to parse date without timezone issues
 const parseDate = (dateString) => {
   if (!dateString) return new Date();
 

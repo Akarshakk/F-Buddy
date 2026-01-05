@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/debt.dart';
 import '../../providers/debt_provider.dart';
+import 'debt_list_screen.dart';
 
 class AddDebtScreen extends StatefulWidget {
   const AddDebtScreen({super.key});
@@ -132,6 +133,24 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DebtListScreen()),
+              );
+            },
+            icon: const Icon(Icons.history, color: AppColors.primary),
+            label: const Text(
+              'View All',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
