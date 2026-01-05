@@ -347,4 +347,4 @@ For issues, questions, or contributions, please contact the development team.
 
 ---
 
-**Built with ❤️ using Flutter and Node.js**
+**Built with ❤️ by team Code4Change**
