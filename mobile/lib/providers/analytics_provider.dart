@@ -102,20 +102,31 @@ class DashboardData {
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
-    final overview = json['overview'] ?? {};
-    final categoryList = json['categoryBreakdown'] as List? ?? [];
-    final expenseList = json['latestExpenses'] as List? ?? [];
+    try {
+      final overview = json['overview'] ?? {};
+      final categoryList = json['categoryBreakdown'] as List? ?? [];
+      final expenseList = json['latestExpenses'] as List? ?? [];
 
-    return DashboardData(
-      totalIncome: (overview['totalIncome'] ?? 0).toDouble(),
-      totalExpense: (overview['totalExpense'] ?? 0).toDouble(),
-      balance: (overview['balance'] ?? 0).toDouble(),
-      savingsRate: double.tryParse(overview['savingsRate'].toString()) ?? 0,
-      month: overview['month'] ?? '',
-      categoryBreakdown: categoryList.map((c) => CategoryData.fromJson(c)).toList(),
-      latestExpenses: expenseList.map((e) => Expense.fromJson(e)).toList(),
-      hasChartData: json['hasChartData'] ?? false,
-    );
+      // Debug logging
+      print('[DashboardData] Parsing overview: $overview');
+      print('[DashboardData] Month field type: ${overview['month'].runtimeType}');
+      print('[DashboardData] Month value: ${overview['month']}');
+
+      return DashboardData(
+        totalIncome: (overview['totalIncome'] ?? 0).toDouble(),
+        totalExpense: (overview['totalExpense'] ?? 0).toDouble(),
+        balance: (overview['balance'] ?? 0).toDouble(),
+        savingsRate: double.tryParse(overview['savingsRate']?.toString() ?? '0') ?? 0,
+        month: overview['month']?.toString() ?? '',
+        categoryBreakdown: categoryList.map((c) => CategoryData.fromJson(c)).toList(),
+        latestExpenses: expenseList.map((e) => Expense.fromJson(e)).toList(),
+        hasChartData: json['hasChartData'] ?? false,
+      );
+    } catch (e, stackTrace) {
+      print('[DashboardData] Error parsing: $e');
+      print('[DashboardData] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 }
 
@@ -229,10 +240,17 @@ class AnalyticsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      print('[Analytics] Fetching dashboard data...');
       final response = await ApiService.get(ApiConstants.dashboard);
 
+      print('[Analytics] Dashboard response: ${response['success']}');
       if (response['success'] == true) {
         _dashboardData = DashboardData.fromJson(response['data']);
+        print('[Analytics] Dashboard data loaded:');
+        print('  - Total Income: ${_dashboardData?.totalIncome}');
+        print('  - Total Expense: ${_dashboardData?.totalExpense}');
+        print('  - Balance: ${_dashboardData?.balance}');
+        
         // Only update chart availability if balance chart hasn't been fetched yet
         if (_balanceChartData.isEmpty) {
           _hasEnoughDataForChart = _dashboardData?.hasChartData ?? false;
@@ -240,9 +258,11 @@ class AnalyticsProvider extends ChangeNotifier {
         _categoryData = _dashboardData?.categoryBreakdown ?? [];
       } else {
         _errorMessage = response['message'] ?? 'Failed to fetch dashboard data';
+        print('[Analytics] Error: $_errorMessage');
       }
     } catch (e) {
       _errorMessage = e.toString();
+      print('[Analytics] Exception: $_errorMessage');
     }
 
     _isLoading = false;

@@ -20,7 +20,7 @@ class ApiConstants {
   
   // 🔧 CHANGE THIS FOR REAL DEVICE TESTING:
   // Example: static const String _serverIp = '192.168.1.100';
-  static const String _serverIp = 'localhost';  // Using USB reverse proxy (adb reverse)
+  static const String _serverIp = '192.168.0.105';  // Computer IP for physical device
   static const String _serverPort = '5001';
   
   // Automatically detect platform and use correct URL

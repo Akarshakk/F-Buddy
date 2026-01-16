@@ -40,10 +40,76 @@ class _SelfieScreenState extends State<SelfieScreen> {
     try {
       final result = await _kycService.uploadSelfie(_image!);
       
-      // If success (200 OK and no exception), proceed
-      widget.onSuccess();
+      // Check if face verification was successful
+      if (result['success'] == true) {
+        // Face matched successfully
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Face verified successfully! ✓'),
+            backgroundColor: Colors.green,
+          )
+        );
+        widget.onSuccess();
+      } else {
+        // Face verification failed
+        final matchScore = result['data']?['matchScore'] ?? 0;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Face verification failed. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          )
+        );
+        
+        // Show detailed error dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Verification Failed'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('The face in your selfie does not match the document photo.'),
+                SizedBox(height: 12),
+                Text('Match Score: ${matchScore.toStringAsFixed(1)}% (Required: 80%)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                SizedBox(height: 12),
+                Text('Tips:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('• Ensure good lighting'),
+                Text('• Remove glasses or caps'),
+                Text('• Face the camera directly'),
+                Text('• Use the same person\'s photo'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Try Again'),
+              ),
+            ],
+          ),
+        );
+        
+        // Clear the image so user can retake
+        setState(() {
+          _image = null;
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Verification failed: $e'),
+          backgroundColor: Colors.red,
+        )
+      );
     } finally {
       setState(() => _isUploading = false);
     }

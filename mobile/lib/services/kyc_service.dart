@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -11,18 +9,8 @@ class KycService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5001/api/kyc';
-    }
-    // Android Emulator
-    try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:5001/api/kyc';
-      }
-    } catch (e) {
-      // Platform not available, default to localhost
-    }
-    return 'http://localhost:5001/api/kyc';
+    // Use the centralized API configuration from constants.dart
+    return '${ApiConstants.baseUrl}/kyc';
   }
 
   Future<String?> _getToken() async {

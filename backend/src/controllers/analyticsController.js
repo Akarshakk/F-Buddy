@@ -227,12 +227,22 @@ exports.getDashboard = async (req, res) => {
 
     // Get latest 10 expenses
     const latestExpenses = await Expense.findByUser(req.user.id, { limit: 10 });
+    
+    console.log('[Dashboard] Latest expenses count:', latestExpenses.length);
+    if (latestExpenses.length > 0) {
+      console.log('[Dashboard] First expense sample:', JSON.stringify(latestExpenses[0], null, 2));
+    }
 
     // Check for chart data availability
     const uniqueDatesCount = await Expense.getUniqueDatesCount(req.user.id);
     const hasChartData = uniqueDatesCount >= 7;
 
     const balance = totalIncome - totalExpense;
+
+    console.log('[Dashboard] Balance calculation:');
+    console.log(`  - Total Income: ${totalIncome}`);
+    console.log(`  - Total Expense: ${totalExpense}`);
+    console.log(`  - Balance: ${balance}`);
 
     res.status(200).json({
       success: true,

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../services/sms_service.dart';
 import '../services/notification_service.dart';
 import '../services/api_service.dart';
+import 'dart:async';
 
 class SmsProvider with ChangeNotifier {
   final SmsService _smsService = SmsService();
@@ -11,6 +12,7 @@ class SmsProvider with ChangeNotifier {
   bool _isInitializing = false;
   int _smsTransactionCount = 0;
   List<Map<String, dynamic>> _pendingReviews = [];
+  Timer? _pollTimer;
 
   bool get isEnabled => _isEnabled;
   bool get isInitializing => _isInitializing;
@@ -29,7 +31,11 @@ class SmsProvider with ChangeNotifier {
         
         // Initialize services
         await _notificationService.initialize();
-        await _smsService.initializeSmsListener();
+        // Removed explicit listener init call as we use polling now
+        // await _smsService.initializeSmsListener();
+        
+        // Start polling since it was enabled
+        _startPolling();
         
         // Load transaction count
         await loadSmsTransactionCount();
@@ -57,12 +63,16 @@ class SmsProvider with ChangeNotifier {
         // Initialize notification service
         await _notificationService.initialize();
         
-        // Initialize SMS listener
-        final initialized = await _smsService.initializeSmsListener();
+        // Initialize SMS listener (Now simply checks permissions/services)
+        // For polling, we just ensure permissions are okay
         
-        if (initialized) {
+        if (granted) {
           _isEnabled = true;
           _isInitializing = false;
+          
+          // Start Polling Timer
+          _startPolling();
+          
           notifyListeners();
           
           print('[SMS Provider] ✅ SMS tracking enabled');
@@ -84,8 +94,34 @@ class SmsProvider with ChangeNotifier {
   /// Disable SMS tracking
   void disableSmsTracking() {
     _isEnabled = false;
+    _stopPolling();
     notifyListeners();
     print('[SMS Provider] ⏸️  SMS tracking disabled');
+  }
+  
+  /// Start polling timer
+  void _startPolling() {
+    _stopPolling(); // Cancel existing if any
+    
+    print('[SMS Provider] 🕒 Starting SMS polling service (15s interval)...');
+    
+    // Initial Poll immediately
+    _smsService.pollRecentSms();
+    
+    // Poll every 15 seconds
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (!_isEnabled) {
+        timer.cancel();
+        return;
+      }
+      _smsService.pollRecentSms();
+    });
+  }
+
+  /// Stop polling timer
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
   }
 
   /// Load SMS transaction count from backend
@@ -97,6 +133,22 @@ class SmsProvider with ChangeNotifier {
       print('[SMS Provider] 📊 Loaded $smsTransactionCount SMS transactions');
     } catch (e) {
       print('[SMS Provider] ❌ Error loading count: $e');
+    }
+  }
+
+  /// Fetch ALL SMS for debugging
+  Future<List<Map<String, dynamic>>> fetchAllSms({int daysBack = 30}) async {
+    try {
+      print('[SMS Provider] 📱 Fetching ALL SMS...');
+      
+      final allMessages = await _smsService.fetchAllSms(daysBack: daysBack);
+      
+      print('[SMS Provider] ✅ Fetched ${allMessages.length} total SMS');
+      
+      return allMessages;
+    } catch (e) {
+      print('[SMS Provider] ❌ Fetch error: $e');
+      return [];
     }
   }
 
