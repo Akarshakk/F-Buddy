@@ -44,7 +44,8 @@ const initializeFirebase = () => {
         return admin.firestore();
     } catch (error) {
         console.error('❌ Error initializing Firebase:', error.message);
-        process.exit(1);
+        console.log('⚠️  Firebase not configured - app will use MongoDB only');
+        throw error; // Re-throw to be caught by server.js
     }
 };
 

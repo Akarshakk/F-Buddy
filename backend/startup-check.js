@@ -25,7 +25,7 @@ if (missingEnvVars.length > 0) {
     console.log(`   - JWT_SECRET: ${process.env.JWT_SECRET.substring(0, 10)}...`);
 }
 
-// Check 2: Firebase Configuration
+// Check 2: Firebase Configuration (Optional for local development)
 console.log('\n2️⃣ Checking Firebase Configuration...');
 const serviceAccountPath = path.join(__dirname, 'firebase-service-account.json');
 if (fs.existsSync(serviceAccountPath)) {
@@ -33,11 +33,8 @@ if (fs.existsSync(serviceAccountPath)) {
 } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
     console.log('   ✅ Firebase configured via environment variables');
 } else {
-    console.error('   ❌ Firebase not configured!');
-    console.error('   Either:');
-    console.error('     1. Place firebase-service-account.json in backend/ folder, OR');
-    console.error('     2. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY env vars');
-    hasErrors = true;
+    console.log('   ⚠️  Firebase not configured - using local auth only');
+    // hasErrors = true; // Commented out for local development
 }
 
 // Check 3: SMTP Configuration (Optional)

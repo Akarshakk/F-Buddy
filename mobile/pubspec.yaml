@@ -41,6 +41,11 @@ dependencies:
   # Utils
   fluttertoast: ^8.2.4
   image_picker: ^1.0.7
+  
+  # SMS & Permissions
+  telephony: ^0.2.0
+  permission_handler: ^11.0.1
+  flutter_local_notifications: ^16.3.0
 
 dev_dependencies:
   flutter_test:
