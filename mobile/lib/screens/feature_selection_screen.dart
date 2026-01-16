@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import 'home/home_screen.dart';
 import 'splitwise/splitwise_home_screen.dart';
+import '../features/financial_calculator/calculator_feature.dart';
 
 class FeatureSelectionScreen extends StatelessWidget {
   const FeatureSelectionScreen({super.key});
@@ -9,16 +10,21 @@ class FeatureSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : const Color.fromARGB(255, 228, 228, 228);
+    final bgColor = isDark
+        ? AppColorsDark.background
+        : const Color.fromARGB(255, 228, 228, 228);
     final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final secondaryColor = isDark ? AppColorsDark.secondary : AppColors.secondary;
-    final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+    final secondaryColor =
+        isDark ? AppColorsDark.secondary : AppColors.secondary;
+    final textPrimaryColor =
+        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+    final textSecondaryColor =
+        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -86,7 +92,24 @@ class FeatureSelectionScreen extends StatelessWidget {
                 color: secondaryColor,
                 onTap: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const SplitwiseHomeScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const SplitwiseHomeScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Feature Card 3: Personal Finance Manager (Calculator)
+              _buildFeatureCard(
+                context,
+                icon: Icons.calculate,
+                title: 'Personal Finance Manager',
+                subtitle: 'Plan investments and\nanalyze returns',
+                color: Colors.teal,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const FinanceManagerScreen()),
                   );
                 },
               ),
@@ -185,7 +208,9 @@ class FeatureSelectionScreen extends StatelessWidget {
             Text(
               subtitle,
               style: AppTextStyles.body2.copyWith(
-                color: isDark ? AppColorsDark.textSecondary : AppColors.textSecondary,
+                color: isDark
+                    ? AppColorsDark.textSecondary
+                    : AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
