@@ -1,78 +1,129 @@
-const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { getDb } = require('../config/firebase');
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Please provide your name'],
-    trim: true,
-    maxlength: [50, 'Name cannot be more than 50 characters']
-  },
-  email: {
-    type: String,
-    required: [true, 'Please provide your email'],
-    unique: true,
-    lowercase: true,
-    match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-      'Please provide a valid email'
-    ]
-  },
-  password: {
-    type: String,
-    required: [true, 'Please provide a password'],
-    minlength: [6, 'Password must be at least 6 characters'],
-    select: false
-  },
-  profilePicture: {
-    type: String,
-    default: null
-  },
-  monthlyBudget: {
-    type: Number,
-    default: 0
-  },
-  savingsTarget: {
-    type: Number,
-    default: 0,
-    min: [0, 'Savings target cannot be negative'],
-    max: [100, 'Savings target cannot exceed 100%']
-  },
-  kycStatus: {
-    type: String,
-    enum: ['NOT_STARTED', 'PENDING', 'VERIFIED', 'FAILED'],
-    default: 'NOT_STARTED'
-  },
-  kycStep: {
-    type: Number,
-    default: 0, // 0: Not Started, 1: Doc Uploaded, 2: Selfie Verified, 3: Completed
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+const COLLECTION_NAME = 'users';
 
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    next();
-  }
+// User schema definition (for validation reference)
+const userFields = {
+  name: { type: 'string', required: true, maxLength: 50 },
+  email: { type: 'string', required: true, unique: true },
+  password: { type: 'string', required: true, minLength: 6 },
+  profilePicture: { type: 'string', default: null },
+  monthlyBudget: { type: 'number', default: 0 },
+  savingsTarget: { type: 'number', default: 0, min: 0, max: 100 },
+  kycStatus: { type: 'string', enum: ['NOT_STARTED', 'PENDING', 'VERIFIED', 'FAILED'], default: 'NOT_STARTED' },
+  kycStep: { type: 'number', default: 0 },
+  createdAt: { type: 'timestamp', default: () => new Date() }
+};
+
+// Hash password
+const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
+  return await bcrypt.hash(password, salt);
+};
 
-// Sign JWT and return
-userSchema.methods.getSignedJwtToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+// Compare passwords
+const matchPassword = async (enteredPassword, hashedPassword) => {
+  return await bcrypt.compare(enteredPassword, hashedPassword);
+};
+
+// Generate JWT token
+const getSignedJwtToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
   });
 };
 
-// Match password
-userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+// Create a new user
+const createUser = async (userData) => {
+  const db = getDb();
+
+  // Hash password before saving
+  const hashedPassword = await hashPassword(userData.password);
+
+  const user = {
+    name: userData.name?.trim() || '',
+    email: userData.email?.toLowerCase() || '',
+    password: hashedPassword,
+    profilePicture: userData.profilePicture || null,
+    monthlyBudget: userData.monthlyBudget || 0,
+    savingsTarget: userData.savingsTarget || 0,
+    emailVerified: userData.emailVerified || false, // Accept from caller or default false
+    kycStatus: 'NOT_STARTED',
+    kycStep: 0,
+    createdAt: new Date()
+  };
+
+  const docRef = await db.collection(COLLECTION_NAME).add(user);
+  return { id: docRef.id, ...user };
 };
 
-module.exports = mongoose.model('User', userSchema);
+// Find user by email
+const findByEmail = async (email, includePassword = false) => {
+  const db = getDb();
+  const snapshot = await db.collection(COLLECTION_NAME)
+    .where('email', '==', email.toLowerCase())
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) return null;
+
+  const doc = snapshot.docs[0];
+  const userData = { id: doc.id, ...doc.data() };
+
+  // Remove password unless explicitly requested
+  if (!includePassword) {
+    delete userData.password;
+  }
+
+  return userData;
+};
+
+// Find user by ID
+const findById = async (id, includePassword = false) => {
+  const db = getDb();
+  const doc = await db.collection(COLLECTION_NAME).doc(id).get();
+
+  if (!doc.exists) return null;
+
+  const userData = { id: doc.id, ...doc.data() };
+
+  if (!includePassword) {
+    delete userData.password;
+  }
+
+  return userData;
+};
+
+// Update user
+const updateUser = async (id, updateData) => {
+  const db = getDb();
+
+  // If password is being updated, hash it
+  if (updateData.password) {
+    updateData.password = await hashPassword(updateData.password);
+  }
+
+  await db.collection(COLLECTION_NAME).doc(id).update(updateData);
+  return await findById(id);
+};
+
+// Check if email exists
+const emailExists = async (email) => {
+  const user = await findByEmail(email);
+  return user !== null;
+};
+
+module.exports = {
+  COLLECTION_NAME,
+  userFields,
+  hashPassword,
+  matchPassword,
+  getSignedJwtToken,
+  createUser,
+  findByEmail,
+  findById,
+  updateUser,
+  emailExists
+};

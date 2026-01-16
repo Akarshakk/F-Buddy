@@ -1,33 +1,14 @@
 const Group = require('../models/Group');
-
-// Generate unique 6-character invite code
-const generateInviteCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-};
+const User = require('../models/User');
 
 // @desc    Create a new group
 // @route   POST /api/groups
 // @access  Private
 exports.createGroup = async (req, res) => {
     try {
-        const { name, description, memberEmails } = req.body;
+        const { name, description } = req.body;
         const userId = req.user.id;
 
-        // Generate unique invite code
-        let inviteCode;
-        let codeExists = true;
-        while (codeExists) {
-            inviteCode = generateInviteCode();
-            const existing = await Group.findOne({ inviteCode });
-            if (!existing) codeExists = false;
-        }
-
-        // Create group with creator as first member
         const group = await Group.create({
             name,
             description: description || '',
@@ -38,10 +19,7 @@ exports.createGroup = async (req, res) => {
                 amountOwed: 0,
                 amountLent: 0
             }],
-            expenses: [],
-            createdBy: userId,
-            inviteCode,
-            imageUrl: ''
+            createdBy: userId
         });
 
         res.status(201).json({
@@ -62,23 +40,7 @@ exports.createGroup = async (req, res) => {
 exports.getGroups = async (req, res) => {
     try {
         const userId = req.user.id;
-
-        console.log('=== GET GROUPS DEBUG ===');
-        console.log('Looking for userId:', userId);
-        console.log('userId type:', typeof userId);
-
-        // Find all groups where user is a member
-        const groups = await Group.find({
-            'members.userId': userId
-        }).sort({ createdAt: -1 });
-
-        console.log('Found groups:', groups.length);
-        if (groups.length > 0) {
-            console.log('First group members:', groups[0].members.map(m => ({
-                userId: m.userId,
-                email: m.email
-            })));
-        }
+        const groups = await Group.findByMember(userId);
 
         res.json({
             success: true,
@@ -136,7 +98,7 @@ exports.joinGroup = async (req, res) => {
         const { inviteCode } = req.body;
         const userId = req.user.id;
 
-        const group = await Group.findOne({ inviteCode: inviteCode.toUpperCase() });
+        const group = await Group.findByInviteCode(inviteCode);
 
         if (!group) {
             return res.status(404).json({
@@ -155,19 +117,15 @@ exports.joinGroup = async (req, res) => {
         }
 
         // Add user to group
-        group.members.push({
+        const updatedGroup = await Group.addMember(group.id, {
             userId,
             name: req.user.name,
-            email: req.user.email,
-            amountOwed: 0,
-            amountLent: 0
+            email: req.user.email
         });
-
-        await group.save();
 
         res.json({
             success: true,
-            data: { group },
+            data: { group: updatedGroup },
             message: 'Joined group successfully'
         });
     } catch (error) {
@@ -203,8 +161,7 @@ exports.addMember = async (req, res) => {
         }
 
         // Find user by email
-        const User = require('../models/User');
-        const user = await User.findOne({ email: memberEmail });
+        const user = await User.findByEmail(memberEmail);
 
         if (!user) {
             return res.status(404).json({
@@ -213,15 +170,9 @@ exports.addMember = async (req, res) => {
             });
         }
 
-        console.log('=== ADD MEMBER DEBUG ===');
-        console.log('Found user._id:', user._id);
-        console.log('Found user._id type:', typeof user._id);
-        console.log('Current user (req.user.id):', req.user.id);
-        console.log('Current user type:', typeof req.user.id);
-
-        // Check if user is already a member (by userId or email)
+        // Check if user is already a member
         const alreadyMember = group.members.some(m =>
-            m.userId === user._id.toString() || m.email === memberEmail
+            m.userId === user.id || m.email === memberEmail
         );
         if (alreadyMember) {
             return res.status(400).json({
@@ -230,28 +181,16 @@ exports.addMember = async (req, res) => {
             });
         }
 
-        // Add member - use same format as req.user.id
-        const userIdToStore = user._id.toString();
-        console.log('Storing userId:', userIdToStore);
-
-        group.members.push({
-            userId: userIdToStore,
+        // Add member
+        const updatedGroup = await Group.addMember(req.params.id, {
+            userId: user.id,
             name: user.name,
-            email: user.email,
-            amountOwed: 0,
-            amountLent: 0
+            email: user.email
         });
-
-        await group.save();
-
-        console.log('Member added. Group members:', group.members.map(m => ({
-            userId: m.userId,
-            email: m.email
-        })));
 
         res.json({
             success: true,
-            data: { group },
+            data: { group: updatedGroup },
             message: 'Member added successfully'
         });
     } catch (error) {
@@ -284,7 +223,7 @@ exports.deleteGroup = async (req, res) => {
             });
         }
 
-        await group.deleteOne();
+        await Group.deleteById(req.params.id);
 
         res.json({
             success: true,
@@ -329,19 +268,17 @@ exports.leaveGroup = async (req, res) => {
             });
         }
 
-        // Remove member
-        group.members.splice(memberIndex, 1);
-
         // If last member leaving, delete the group
-        if (group.members.length === 0) {
-            await group.deleteOne();
+        if (group.members.length === 1) {
+            await Group.deleteById(req.params.id);
             return res.json({
                 success: true,
                 message: 'You left the group. Group has been deleted as you were the last member.'
             });
         }
 
-        await group.save();
+        // Remove member
+        await Group.removeMember(req.params.id, req.user.id);
 
         res.json({
             success: true,
@@ -388,12 +325,11 @@ exports.transferOwnership = async (req, res) => {
         }
 
         // Transfer ownership
-        group.createdBy = newOwnerId;
-        await group.save();
+        const updatedGroup = await Group.updateById(req.params.id, { createdBy: newOwnerId });
 
         res.json({
             success: true,
-            data: { group },
+            data: { group: updatedGroup },
             message: 'Ownership transferred successfully'
         });
     } catch (error) {
@@ -429,28 +365,25 @@ exports.settleUp = async (req, res) => {
         }
 
         // Find the members involved
-        const fromMember = group.members.find(m => m.userId === fromUserId);
-        const toMember = group.members.find(m => m.userId === toUserId);
+        const fromIndex = group.members.findIndex(m => m.userId === fromUserId);
+        const toIndex = group.members.findIndex(m => m.userId === toUserId);
 
-        if (!fromMember || !toMember) {
+        if (fromIndex === -1 || toIndex === -1) {
             return res.status(400).json({
                 success: false,
                 message: 'Both members must be in the group'
             });
         }
 
-        // Update balances - person paying reduces their debt (owed), person receiving reduces what they're owed (lent)
-        const fromIndex = group.members.findIndex(m => m.userId === fromUserId);
-        const toIndex = group.members.findIndex(m => m.userId === toUserId);
-
+        // Update balances
         group.members[fromIndex].amountOwed = Math.max(0, group.members[fromIndex].amountOwed - amount);
         group.members[toIndex].amountLent = Math.max(0, group.members[toIndex].amountLent - amount);
 
-        await group.save();
+        const updatedGroup = await Group.updateById(req.params.id, { members: group.members });
 
         res.json({
             success: true,
-            data: { group },
+            data: { group: updatedGroup },
             message: 'Payment settled successfully'
         });
     } catch (error) {
@@ -485,36 +418,18 @@ exports.addExpense = async (req, res) => {
             });
         }
 
-        // Add expense
-        group.expenses.push({
+        const updatedGroup = await Group.addExpense(req.params.id, {
             paidBy,
             paidByName,
             amount,
-            description: description || 'Group Expense',
+            description,
             splits,
-            category: category || 'other',
-            date: new Date()
+            category
         });
-
-        // Update member balances
-        for (const split of splits) {
-            const memberIndex = group.members.findIndex(m => m.userId === split.memberId);
-            if (memberIndex !== -1) {
-                group.members[memberIndex].amountOwed += split.amount;
-            }
-        }
-
-        // Update payer's balance
-        const payerIndex = group.members.findIndex(m => m.userId === paidBy);
-        if (payerIndex !== -1) {
-            group.members[payerIndex].amountLent += amount;
-        }
-
-        await group.save();
 
         res.json({
             success: true,
-            data: { group },
+            data: { group: updatedGroup },
             message: 'Expense added successfully'
         });
     } catch (error) {
@@ -550,7 +465,7 @@ exports.deleteGroupExpense = async (req, res) => {
         }
 
         // Find the expense
-        const expenseIndex = group.expenses.findIndex(e => e._id.toString() === expenseId);
+        const expenseIndex = group.expenses.findIndex(e => e.id === expenseId);
         if (expenseIndex === -1) {
             return res.status(404).json({
                 success: false,
@@ -577,11 +492,14 @@ exports.deleteGroupExpense = async (req, res) => {
         // Remove expense
         group.expenses.splice(expenseIndex, 1);
 
-        await group.save();
+        const updatedGroup = await Group.updateById(req.params.id, {
+            expenses: group.expenses,
+            members: group.members
+        });
 
         res.json({
             success: true,
-            data: { group },
+            data: { group: updatedGroup },
             message: 'Expense deleted successfully'
         });
     } catch (error) {

@@ -121,6 +121,25 @@ class _KycScreenState extends State<KycScreen> {
       appBar: AppBar(
         title: Text('Account Setup'),
         elevation: 0,
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Skip KYC and go to feature selection
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const FeatureSelectionScreen(),
+                ),
+              );
+            },
+            child: Text(
+              'Skip',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -134,7 +153,7 @@ class _KycScreenState extends State<KycScreen> {
                  // Step 1: Selfie
                  SelfieScreen(onSuccess: _nextStep),
                  // Step 2: MFA/OTP Verification
-                 MfaScreen(onSuccess: _completeKyc),
+                 MfaScreen(onSuccess: _completeKyc, isActive: _currentStep == 2),
                  // Step 3: Completed (shouldn't normally reach here)
                  Center(
                    child: Column(

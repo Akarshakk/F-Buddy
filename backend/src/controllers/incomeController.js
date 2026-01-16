@@ -42,13 +42,11 @@ exports.getIncomes = async (req, res) => {
   try {
     const { month, year } = req.query;
 
-    let query = { user: req.user.id };
+    const options = {};
+    if (month) options.month = parseInt(month);
+    if (year) options.year = parseInt(year);
 
-    // Filter by month and year if provided
-    if (month) query.month = parseInt(month);
-    if (year) query.year = parseInt(year);
-
-    const incomes = await Income.find(query).sort({ date: -1 });
+    const incomes = await Income.findByUser(req.user.id, options);
 
     // Calculate total income
     const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0);
@@ -77,12 +75,7 @@ exports.getCurrentMonthIncome = async (req, res) => {
     const month = currentDate.getMonth() + 1;
     const year = currentDate.getFullYear();
 
-    const incomes = await Income.find({
-      user: req.user.id,
-      month,
-      year
-    });
-
+    const incomes = await Income.findByUser(req.user.id, { month, year });
     const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0);
 
     res.status(200).json({
@@ -117,17 +110,14 @@ exports.updateIncome = async (req, res) => {
     }
 
     // Make sure user owns the income
-    if (income.user.toString() !== req.user.id) {
+    if (income.user !== req.user.id) {
       return res.status(401).json({
         success: false,
         message: 'Not authorized to update this income'
       });
     }
 
-    income = await Income.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    income = await Income.updateById(req.params.id, req.body);
 
     res.status(200).json({
       success: true,
@@ -158,14 +148,14 @@ exports.deleteIncome = async (req, res) => {
     }
 
     // Make sure user owns the income
-    if (income.user.toString() !== req.user.id) {
+    if (income.user !== req.user.id) {
       return res.status(401).json({
         success: false,
         message: 'Not authorized to delete this income'
       });
     }
 
-    await income.deleteOne();
+    await Income.deleteById(req.params.id);
 
     res.status(200).json({
       success: true,

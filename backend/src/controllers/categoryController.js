@@ -49,16 +49,26 @@ exports.getCategories = async (req, res) => {
 // @access  Private (Admin only - for now just protected)
 exports.seedCategories = async (req, res) => {
   try {
-    // Clear existing categories
-    await Category.deleteMany({});
+    const { getDb } = require('../config/firebase');
+    const db = getDb();
+
+    // Delete existing categories
+    const existingCategories = await Category.findAll(false);
+    const batch = db.batch();
+    for (const cat of existingCategories) {
+      batch.delete(db.collection('categories').doc(cat.id));
+    }
+    await batch.commit();
 
     // Create categories
-    const categories = EXPENSE_CATEGORIES.map(cat => ({
-      name: cat,
-      ...CATEGORY_CONFIG[cat]
-    }));
-
-    await Category.insertMany(categories);
+    const categories = [];
+    for (const cat of EXPENSE_CATEGORIES) {
+      const newCat = await Category.create({
+        name: cat,
+        ...CATEGORY_CONFIG[cat]
+      });
+      categories.push(newCat);
+    }
 
     res.status(201).json({
       success: true,

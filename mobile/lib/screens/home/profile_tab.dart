@@ -10,6 +10,7 @@ import '../../providers/income_provider.dart';
 import '../../providers/analytics_provider.dart';
 import '../auth/login_screen.dart';
 import '../feature_selection_screen.dart';
+import '../kyc/kyc_screen.dart';
 import 'add_income_screen.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -287,6 +288,30 @@ class _ProfileTabState extends State<ProfileTab> {
                         onTap: () => _showEditNameDialog(context),
                         textColor: textPrimaryColor,
                         subtitleColor: textSecondaryColor,
+                      ),
+                      const Divider(height: 1),
+                      _buildListTile(
+                        icon: Icons.verified_user_outlined,
+                        title: user?.kycStatus == 'VERIFIED' ? 'KYC Verified' : 'Complete KYC',
+                        subtitle: user?.kycStatus == 'VERIFIED' 
+                            ? 'Your account is verified ✓'
+                            : 'Verify your identity',
+                        onTap: () {
+                          if (user?.kycStatus != 'VERIFIED') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => KycScreen()),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Your account is already verified! ✅'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        },
+                        textColor: textPrimaryColor,
+                        subtitleColor: user?.kycStatus == 'VERIFIED' ? Colors.green : textSecondaryColor,
                       ),
                       const Divider(height: 1),
                       _buildListTile(

@@ -13,7 +13,7 @@ let hasErrors = false;
 
 // Check 1: Environment Variables
 console.log('1️⃣ Checking Environment Variables...');
-const requiredEnvVars = ['PORT', 'MONGODB_URI', 'JWT_SECRET'];
+const requiredEnvVars = ['PORT', 'JWT_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -22,12 +22,26 @@ if (missingEnvVars.length > 0) {
 } else {
     console.log('   ✅ All required environment variables present');
     console.log(`   - PORT: ${process.env.PORT}`);
-    console.log(`   - MONGODB_URI: ${process.env.MONGODB_URI.substring(0, 30)}...`);
     console.log(`   - JWT_SECRET: ${process.env.JWT_SECRET.substring(0, 10)}...`);
 }
 
-// Check 2: SMTP Configuration (Optional)
-console.log('\n2️⃣ Checking SMTP Configuration (Optional)...');
+// Check 2: Firebase Configuration
+console.log('\n2️⃣ Checking Firebase Configuration...');
+const serviceAccountPath = path.join(__dirname, 'firebase-service-account.json');
+if (fs.existsSync(serviceAccountPath)) {
+    console.log('   ✅ Firebase service account file found');
+} else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    console.log('   ✅ Firebase configured via environment variables');
+} else {
+    console.error('   ❌ Firebase not configured!');
+    console.error('   Either:');
+    console.error('     1. Place firebase-service-account.json in backend/ folder, OR');
+    console.error('     2. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY env vars');
+    hasErrors = true;
+}
+
+// Check 3: SMTP Configuration (Optional)
+console.log('\n3️⃣ Checking SMTP Configuration (Optional)...');
 if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
     console.log('   ✅ SMTP configured - OTP emails will be sent');
     console.log(`   - Email: ${process.env.SMTP_EMAIL}`);
@@ -35,8 +49,8 @@ if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
     console.log('   ⚠️  SMTP not configured - OTPs will only appear in console');
 }
 
-// Check 3: Upload Directories
-console.log('\n3️⃣ Checking Upload Directories...');
+// Check 4: Upload Directories
+console.log('\n4️⃣ Checking Upload Directories...');
 const uploadDirs = [
     'uploads',
     'uploads/kyc'
@@ -51,11 +65,11 @@ uploadDirs.forEach(dir => {
 });
 console.log('   ✅ All upload directories ready');
 
-// Check 4: Required Dependencies
-console.log('\n4️⃣ Checking Dependencies...');
+// Check 5: Required Dependencies
+console.log('\n5️⃣ Checking Dependencies...');
 const requiredPackages = [
     'express',
-    'mongoose',
+    'firebase-admin',
     'jsonwebtoken',
     'bcryptjs',
     'multer',
@@ -83,8 +97,8 @@ if (missingPackages.length > 0) {
     console.log('   ✅ All required packages installed');
 }
 
-// Check 5: Tesseract Trained Data
-console.log('\n5️⃣ Checking Tesseract OCR...');
+// Check 6: Tesseract Trained Data
+console.log('\n6️⃣ Checking Tesseract OCR...');
 const trainedDataPath = path.join(__dirname, 'eng.traineddata');
 if (fs.existsSync(trainedDataPath)) {
     console.log('   ✅ Tesseract trained data found');
@@ -104,6 +118,6 @@ if (hasErrors) {
     console.log('\n💡 Tips:');
     console.log('   - Start server: npm start or npm run dev');
     console.log('   - Test KYC flow: node test-kyc-flow.js');
-    console.log('   - View integration guide: cat KYC_INTEGRATION_GUIDE.md');
+
     console.log('\n🚀 Starting server...\n');
 }

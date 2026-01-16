@@ -55,10 +55,8 @@ async function verify() {
         console.log('   2. Open FRONTEND_EXAMPLE.html in browser');
         console.log('   3. Update your frontend to include Authorization header');
         console.log('\n📚 Documentation:');
-        console.log('   - QUICK_START.md - Quick reference');
-        console.log('   - KYC_INTEGRATION_GUIDE.md - Detailed guide');
-        console.log('   - FIXES_SUMMARY.md - What was fixed');
-        
+
+
         return true;
 
     } catch (error) {

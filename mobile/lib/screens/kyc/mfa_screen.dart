@@ -3,8 +3,9 @@ import '../../services/kyc_service.dart';
 
 class MfaScreen extends StatefulWidget {
   final VoidCallback onSuccess;
+  final bool isActive; // Only request OTP when this screen is active
 
-  const MfaScreen({Key? key, required this.onSuccess}) : super(key: key);
+  const MfaScreen({Key? key, required this.onSuccess, this.isActive = false}) : super(key: key);
 
   @override
   _MfaScreenState createState() => _MfaScreenState();
@@ -16,15 +17,31 @@ class _MfaScreenState extends State<MfaScreen> {
   bool _isLoading = false;
   bool _otpSent = false;
   bool _isVerifying = false;
+  bool _otpRequested = false; // Track if we already requested OTP
 
   @override
   void initState() {
     super.initState();
-    _requestOtp();
+    // Only request OTP if screen is active on init
+    if (widget.isActive && !_otpRequested) {
+      _requestOtp();
+    }
+  }
+
+  @override
+  void didUpdateWidget(MfaScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Request OTP when screen becomes active (and we haven't already)
+    if (widget.isActive && !oldWidget.isActive && !_otpRequested) {
+      _requestOtp();
+    }
   }
 
   Future<void> _requestOtp() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _otpRequested = true; // Mark that we've requested OTP
+    });
     try {
       await _kycService.requestMfa();
       setState(() {

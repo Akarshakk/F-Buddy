@@ -14,7 +14,7 @@ const createTransporter = () => {
             return null;
         }
 
-        return nodemailer.createTransporter({
+        return nodemailer.createTransport({
             host: process.env.SMTP_HOST || 'smtp.gmail.com',
             port: parseInt(process.env.SMTP_PORT) || 587,
             secure: false,
@@ -103,7 +103,7 @@ exports.sendOTP = async (userId, email) => {
 exports.verifyOTP = (userId, code) => {
     console.log(`[MFA] Verifying OTP for user: ${userId}`);
     console.log(`[MFA] Provided code: ${code}`);
-    
+
     const storedData = otpStore.get(userId);
 
     if (!storedData) {
@@ -118,7 +118,7 @@ exports.verifyOTP = (userId, code) => {
     }
 
     console.log(`[MFA] Stored code: ${storedData.code}`);
-    
+
     if (storedData.code === code) {
         console.log('[MFA] ✓ OTP verified successfully');
         otpStore.delete(userId); // Clear after successful use

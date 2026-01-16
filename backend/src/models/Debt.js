@@ -1,84 +1,123 @@
-const mongoose = require('mongoose');
+const { getDb } = require('../config/firebase');
 
-const debtSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  type: {
-    type: String,
-    required: [true, 'Please specify debt type'],
-    enum: {
-      values: ['they_owe_me', 'i_owe'],
-      message: 'Type must be either they_owe_me or i_owe'
-    }
-  },
-  amount: {
-    type: Number,
-    required: [true, 'Please provide an amount'],
-    min: [0.01, 'Amount must be at least 0.01']
-  },
-  personName: {
-    type: String,
-    required: [true, 'Please provide the person\'s name'],
-    trim: true,
-    maxlength: [100, 'Name cannot be more than 100 characters']
-  },
-  description: {
-    type: String,
-    trim: true,
-    maxlength: [200, 'Description cannot be more than 200 characters'],
-    default: ''
-  },
-  dueDate: {
-    type: Date,
-    required: [true, 'Please provide a due date']
-  },
-  isSettled: {
-    type: Boolean,
-    default: false
-  },
-  settledDate: {
-    type: Date,
-    default: null
-  },
-  reminderSent: {
-    type: Boolean,
-    default: false
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+const COLLECTION_NAME = 'debts';
+
+const DEBT_TYPES = ['they_owe_me', 'i_owe'];
+
+// Create debt
+const create = async (debtData) => {
+  const db = getDb();
+
+  const debt = {
+    user: debtData.user,
+    type: DEBT_TYPES.includes(debtData.type) ? debtData.type : 'they_owe_me',
+    amount: debtData.amount,
+    personName: debtData.personName?.trim() || '',
+    description: debtData.description?.trim() || '',
+    dueDate: debtData.dueDate ? new Date(debtData.dueDate) : new Date(),
+    isSettled: false,
+    settledDate: null,
+    reminderSent: false,
+    createdAt: new Date()
+  };
+
+  const docRef = await db.collection(COLLECTION_NAME).add(debt);
+  return { id: docRef.id, ...debt };
+};
+
+// Find debts by user
+const findByUser = async (userId, options = {}) => {
+  const db = getDb();
+  let query = db.collection(COLLECTION_NAME).where('user', '==', userId);
+
+  if (options.isSettled !== undefined) {
+    query = query.where('isSettled', '==', options.isSettled);
   }
-});
 
-// Index for efficient queries
-debtSchema.index({ user: 1, dueDate: 1 });
-debtSchema.index({ user: 1, isSettled: 1 });
+  if (options.type) {
+    query = query.where('type', '==', options.type);
+  }
 
-// Static method to get debts due today for reminders
-debtSchema.statics.getDebtsDueToday = async function() {
+  const snapshot = await query.get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+// Find debt by ID
+const findById = async (id) => {
+  const db = getDb();
+  const doc = await db.collection(COLLECTION_NAME).doc(id).get();
+
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() };
+};
+
+// Update debt
+const updateById = async (id, updateData) => {
+  const db = getDb();
+
+  if (updateData.dueDate) {
+    updateData.dueDate = new Date(updateData.dueDate);
+  }
+
+  await db.collection(COLLECTION_NAME).doc(id).update(updateData);
+  return await findById(id);
+};
+
+// Delete debt
+const deleteById = async (id) => {
+  const db = getDb();
+  await db.collection(COLLECTION_NAME).doc(id).delete();
+  return true;
+};
+
+// Settle debt
+const settle = async (id) => {
+  const db = getDb();
+  await db.collection(COLLECTION_NAME).doc(id).update({
+    isSettled: true,
+    settledDate: new Date()
+  });
+  return await findById(id);
+};
+
+// Get debts due today (for reminders)
+const getDebtsDueToday = async () => {
+  const db = getDb();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  return this.find({
-    dueDate: {
-      $gte: today,
-      $lt: tomorrow
-    },
-    isSettled: false,
-    reminderSent: false
-  }).populate('user', 'name email');
+  const snapshot = await db.collection(COLLECTION_NAME)
+    .where('dueDate', '>=', today)
+    .where('dueDate', '<', tomorrow)
+    .where('isSettled', '==', false)
+    .where('reminderSent', '==', false)
+    .get();
+
+  // Populate user data
+  const debts = [];
+  for (const doc of snapshot.docs) {
+    const debtData = { id: doc.id, ...doc.data() };
+    // Get user info
+    const userDoc = await db.collection('users').doc(debtData.user).get();
+    if (userDoc.exists) {
+      debtData.user = { id: userDoc.id, name: userDoc.data().name, email: userDoc.data().email };
+    }
+    debts.push(debtData);
+  }
+
+  return debts;
 };
 
-// Instance method to mark as settled
-debtSchema.methods.settle = function() {
-  this.isSettled = true;
-  this.settledDate = new Date();
-  return this.save();
+module.exports = {
+  COLLECTION_NAME,
+  DEBT_TYPES,
+  create,
+  findByUser,
+  findById,
+  updateById,
+  deleteById,
+  settle,
+  getDebtsDueToday
 };
-
-module.exports = mongoose.model('Debt', debtSchema);

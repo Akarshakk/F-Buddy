@@ -1,6 +1,5 @@
 const Expense = require('../models/Expense');
 const Income = require('../models/Income');
-const mongoose = require('mongoose');
 
 // @desc    Get expenses by category (for pie chart)
 // @route   GET /api/analytics/category
@@ -29,24 +28,7 @@ exports.getExpensesByCategory = async (req, res) => {
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     }
 
-    const categoryData = await Expense.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: '$category',
-          totalAmount: { $sum: '$amount' },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { totalAmount: -1 }
-      }
-    ]);
+    const categoryData = await Expense.aggregateByCategory(req.user.id, startDate, endDate);
 
     // Calculate total for percentage
     const totalExpense = categoryData.reduce((sum, cat) => sum + cat.totalAmount, 0);
@@ -97,41 +79,12 @@ exports.getSummary = async (req, res) => {
     }
 
     // Get total expenses
-    const expenseResult = await Expense.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalExpense: { $sum: '$amount' },
-          expenseCount: { $sum: 1 }
-        }
-      }
-    ]);
+    const expenses = await Expense.findByUser(req.user.id, { startDate, endDate });
+    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const expenseCount = expenses.length;
 
     // Get total income for the period
-    const incomeResult = await Income.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalIncome: { $sum: '$amount' },
-          incomeCount: { $sum: 1 }
-        }
-      }
-    ]);
-
-    const totalExpense = expenseResult[0]?.totalExpense || 0;
-    const totalIncome = incomeResult[0]?.totalIncome || 0;
+    const totalIncome = await Income.getTotalForRange(req.user.id, startDate, endDate);
     const balance = totalIncome - totalExpense;
 
     res.status(200).json({
@@ -143,8 +96,8 @@ exports.getSummary = async (req, res) => {
         totalIncome,
         totalExpense,
         balance,
-        expenseCount: expenseResult[0]?.expenseCount || 0,
-        incomeCount: incomeResult[0]?.incomeCount || 0,
+        expenseCount,
+        incomeCount: 0, // Simplified
         savingsRate: totalIncome > 0 ? ((balance / totalIncome) * 100).toFixed(2) : 0
       }
     });
@@ -160,87 +113,41 @@ exports.getSummary = async (req, res) => {
 // @desc    Get 7-day balance chart data (Income vs Expense)
 // @route   GET /api/analytics/balance-chart
 // @access  Private
-// @query   weekStart - Optional: Start date of the week to view (YYYY-MM-DD format)
 exports.getBalanceChart = async (req, res) => {
   try {
     const { weekStart } = req.query;
-    
+
     let startDate, endDate;
-    
+
     if (weekStart) {
-      // User specified a custom week starting date
       startDate = new Date(weekStart);
       startDate.setHours(0, 0, 0, 0);
       endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 6);
       endDate.setHours(23, 59, 59, 999);
     } else {
-      // Default: Last 7 days
       endDate = new Date();
       startDate = new Date();
       startDate.setDate(endDate.getDate() - 6);
       startDate.setHours(0, 0, 0, 0);
     }
-    
-    const now = new Date();
-    const sevenDaysAgo = startDate;
 
-    // Get daily expenses for the selected week
-    const dailyExpenses = await Expense.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$date' },
-            month: { $month: '$date' },
-            day: { $dayOfMonth: '$date' }
-          },
-          totalExpense: { $sum: '$amount' }
-        }
-      },
-      {
-        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
-      }
-    ]);
+    // Get daily expenses
+    const dailyExpenses = await Expense.getDailyExpenses(req.user.id, startDate, endDate);
 
-    // Get daily income for the selected week
-    const dailyIncome = await Income.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$date' },
-            month: { $month: '$date' },
-            day: { $dayOfMonth: '$date' }
-          },
-          totalIncome: { $sum: '$amount' }
-        }
-      },
-      {
-        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
-      }
-    ]);
+    // Get daily income
+    const dailyIncome = await Income.getDailyIncome(req.user.id, startDate, endDate);
 
-    // Create a map for easy lookup
+    // Create maps for easy lookup
     const expenseMap = new Map();
     dailyExpenses.forEach(item => {
-      const key = `${item._id.year}-${item._id.month}-${item._id.day}`;
+      const key = `${item.year}-${item.month}-${item.day}`;
       expenseMap.set(key, item.totalExpense);
     });
 
     const incomeMap = new Map();
     dailyIncome.forEach(item => {
-      const key = `${item._id.year}-${item._id.month}-${item._id.day}`;
+      const key = `${item.year}-${item.month}-${item.day}`;
       incomeMap.set(key, item.totalIncome);
     });
 
@@ -251,7 +158,7 @@ exports.getBalanceChart = async (req, res) => {
     for (let i = 0; i <= 6; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
-      
+
       const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
       const dayIncome = incomeMap.get(key) || 0;
       const dayExpense = expenseMap.get(key) || 0;
@@ -268,7 +175,6 @@ exports.getBalanceChart = async (req, res) => {
       });
     }
 
-    // Return week info for UI display
     const weekInfo = {
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],
@@ -300,84 +206,31 @@ exports.getDashboard = async (req, res) => {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
     // Get monthly income
-    const monthlyIncome = await Income.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          month: now.getMonth() + 1,
-          year: now.getFullYear()
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$amount' }
-        }
-      }
-    ]);
+    const totalIncome = await Income.getTotalForMonth(req.user.id, now.getMonth() + 1, now.getFullYear());
 
     // Get monthly expenses
-    const monthlyExpenses = await Expense.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          date: { $gte: startOfMonth, $lte: endOfMonth }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$amount' }
-        }
-      }
-    ]);
+    const expenses = await Expense.findByUser(req.user.id, {
+      startDate: startOfMonth,
+      endDate: endOfMonth
+    });
+    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
     // Get category breakdown
-    const categoryBreakdown = await Expense.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id),
-          date: { $gte: startOfMonth, $lte: endOfMonth }
-        }
-      },
-      {
-        $group: {
-          _id: '$category',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { total: -1 }
-      }
-    ]);
+    const categoryData = await Expense.aggregateByCategory(req.user.id, startOfMonth, endOfMonth);
+    const categoryBreakdown = categoryData.map(cat => ({
+      category: cat._id,
+      amount: cat.totalAmount,
+      count: cat.count,
+      percentage: totalExpense > 0 ? ((cat.totalAmount / totalExpense) * 100).toFixed(2) : 0
+    }));
 
     // Get latest 10 expenses
-    const latestExpenses = await Expense.find({ user: req.user.id })
-      .sort({ date: -1, createdAt: -1 })
-      .limit(10);
+    const latestExpenses = await Expense.findByUser(req.user.id, { limit: 10 });
 
-    // Check for 7-day chart availability - count unique expense dates
-    const uniqueDates = await Expense.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(req.user.id)
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$date' },
-            month: { $month: '$date' },
-            day: { $dayOfMonth: '$date' }
-          }
-        }
-      }
-    ]);
-    const hasChartData = uniqueDates.length >= 7;
+    // Check for chart data availability
+    const uniqueDatesCount = await Expense.getUniqueDatesCount(req.user.id);
+    const hasChartData = uniqueDatesCount >= 7;
 
-    const totalIncome = monthlyIncome[0]?.total || 0;
-    const totalExpense = monthlyExpenses[0]?.total || 0;
     const balance = totalIncome - totalExpense;
 
     res.status(200).json({
@@ -390,12 +243,7 @@ exports.getDashboard = async (req, res) => {
           savingsRate: totalIncome > 0 ? ((balance / totalIncome) * 100).toFixed(2) : 0,
           month: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
         },
-        categoryBreakdown: categoryBreakdown.map(cat => ({
-          category: cat._id,
-          amount: cat.total,
-          count: cat.count,
-          percentage: totalExpense > 0 ? ((cat.total / totalExpense) * 100).toFixed(2) : 0
-        })),
+        categoryBreakdown,
         latestExpenses,
         hasChartData
       }

@@ -5,6 +5,8 @@ const { handleValidationErrors } = require('../middleware/validate');
 const { protect } = require('../middleware/auth');
 const {
   register,
+  verifyEmail,
+  resendOtp,
   login,
   getMe,
   updateProfile,
@@ -46,8 +48,12 @@ const loginValidation = [
 
 // Routes
 router.post('/register', registerValidation, handleValidationErrors, register);
+router.post('/verify-email', verifyEmail);
+router.post('/resend-otp', resendOtp);
 router.post('/login', loginValidation, handleValidationErrors, login);
 router.get('/me', protect, getMe);
+router.put('/update', protect, updateProfile);
+router.put('/password', protect, updatePassword);
 router.put('/update', protect, updateProfile);
 router.put('/password', protect, updatePassword);
 

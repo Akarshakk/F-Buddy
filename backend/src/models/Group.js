@@ -1,112 +1,180 @@
-const mongoose = require('mongoose');
+const { getDb } = require('../config/firebase');
 
-const groupMemberSchema = new mongoose.Schema({
-    userId: {
-        type: String,
-        required: true
-    },
-    name: {
-        type: String,
-        required: true
-    },
-    email: {
-        type: String,
-        required: true
-    },
-    amountOwed: {
-        type: Number,
-        default: 0
-    },
-    amountLent: {
-        type: Number,
-        default: 0
+const COLLECTION_NAME = 'groups';
+
+// Generate invite code
+const generateInviteCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-}, { _id: false });
-
-const expenseSplitSchema = new mongoose.Schema({
-    memberId: {
-        type: String,
-        required: true
-    },
-    memberName: {
-        type: String,
-        required: true
-    },
-    amount: {
-        type: Number,
-        required: true
-    }
-}, { _id: false });
-
-const groupExpenseSchema = new mongoose.Schema({
-    paidBy: {
-        type: String,
-        required: true
-    },
-    paidByName: {
-        type: String,
-        required: true
-    },
-    amount: {
-        type: Number,
-        required: true
-    },
-    description: {
-        type: String,
-        default: 'Group Expense'
-    },
-    splits: [expenseSplitSchema],
-    category: {
-        type: String,
-        default: 'other'
-    },
-    date: {
-        type: Date,
-        default: Date.now
-    }
-}, { timestamps: true });
-
-const groupSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: [true, 'Group name is required'],
-        trim: true
-    },
-    description: {
-        type: String,
-        default: ''
-    },
-    members: [groupMemberSchema],
-    expenses: [groupExpenseSchema],
-    createdBy: {
-        type: String,
-        required: true
-    },
-    inviteCode: {
-        type: String,
-        required: true,
-        unique: true,
-        uppercase: true,
-        length: 6
-    },
-    imageUrl: {
-        type: String,
-        default: ''
-    }
-}, {
-    timestamps: true
-});
-
-// Calculate total expenses for a group
-groupSchema.methods.getTotalExpenses = function () {
-    return this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    return code;
 };
 
-// Get member balance (positive means they are owed, negative means they owe)
-groupSchema.methods.getMemberBalance = function (userId) {
-    const member = this.members.find(m => m.userId === userId);
+// Create group
+const create = async (groupData) => {
+    const db = getDb();
+
+    const group = {
+        name: groupData.name?.trim() || '',
+        description: groupData.description?.trim() || '',
+        members: groupData.members || [],
+        expenses: [],
+        createdBy: groupData.createdBy,
+        inviteCode: generateInviteCode(),
+        imageUrl: groupData.imageUrl || '',
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+
+    const docRef = await db.collection(COLLECTION_NAME).add(group);
+    return { id: docRef.id, ...group };
+};
+
+// Find groups by member userId
+const findByMember = async (userId) => {
+    const db = getDb();
+    // Firestore doesn't support array-contains on nested objects directly
+    // We need to get all groups and filter
+    const snapshot = await db.collection(COLLECTION_NAME).get();
+
+    return snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(group => group.members.some(member => member.userId === userId));
+};
+
+// Find group by ID
+const findById = async (id) => {
+    const db = getDb();
+    const doc = await db.collection(COLLECTION_NAME).doc(id).get();
+
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() };
+};
+
+// Find group by invite code
+const findByInviteCode = async (code) => {
+    const db = getDb();
+    const snapshot = await db.collection(COLLECTION_NAME)
+        .where('inviteCode', '==', code.toUpperCase())
+        .limit(1)
+        .get();
+
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
+};
+
+// Update group
+const updateById = async (id, updateData) => {
+    const db = getDb();
+    updateData.updatedAt = new Date();
+    await db.collection(COLLECTION_NAME).doc(id).update(updateData);
+    return await findById(id);
+};
+
+// Delete group
+const deleteById = async (id) => {
+    const db = getDb();
+    await db.collection(COLLECTION_NAME).doc(id).delete();
+    return true;
+};
+
+// Add member to group
+const addMember = async (groupId, member) => {
+    const group = await findById(groupId);
+    if (!group) return null;
+
+    // Check if already a member
+    if (group.members.some(m => m.userId === member.userId)) {
+        return group;
+    }
+
+    const newMember = {
+        userId: member.userId,
+        name: member.name,
+        email: member.email,
+        amountOwed: 0,
+        amountLent: 0
+    };
+
+    group.members.push(newMember);
+    return await updateById(groupId, { members: group.members });
+};
+
+// Remove member from group
+const removeMember = async (groupId, userId) => {
+    const group = await findById(groupId);
+    if (!group) return null;
+
+    group.members = group.members.filter(m => m.userId !== userId);
+    return await updateById(groupId, { members: group.members });
+};
+
+// Add expense to group
+const addExpense = async (groupId, expense) => {
+    const group = await findById(groupId);
+    if (!group) return null;
+
+    const newExpense = {
+        id: `exp_${Date.now()}`,
+        paidBy: expense.paidBy,
+        paidByName: expense.paidByName,
+        amount: expense.amount,
+        description: expense.description || 'Group Expense',
+        splits: expense.splits || [],
+        category: expense.category || 'other',
+        date: expense.date ? new Date(expense.date) : new Date(),
+        createdAt: new Date()
+    };
+
+    group.expenses.push(newExpense);
+
+    // Update member balances
+    const payer = group.members.find(m => m.userId === expense.paidBy);
+    if (payer) {
+        let totalSplit = 0;
+        expense.splits.forEach(split => {
+            const member = group.members.find(m => m.userId === split.memberId);
+            if (member && member.userId !== expense.paidBy) {
+                member.amountOwed += split.amount;
+                totalSplit += split.amount;
+            }
+        });
+        payer.amountLent += totalSplit;
+    }
+
+    return await updateById(groupId, {
+        expenses: group.expenses,
+        members: group.members
+    });
+};
+
+// Get total expenses for group
+const getTotalExpenses = (group) => {
+    return group.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+};
+
+// Get member balance
+const getMemberBalance = (group, userId) => {
+    const member = group.members.find(m => m.userId === userId);
     if (!member) return 0;
     return member.amountLent - member.amountOwed;
 };
 
-module.exports = mongoose.model('Group', groupSchema);
+module.exports = {
+    COLLECTION_NAME,
+    generateInviteCode,
+    create,
+    findByMember,
+    findById,
+    findByInviteCode,
+    updateById,
+    deleteById,
+    addMember,
+    removeMember,
+    addExpense,
+    getTotalExpenses,
+    getMemberBalance
+};

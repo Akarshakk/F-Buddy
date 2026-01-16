@@ -4,6 +4,7 @@ import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../feature_selection_screen.dart';
 import '../kyc/kyc_screen.dart';
+import 'email_verification_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -42,7 +43,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // Check KYC Status
       if (authProvider.user?.kycStatus != 'VERIFIED') {
         Navigator.of(context).pushReplacement(
-           // Import KycScreen first! (We will add import)
            MaterialPageRoute(builder: (_) => KycScreen()),
         );
       } else {
@@ -51,12 +51,25 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Login failed'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      // Check if the error is about email verification
+      final errorMsg = authProvider.errorMessage ?? '';
+      if (errorMsg.contains('verify your email')) {
+        // Redirect to email verification screen
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => EmailVerificationScreen(
+              email: _emailController.text.trim(),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg.isNotEmpty ? errorMsg : 'Login failed'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
       authProvider.clearError();
     }
   }

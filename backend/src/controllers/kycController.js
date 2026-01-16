@@ -11,9 +11,9 @@ const path = require('path');
 // @access  Private
 exports.getKycStatus = async (req, res) => {
     try {
-        const kyc = await KYC.findOne({ user: req.user.id });
+        const kyc = await KYC.findByUser(req.user.id);
 
-        // If no KYC record exists, create one
+        // If no KYC record exists
         if (!kyc) {
             return res.status(200).json({
                 success: true,
@@ -60,7 +60,6 @@ exports.uploadDocument = async (req, res) => {
 
         // Validate document type
         if (!['aadhaar', 'pan', 'passport', 'driving_license'].includes(documentType)) {
-            // Remove uploaded file if validation fails
             fs.unlinkSync(req.file.path);
             return res.status(400).json({ success: false, message: 'Invalid document type' });
         }
@@ -71,31 +70,29 @@ exports.uploadDocument = async (req, res) => {
         const ocrResult = await ocrService.extractText(req.file.path);
         const isValid = ocrService.validateDocument(documentType, ocrResult.text);
 
-        // Create or update KYC record
-        let kyc = await KYC.findOne({ user: req.user.id });
+        // Create or get KYC record
+        let kyc = await KYC.findByUser(req.user.id);
         if (!kyc) {
-            kyc = new KYC({ user: req.user.id });
+            kyc = await KYC.createOrGet(req.user.id);
         }
 
-        kyc.documentType = documentType;
-        kyc.documentImage = req.file.path;
-        kyc.ocrData = {
-            rawText: ocrResult.text.substring(0, 500), // Store partial text for audit
-            confidence: ocrResult.confidence,
-            verifiedAt: Date.now()
-        };
-
-        kyc.verificationHistory.push({
-            step: 'document_upload',
-            status: isValid ? 'success' : 'failed',
-            message: `OCR Confidence: ${ocrResult.confidence.toFixed(2)}%`
+        // Update document info
+        await KYC.updateDocument(req.user.id, documentType, req.file.path, {
+            rawText: ocrResult.text.substring(0, 500),
+            confidence: ocrResult.confidence
         });
 
-        await kyc.save();
+        // Add verification history
+        await KYC.addVerificationHistory(
+            req.user.id,
+            'document_upload',
+            isValid ? 'success' : 'failed',
+            `OCR Confidence: ${ocrResult.confidence.toFixed(2)}%`
+        );
 
         // Update User step
         if (isValid) {
-            await User.findByIdAndUpdate(req.user.id, {
+            await User.updateUser(req.user.id, {
                 kycStep: 1,
                 kycStatus: 'PENDING'
             });
@@ -111,7 +108,6 @@ exports.uploadDocument = async (req, res) => {
         });
 
     } catch (error) {
-        // Cleanup file if error
         if (req.file) fs.unlinkSync(req.file.path);
 
         res.status(500).json({
@@ -131,7 +127,7 @@ exports.uploadSelfie = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please upload a selfie' });
         }
 
-        const kyc = await KYC.findOne({ user: req.user.id });
+        const kyc = await KYC.findByUser(req.user.id);
         if (!kyc || !kyc.documentImage) {
             fs.unlinkSync(req.file.path);
             return res.status(400).json({ success: false, message: 'Please upload ID document first' });
@@ -143,19 +139,19 @@ exports.uploadSelfie = async (req, res) => {
         const score = await faceService.compareFaces(kyc.documentImage, req.file.path);
         const isMatch = score > 80;
 
-        kyc.selfieImage = req.file.path;
-        kyc.faceMatchScore = score;
+        // Update selfie info
+        await KYC.updateSelfie(req.user.id, req.file.path, score);
 
-        kyc.verificationHistory.push({
-            step: 'selfie_verification',
-            status: isMatch ? 'success' : 'failed',
-            message: `Match Score: ${score}`
-        });
-
-        await kyc.save();
+        // Add verification history
+        await KYC.addVerificationHistory(
+            req.user.id,
+            'selfie_verification',
+            isMatch ? 'success' : 'failed',
+            `Match Score: ${score}`
+        );
 
         if (isMatch) {
-            await User.findByIdAndUpdate(req.user.id, { kycStep: 2 });
+            await User.updateUser(req.user.id, { kycStep: 2 });
 
             res.status(200).json({
                 success: true,
@@ -217,18 +213,16 @@ exports.verifyMfa = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
         }
 
-        // Complete KYC
-        const kyc = await KYC.findOne({ user: req.user.id });
-        if (kyc) {
-            kyc.verificationHistory.push({
-                step: 'mfa_verification',
-                status: 'success',
-                message: 'OTP Verified'
-            });
-            await kyc.save();
-        }
+        // Add verification history
+        await KYC.addVerificationHistory(
+            req.user.id,
+            'mfa_verification',
+            'success',
+            'OTP Verified'
+        );
 
-        await User.findByIdAndUpdate(req.user.id, {
+        // Complete KYC
+        await User.updateUser(req.user.id, {
             kycStep: 3,
             kycStatus: 'VERIFIED'
         });

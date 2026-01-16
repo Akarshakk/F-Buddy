@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
-import '../home/home_screen.dart';
+import '../../services/api_service.dart';
+import 'email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _budgetController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -34,30 +37,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    final success = await authProvider.register(
-      name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      monthlyBudget: double.tryParse(_budgetController.text) ?? 0,
-    );
+    setState(() => _isLoading = true);
 
-    if (!mounted) return;
+    try {
+      final response = await ApiService.post(
+        ApiConstants.register,
+        body: {
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+          'monthlyBudget': double.tryParse(_budgetController.text) ?? 0,
+        },
+        requiresAuth: false,
+      );
 
-    if (success) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Registration failed'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      authProvider.clearError();
+      if (!mounted) return;
+
+      print('[Register] Response: $response'); // Debug log
+
+      if (response['success'] == true) {
+        // Navigate to email verification screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => EmailVerificationScreen(
+              email: _emailController.text.trim(),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Registration failed'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -335,34 +360,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 32),
                 
                 // Register button
-                Consumer<AuthProvider>(
-                  builder: (context, auth, _) {
-                    return ElevatedButton(
-                      onPressed: auth.status == AuthStatus.loading ? null : _register,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _register,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Create Account',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
                         ),
-                        elevation: 0,
-                      ),
-                      child: auth.status == AuthStatus.loading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              'Create Account',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
-                            ),
-                    );
-                  },
                 ),
                 const SizedBox(height: 20),
                 

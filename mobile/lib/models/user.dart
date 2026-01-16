@@ -20,6 +20,18 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Handle createdAt which may be a String, Map (Firestore Timestamp), or null
+    DateTime parseCreatedAt(dynamic value) {
+      if (value == null) return DateTime.now();
+      if (value is String) return DateTime.parse(value);
+      if (value is Map) {
+        // Firestore Timestamp comes as {_seconds: xxx, _nanoseconds: xxx}
+        final seconds = value['_seconds'] ?? value['seconds'] ?? 0;
+        return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+      }
+      return DateTime.now();
+    }
+
     return User(
       id: json['id'] ?? json['_id'] ?? '',
       name: json['name'] ?? '',
@@ -27,9 +39,7 @@ class User {
       profilePicture: json['profilePicture'],
       monthlyBudget: (json['monthlyBudget'] ?? 0).toDouble(),
       savingsTarget: (json['savingsTarget'] ?? 0).toDouble(),
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
-          : DateTime.now(),
+      createdAt: parseCreatedAt(json['createdAt']),
       kycStatus: json['kycStatus'] ?? 'NOT_STARTED',
     );
   }

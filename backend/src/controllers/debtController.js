@@ -34,30 +34,22 @@ exports.createDebt = async (req, res) => {
 // @access  Private
 exports.getDebts = async (req, res) => {
   try {
-    const { type, settled, limit = 50 } = req.query;
+    const { type, settled } = req.query;
 
-    const query = { user: req.user.id };
+    const options = {};
+    if (type) options.type = type;
+    if (settled !== undefined) options.isSettled = settled === 'true';
 
-    if (type) {
-      query.type = type;
-    }
+    const debts = await Debt.findByUser(req.user.id, options);
 
-    if (settled !== undefined) {
-      query.isSettled = settled === 'true';
-    }
+    // Calculate summaries from unsettled debts
+    const allUnsettledDebts = await Debt.findByUser(req.user.id, { isSettled: false });
 
-    const debts = await Debt.find(query)
-      .sort({ dueDate: 1 })
-      .limit(parseInt(limit));
-
-    // Calculate summaries
-    const allDebts = await Debt.find({ user: req.user.id, isSettled: false });
-    
-    const theyOweMe = allDebts
+    const theyOweMe = allUnsettledDebts
       .filter(d => d.type === 'they_owe_me')
       .reduce((sum, d) => sum + d.amount, 0);
-    
-    const iOwe = allDebts
+
+    const iOwe = allUnsettledDebts
       .filter(d => d.type === 'i_owe')
       .reduce((sum, d) => sum + d.amount, 0);
 
@@ -85,12 +77,9 @@ exports.getDebts = async (req, res) => {
 // @access  Private
 exports.getDebt = async (req, res) => {
   try {
-    const debt = await Debt.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
+    const debt = await Debt.findById(req.params.id);
 
-    if (!debt) {
+    if (!debt || debt.user !== req.user.id) {
       return res.status(404).json({
         success: false,
         message: 'Debt not found'
@@ -117,29 +106,23 @@ exports.updateDebt = async (req, res) => {
   try {
     const { type, amount, personName, description, dueDate } = req.body;
 
-    let debt = await Debt.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
+    let debt = await Debt.findById(req.params.id);
 
-    if (!debt) {
+    if (!debt || debt.user !== req.user.id) {
       return res.status(404).json({
         success: false,
         message: 'Debt not found'
       });
     }
 
-    debt = await Debt.findByIdAndUpdate(
-      req.params.id,
-      {
-        type,
-        amount,
-        personName,
-        description,
-        dueDate: dueDate ? new Date(dueDate) : debt.dueDate
-      },
-      { new: true, runValidators: true }
-    );
+    const updateData = {};
+    if (type) updateData.type = type;
+    if (amount) updateData.amount = amount;
+    if (personName) updateData.personName = personName;
+    if (description !== undefined) updateData.description = description;
+    if (dueDate) updateData.dueDate = new Date(dueDate);
+
+    debt = await Debt.updateById(req.params.id, updateData);
 
     res.json({
       success: true,
@@ -159,19 +142,16 @@ exports.updateDebt = async (req, res) => {
 // @access  Private
 exports.deleteDebt = async (req, res) => {
   try {
-    const debt = await Debt.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
+    const debt = await Debt.findById(req.params.id);
 
-    if (!debt) {
+    if (!debt || debt.user !== req.user.id) {
       return res.status(404).json({
         success: false,
         message: 'Debt not found'
       });
     }
 
-    await debt.deleteOne();
+    await Debt.deleteById(req.params.id);
 
     res.json({
       success: true,
@@ -191,24 +171,20 @@ exports.deleteDebt = async (req, res) => {
 // @access  Private
 exports.markReminderSent = async (req, res) => {
   try {
-    const debt = await Debt.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
+    const debt = await Debt.findById(req.params.id);
 
-    if (!debt) {
+    if (!debt || debt.user !== req.user.id) {
       return res.status(404).json({
         success: false,
         message: 'Debt not found'
       });
     }
 
-    debt.reminderSent = true;
-    await debt.save();
+    const updatedDebt = await Debt.updateById(req.params.id, { reminderSent: true });
 
     res.json({
       success: true,
-      data: debt
+      data: updatedDebt
     });
   } catch (error) {
     console.error('Mark reminder sent error:', error);
@@ -224,12 +200,9 @@ exports.markReminderSent = async (req, res) => {
 // @access  Private
 exports.settleDebt = async (req, res) => {
   try {
-    const debt = await Debt.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
+    const debt = await Debt.findById(req.params.id);
 
-    if (!debt) {
+    if (!debt || debt.user !== req.user.id) {
       return res.status(404).json({
         success: false,
         message: 'Debt not found'
@@ -243,13 +216,11 @@ exports.settleDebt = async (req, res) => {
       });
     }
 
-    debt.isSettled = true;
-    debt.settledDate = new Date();
-    await debt.save();
+    const settledDebt = await Debt.settle(req.params.id);
 
     res.json({
       success: true,
-      data: debt
+      data: settledDebt
     });
   } catch (error) {
     console.error('Settle debt error:', error);
@@ -270,13 +241,12 @@ exports.getDebtsDueToday = async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const debts = await Debt.find({
-      user: req.user.id,
-      dueDate: {
-        $gte: today,
-        $lt: tomorrow
-      },
-      isSettled: false
+    // Get all debts for user and filter client-side for due today
+    const allDebts = await Debt.findByUser(req.user.id, { isSettled: false });
+
+    const debts = allDebts.filter(d => {
+      const dueDate = d.dueDate instanceof Date ? d.dueDate : new Date(d.dueDate);
+      return dueDate >= today && dueDate < tomorrow;
     });
 
     res.json({
@@ -303,14 +273,13 @@ exports.getUpcomingDebts = async (req, res) => {
     const nextWeek = new Date(today);
     nextWeek.setDate(nextWeek.getDate() + 7);
 
-    const debts = await Debt.find({
-      user: req.user.id,
-      dueDate: {
-        $gte: today,
-        $lte: nextWeek
-      },
-      isSettled: false
-    }).sort({ dueDate: 1 });
+    // Get all debts for user and filter client-side
+    const allDebts = await Debt.findByUser(req.user.id, { isSettled: false });
+
+    const debts = allDebts.filter(d => {
+      const dueDate = d.dueDate instanceof Date ? d.dueDate : new Date(d.dueDate);
+      return dueDate >= today && dueDate <= nextWeek;
+    }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
     res.json({
       success: true,

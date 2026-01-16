@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const connectDB = require('./config/db');
+const { initializeFirebase } = require('./config/firebase');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -16,8 +16,8 @@ const groupRoutes = require('./routes/group');
 
 const app = express();
 
-// Connect to database
-connectDB();
+// Connect to Firebase
+initializeFirebase();
 
 // Middleware
 app.use(cors({
@@ -31,8 +31,6 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(morgan('dev'));
 app.use('/uploads', express.static('uploads'));
 
-// Routese('/uploads', express.static('uploads'));
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/income', incomeRoutes);
@@ -40,7 +38,6 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/bill', billRoutes);
-app.use('/api/debts', debtRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/kyc', require('./routes/kyc'));

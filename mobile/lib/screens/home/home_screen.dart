@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/debt_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/debt_reminder_service.dart';
+import '../kyc/kyc_screen.dart';
 import '../splitwise/splitwise_home_screen.dart';
 import 'dashboard_tab.dart';
 import 'expenses_tab.dart';
@@ -84,6 +86,33 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         centerTitle: false,
         actions: [
+          // KYC Status Icon
+          Consumer<AuthProvider>(
+            builder: (context, auth, _) {
+              final isVerified = auth.user?.kycStatus == 'VERIFIED';
+              return IconButton(
+                icon: Icon(
+                  isVerified ? Icons.verified_user : Icons.verified_user_outlined,
+                  color: isVerified ? Colors.green : Colors.orange,
+                ),
+                tooltip: isVerified ? 'KYC Verified' : 'Complete KYC',
+                onPressed: () {
+                  if (!isVerified) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => KycScreen()),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Your account is verified! ✅'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                },
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               isDark ? Icons.light_mode : Icons.dark_mode,

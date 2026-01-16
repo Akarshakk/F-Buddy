@@ -1,74 +1,59 @@
 const Expense = require('../models/Expense');
-const { EXPENSE_CATEGORIES } = require('../models/Expense');
 
-const parseDate = (dateString) => {
+function parseDate(dateString) {
   if (!dateString) return new Date();
 
-  // If it's already a Date object
-  if (dateString instanceof Date) return dateString;
-
-  // Parse the date string and create a date in local timezone
-  const parsed = new Date(dateString);
-
-  // If the parsed date is valid, use it
-  if (!isNaN(parsed.getTime())) {
-    // Create a new date using the date components to avoid timezone shift
-    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0);
+  // Handle DD/MM/YYYY format
+  if (dateString.includes('/')) {
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      return new Date(year, month, day);
+    }
   }
 
-  return new Date();
-};
+  // Handle ISO format or other formats
+  return new Date(dateString);
+}
 
 // @desc    Check for duplicate expenses
 // @route   POST /api/expenses/check-duplicate
 // @access  Private
 exports.checkDuplicate = async (req, res) => {
   try {
-    const { amount, category, date, merchant } = req.body;
+    const { amount, category, date, toleranceMinutes = 1 } = req.body;
 
-    const targetDate = parseDate(date);
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Find expenses with same amount, category on the same day
-    const duplicates = await Expense.find({
-      user: req.user.id,
-      amount: amount,
-      category: category.toLowerCase(),
-      date: { $gte: startOfDay, $lte: endOfDay }
-    });
-
-    if (duplicates.length > 0) {
-      // Found potential duplicates
-      const duplicateInfo = duplicates.map(d => ({
-        id: d._id,
-        amount: d.amount,
-        category: d.category,
-        merchant: d.merchant,
-        description: d.description,
-        date: d.date
-      }));
-
-      return res.status(200).json({
-        success: true,
-        isDuplicate: true,
-        message: `Found ${duplicates.length} similar expense(s) on this date with the same amount and category.`,
-        duplicates: duplicateInfo
+    if (!amount || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount and category are required'
       });
     }
 
-    // No duplicates found
+    const targetDate = parseDate(date);
+    const toleranceMs = toleranceMinutes * 60 * 1000;
+
+    const isDuplicate = await Expense.checkDuplicate(
+      req.user.id,
+      amount,
+      category,
+      targetDate,
+      toleranceMs
+    );
+
     res.status(200).json({
       success: true,
-      isDuplicate: false,
-      message: 'No duplicates found'
+      isDuplicate,
+      message: isDuplicate
+        ? 'A similar expense was found within the time window'
+        : 'No duplicate found'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error checking for duplicates',
+      message: 'Error checking for duplicate',
       error: error.message
     });
   }
@@ -84,12 +69,12 @@ exports.addExpense = async (req, res) => {
     const expense = await Expense.create({
       user: req.user.id,
       amount,
-      category: category.toLowerCase(),
-      description: description || '',
-      merchant: merchant || '',
+      category,
+      description,
+      merchant,
       date: parseDate(date),
-      groupExpenseId: groupExpenseId || null,
-      groupId: groupId || null
+      groupExpenseId,
+      groupId
     });
 
     res.status(201).json({
@@ -111,45 +96,30 @@ exports.addExpense = async (req, res) => {
 // @access  Private
 exports.getExpenses = async (req, res) => {
   try {
-    const { category, startDate, endDate, limit, page } = req.query;
+    const { month, year, category } = req.query;
 
-    let query = { user: req.user.id };
+    let options = {};
 
-    // Filter by category
+    if (month && year) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+      options.startDate = startDate;
+      options.endDate = endDate;
+    }
+
     if (category) {
-      query.category = category.toLowerCase();
+      options.category = category;
     }
 
-    // Filter by date range
-    if (startDate || endDate) {
-      query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) query.date.$lte = new Date(endDate);
-    }
+    const expenses = await Expense.findByUser(req.user.id, options);
 
-    // Pagination
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 50;
-    const skip = (pageNum - 1) * limitNum;
-
-    const expenses = await Expense.find(query)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limitNum);
-
-    const total = await Expense.countDocuments(query);
-    const totalAmount = await Expense.aggregate([
-      { $match: query },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
+    // Calculate total
+    const total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
     res.status(200).json({
       success: true,
       count: expenses.length,
       total,
-      totalAmount: totalAmount[0]?.total || 0,
-      page: pageNum,
-      pages: Math.ceil(total / limitNum),
       data: { expenses }
     });
   } catch (error) {
@@ -166,9 +136,7 @@ exports.getExpenses = async (req, res) => {
 // @access  Private
 exports.getLatestExpenses = async (req, res) => {
   try {
-    const expenses = await Expense.find({ user: req.user.id })
-      .sort({ date: -1, createdAt: -1 })
-      .limit(10);
+    const expenses = await Expense.findByUser(req.user.id, { limit: 10 });
 
     res.status(200).json({
       success: true,
@@ -198,11 +166,11 @@ exports.getExpense = async (req, res) => {
       });
     }
 
-    // Make sure user owns the expense
-    if (expense.user.toString() !== req.user.id) {
-      return res.status(401).json({
+    // Make sure user owns expense
+    if (expense.user !== req.user.id) {
+      return res.status(403).json({
         success: false,
-        message: 'Not authorized to view this expense'
+        message: 'Not authorized to access this expense'
       });
     }
 
@@ -233,28 +201,22 @@ exports.updateExpense = async (req, res) => {
       });
     }
 
-    // Make sure user owns the expense
-    if (expense.user.toString() !== req.user.id) {
-      return res.status(401).json({
+    // Make sure user owns expense
+    if (expense.user !== req.user.id) {
+      return res.status(403).json({
         success: false,
         message: 'Not authorized to update this expense'
       });
     }
 
-    // Lowercase category if provided
-    if (req.body.category) {
-      req.body.category = req.body.category.toLowerCase();
-    }
+    const updateData = {};
+    if (req.body.amount !== undefined) updateData.amount = req.body.amount;
+    if (req.body.category) updateData.category = req.body.category;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.merchant !== undefined) updateData.merchant = req.body.merchant;
+    if (req.body.date) updateData.date = parseDate(req.body.date);
 
-    // Parse date properly to avoid timezone issues
-    if (req.body.date) {
-      req.body.date = parseDate(req.body.date);
-    }
-
-    expense = await Expense.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    expense = await Expense.updateById(req.params.id, updateData);
 
     res.status(200).json({
       success: true,
@@ -284,20 +246,19 @@ exports.deleteExpense = async (req, res) => {
       });
     }
 
-    // Make sure user owns the expense
-    if (expense.user.toString() !== req.user.id) {
-      return res.status(401).json({
+    // Make sure user owns expense
+    if (expense.user !== req.user.id) {
+      return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this expense'
       });
     }
 
-    await expense.deleteOne();
+    await Expense.deleteById(req.params.id);
 
     res.status(200).json({
       success: true,
-      message: 'Expense deleted successfully',
-      data: {}
+      message: 'Expense deleted successfully'
     });
   } catch (error) {
     res.status(500).json({
@@ -315,21 +276,35 @@ exports.deleteExpenseByGroupLink = async (req, res) => {
   try {
     const { groupId, groupExpenseId } = req.params;
 
-    const result = await Expense.deleteMany({
-      user: req.user.id,
-      groupId: groupId,
-      groupExpenseId: groupExpenseId
-    });
+    const deletedCount = await Expense.deleteByGroupLink(req.user.id, groupId, groupExpenseId);
 
     res.status(200).json({
       success: true,
-      message: `Deleted ${result.deletedCount} linked expense(s)`,
-      data: { deletedCount: result.deletedCount }
+      message: `Deleted ${deletedCount} expense(s) linked to group expense`
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error deleting linked expense',
+      message: 'Error deleting expense',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get expense categories
+// @route   GET /api/expenses/categories
+// @access  Public
+exports.getCategories = async (req, res) => {
+  try {
+    const categories = Expense.getCategories();
+    res.status(200).json({
+      success: true,
+      data: { categories }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching categories',
       error: error.message
     });
   }
