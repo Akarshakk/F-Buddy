@@ -10,17 +10,25 @@ import 'providers/income_provider.dart';
 import 'providers/analytics_provider.dart';
 import 'providers/debt_provider.dart';
 import 'providers/splitwise_provider.dart';
+import 'providers/sms_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home/debt_list_screen.dart';
 import 'screens/feature_selection_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  
+  // Initialize SMS provider
+  final smsProvider = SmsProvider();
+  await smsProvider.initializeOnStartup();
+  
+  runApp(MyApp(smsProvider: smsProvider));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final SmsProvider smsProvider;
+  
+  const MyApp({super.key, required this.smsProvider});
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +41,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
         ChangeNotifierProvider(create: (_) => DebtProvider()),
         ChangeNotifierProvider(create: (_) => SplitWiseProvider()),
+        ChangeNotifierProvider.value(value: smsProvider),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

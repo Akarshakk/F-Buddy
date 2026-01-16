@@ -13,11 +13,16 @@ const categoryRoutes = require('./routes/category');
 const billRoutes = require('./routes/bill');
 const debtRoutes = require('./routes/debt');
 const groupRoutes = require('./routes/group');
+const smsRoutes = require('./routes/sms');
 
 const app = express();
 
-// Connect to Firebase
-initializeFirebase();
+// Connect to Firebase (optional for local development)
+try {
+  initializeFirebase();
+} catch (error) {
+  console.log('⚠️  Running without Firebase - local MongoDB only');
+}
 
 // Middleware
 app.use(cors({
@@ -40,6 +45,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/bill', billRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/sms', smsRoutes);
 app.use('/api/kyc', require('./routes/kyc'));
 
 // Health check endpoint

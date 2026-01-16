@@ -1,17 +1,42 @@
 class ApiConstants {
-  // Change this to your server's IP when testing on physical device
-  // For Android emulator use: 10.0.2.2
-  // For iOS simulator use: localhost
-  // For physical device use your computer's local IP
+  // ====================================================================
+  // NETWORK CONFIGURATION FOR SMS TESTING
+  // ====================================================================
+  // 
+  // IMPORTANT: Update this when testing on real Android device!
+  // 
+  // OPTION 1: Development (Default)
+  // - Use 'localhost' for web/iOS simulator
+  // - Use '10.0.2.2' for Android emulator
+  // 
+  // OPTION 2: Real Android Device (Same Wi-Fi)
+  // - Find your computer's IP: `ipconfig getifaddr en0` (macOS)
+  // - Replace 'localhost' below with your IP (e.g., '192.168.1.100')
+  // 
+  // OPTION 3: USB Reverse Proxy
+  // - Run: `adb reverse tcp:5001 tcp:5001`
+  // - Use 'localhost' (Android will forward to computer)
+  // ====================================================================
+  
+  // 🔧 CHANGE THIS FOR REAL DEVICE TESTING:
+  // Example: static const String _serverIp = '192.168.1.100';
+  static const String _serverIp = 'localhost';  // Using USB reverse proxy (adb reverse)
+  static const String _serverPort = '5001';
   
   // Automatically detect platform and use correct URL
   static String get baseUrl {
-    // For web
+    // For web and iOS simulator
     if (identical(0, 0.0)) {
-      return 'http://localhost:5001/api';
+      return 'http://$_serverIp:$_serverPort/api';
     }
+    
     // For Android emulator
-    return 'http://10.0.2.2:5001/api';
+    if (_serverIp == 'localhost') {
+      return 'http://10.0.2.2:$_serverPort/api';
+    }
+    
+    // For real Android device (using computer's IP)
+    return 'http://$_serverIp:$_serverPort/api';
   }
   
   // Auth endpoints

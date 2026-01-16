@@ -33,6 +33,13 @@ const create = async (expenseData) => {
     date: expenseData.date ? new Date(expenseData.date) : new Date(),
     groupExpenseId: expenseData.groupExpenseId || null,
     groupId: expenseData.groupId || null,
+    // SMS-related fields
+    source: expenseData.source || 'manual', // 'manual' or 'sms_auto'
+    smsId: expenseData.smsId || null,
+    upiId: expenseData.upiId || null,
+    confidence: expenseData.confidence || null,
+    notes: expenseData.notes || '',
+    paymentMethod: expenseData.paymentMethod || 'cash',
     createdAt: new Date()
   };
 
