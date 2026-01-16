@@ -188,6 +188,7 @@ exports.getBalanceChart = async (req, res) => {
       data: { chartData }
     });
   } catch (error) {
+    console.error('[Analytics] Error fetching balance chart:', error); // Critical log
     res.status(500).json({
       success: false,
       message: 'Error fetching balance chart data',
@@ -249,6 +250,7 @@ exports.getDashboard = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('[Analytics] Error fetching dashboard data:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching dashboard data',

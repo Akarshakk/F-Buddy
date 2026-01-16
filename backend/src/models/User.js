@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getDb } = require('../config/firebase');
+const { serializeDoc } = require('../utils/firestore');
 
 const COLLECTION_NAME = 'users';
 
@@ -49,14 +50,14 @@ const createUser = async (userData) => {
     profilePicture: userData.profilePicture || null,
     monthlyBudget: userData.monthlyBudget || 0,
     savingsTarget: userData.savingsTarget || 0,
-    emailVerified: userData.emailVerified || false, // Accept from caller or default false
+    emailVerified: userData.emailVerified || false,
     kycStatus: 'NOT_STARTED',
     kycStep: 0,
     createdAt: new Date()
   };
 
   const docRef = await db.collection(COLLECTION_NAME).add(user);
-  return { id: docRef.id, ...user };
+  return { id: docRef.id, ...user, createdAt: user.createdAt.toISOString() };
 };
 
 // Find user by email
@@ -70,7 +71,7 @@ const findByEmail = async (email, includePassword = false) => {
   if (snapshot.empty) return null;
 
   const doc = snapshot.docs[0];
-  const userData = { id: doc.id, ...doc.data() };
+  const userData = serializeDoc(doc); // Handles dates
 
   // Remove password unless explicitly requested
   if (!includePassword) {
@@ -87,7 +88,7 @@ const findById = async (id, includePassword = false) => {
 
   if (!doc.exists) return null;
 
-  const userData = { id: doc.id, ...doc.data() };
+  const userData = serializeDoc(doc); // Handles dates
 
   if (!includePassword) {
     delete userData.password;

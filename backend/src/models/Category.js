@@ -1,4 +1,5 @@
 const { getDb } = require('../config/firebase');
+const { serializeDoc } = require('../utils/firestore');
 
 const COLLECTION_NAME = 'categories';
 
@@ -11,11 +12,13 @@ const create = async (categoryData) => {
     displayName: categoryData.displayName || '',
     icon: categoryData.icon || '',
     color: categoryData.color || '',
-    isActive: categoryData.isActive !== false
+    isActive: categoryData.isActive !== false,
+    createdAt: new Date()
   };
 
   const docRef = await db.collection(COLLECTION_NAME).add(category);
-  return { id: docRef.id, ...category };
+  // Manual serialize since we have Date object here
+  return { id: docRef.id, ...category, createdAt: category.createdAt.toISOString() };
 };
 
 // Find all categories
@@ -28,7 +31,7 @@ const findAll = async (activeOnly = true) => {
   }
 
   const snapshot = await query.get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map(doc => serializeDoc(doc));
 };
 
 // Find category by name
@@ -40,8 +43,7 @@ const findByName = async (name) => {
     .get();
 
   if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() };
+  return serializeDoc(snapshot.docs[0]);
 };
 
 // Find category by ID
@@ -50,7 +52,7 @@ const findById = async (id) => {
   const doc = await db.collection(COLLECTION_NAME).doc(id).get();
 
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() };
+  return serializeDoc(doc);
 };
 
 // Update category

@@ -11,6 +11,26 @@ exports.addIncome = async (req, res) => {
     const incomeMonth = month || currentDate.getMonth() + 1;
     const incomeYear = year || currentDate.getFullYear();
 
+    // Check for existing income with same description/source in this month
+    // This prevents duplicate "Monthly Income" entries when user intends to update
+    const existingIncomes = await Income.findByUser(req.user.id, { month: incomeMonth, year: incomeYear });
+    const duplicate = existingIncomes.find(i =>
+      (i.description === (description || 'Monthly Income')) &&
+      (i.source === (source || 'pocket_money'))
+    );
+
+    if (duplicate) {
+      // User requested to delete previous and set new
+      try {
+        await Income.deleteById(duplicate.id);
+        console.log(`[Income] Deleted duplicate income ${duplicate.id} before adding new one`);
+      } catch (delErr) {
+        console.error('[Income] Error deleting duplicate:', delErr);
+        // Continue to add new one anyway? Or fail?
+        // Best to continue but warn.
+      }
+    }
+
     const income = await Income.create({
       user: req.user.id,
       amount,
@@ -27,6 +47,7 @@ exports.addIncome = async (req, res) => {
       data: { income }
     });
   } catch (error) {
+    console.error('[Income] Error adding income:', error);
     res.status(500).json({
       success: false,
       message: 'Error adding income',
@@ -40,6 +61,7 @@ exports.addIncome = async (req, res) => {
 // @access  Private
 exports.getIncomes = async (req, res) => {
   try {
+    console.log(`[Income] Fetching incomes for user: ${req.user.email}`); // Debug log
     const { month, year } = req.query;
 
     const options = {};
@@ -47,6 +69,7 @@ exports.getIncomes = async (req, res) => {
     if (year) options.year = parseInt(year);
 
     const incomes = await Income.findByUser(req.user.id, options);
+    console.log(`[Income] Found ${incomes.length} incomes`); // Debug log
 
     // Calculate total income
     const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0);
@@ -58,6 +81,7 @@ exports.getIncomes = async (req, res) => {
       data: { incomes }
     });
   } catch (error) {
+    console.error('[Income] Error fetching incomes:', error); // Critical error log
     res.status(500).json({
       success: false,
       message: 'Error fetching incomes',

@@ -6,6 +6,8 @@ const User = require('../models/User');
 // @access  Private
 exports.createGroup = async (req, res) => {
     try {
+        console.log('[GroupController] Create request body:', req.body); // Debug log
+        console.log('[GroupController] User:', req.user); // Debug log
         const { name, description } = req.body;
         const userId = req.user.id;
 
@@ -40,7 +42,9 @@ exports.createGroup = async (req, res) => {
 exports.getGroups = async (req, res) => {
     try {
         const userId = req.user.id;
+        console.log(`[GroupController] Fetching groups for user: ${userId} (${req.user.email})`); // Debug log
         const groups = await Group.findByMember(userId);
+        console.log(`[GroupController] Found ${groups.length} groups for user`); // Debug log
 
         res.json({
             success: true,

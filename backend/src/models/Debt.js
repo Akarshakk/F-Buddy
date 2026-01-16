@@ -1,4 +1,5 @@
 const { getDb } = require('../config/firebase');
+const { serializeDoc } = require('../utils/firestore');
 
 const COLLECTION_NAME = 'debts';
 
@@ -22,7 +23,7 @@ const create = async (debtData) => {
   };
 
   const docRef = await db.collection(COLLECTION_NAME).add(debt);
-  return { id: docRef.id, ...debt };
+  return { id: docRef.id, ...debt, dueDate: debt.dueDate.toISOString(), createdAt: debt.createdAt.toISOString() };
 };
 
 // Find debts by user
@@ -39,7 +40,7 @@ const findByUser = async (userId, options = {}) => {
   }
 
   const snapshot = await query.get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map(doc => serializeDoc(doc));
 };
 
 // Find debt by ID
@@ -48,7 +49,7 @@ const findById = async (id) => {
   const doc = await db.collection(COLLECTION_NAME).doc(id).get();
 
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() };
+  return serializeDoc(doc);
 };
 
 // Update debt
@@ -99,12 +100,15 @@ const getDebtsDueToday = async () => {
   const debts = [];
   for (const doc of snapshot.docs) {
     const debtData = { id: doc.id, ...doc.data() };
+    const serializedDebt = serializeDoc({ data: () => debtData, id: doc.id }); // Use helper nicely or just map manual
+
     // Get user info
     const userDoc = await db.collection('users').doc(debtData.user).get();
     if (userDoc.exists) {
-      debtData.user = { id: userDoc.id, name: userDoc.data().name, email: userDoc.data().email };
+      // We don't need full serializeDoc here maybe? Just user object construction.
+      serializedDebt.user = { id: userDoc.id, name: userDoc.data().name, email: userDoc.data().email };
     }
-    debts.push(debtData);
+    debts.push(serializedDebt);
   }
 
   return debts;

@@ -1,4 +1,5 @@
 const { getDb } = require('../config/firebase');
+const { serializeDoc } = require('../utils/firestore');
 
 const COLLECTION_NAME = 'incomes';
 
@@ -12,7 +13,7 @@ const create = async (incomeData) => {
     user: incomeData.user,
     amount: incomeData.amount,
     description: incomeData.description?.trim() || 'Monthly Income',
-    source: INCOME_SOURCES.includes(incomeData.source) ? incomeData.source : 'pocket_money',
+    source: incomeData.source || 'pocket_money',
     month: incomeData.month,
     year: incomeData.year,
     date: incomeData.date ? new Date(incomeData.date) : new Date(),
@@ -20,7 +21,8 @@ const create = async (incomeData) => {
   };
 
   const docRef = await db.collection(COLLECTION_NAME).add(income);
-  return { id: docRef.id, ...income };
+  // Return serialized
+  return { id: docRef.id, ...income, date: income.date.toISOString(), createdAt: income.createdAt.toISOString() };
 };
 
 // Find incomes by user
@@ -28,6 +30,8 @@ const findByUser = async (userId, options = {}) => {
   const db = getDb();
   let query = db.collection(COLLECTION_NAME).where('user', '==', userId);
 
+  // Sort by date descending by default (moved to JS to avoid complex index requirements)
+  // query = query.orderBy('date', 'desc'); 
   if (options.month) {
     query = query.where('month', '==', options.month);
   }
@@ -36,7 +40,10 @@ const findByUser = async (userId, options = {}) => {
   }
 
   const snapshot = await query.get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const docs = snapshot.docs.map(doc => serializeDoc(doc));
+
+  // Sort in memory
+  return docs.sort((a, b) => new Date(b.date) - new Date(a.date));
 };
 
 // Find income by ID
@@ -45,12 +52,17 @@ const findById = async (id) => {
   const doc = await db.collection(COLLECTION_NAME).doc(id).get();
 
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() };
+  return serializeDoc(doc);
 };
 
 // Update income
 const updateById = async (id, updateData) => {
   const db = getDb();
+
+  if (updateData.date) {
+    updateData.date = new Date(updateData.date);
+  }
+
   await db.collection(COLLECTION_NAME).doc(id).update(updateData);
   return await findById(id);
 };
@@ -77,6 +89,7 @@ const getTotalForRange = async (userId, startDate, endDate) => {
     .where('date', '<=', endDate)
     .get();
 
+  // Here we use raw data for speed/aggregation
   return snapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
 };
 
@@ -92,6 +105,7 @@ const getDailyIncome = async (userId, startDate, endDate) => {
   const dailyMap = {};
   snapshot.docs.forEach(doc => {
     const data = doc.data();
+    // Raw timestamp manipulation
     const date = data.date instanceof Date ? data.date : data.date.toDate();
     const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
     if (!dailyMap[key]) {

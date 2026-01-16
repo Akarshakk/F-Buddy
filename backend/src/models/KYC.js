@@ -1,4 +1,5 @@
 const { getDb } = require('../config/firebase');
+const { serializeDoc } = require('../utils/firestore');
 
 const COLLECTION_NAME = 'kyc';
 
@@ -28,7 +29,7 @@ const createOrGet = async (userId) => {
     };
 
     const docRef = await db.collection(COLLECTION_NAME).add(kyc);
-    return { id: docRef.id, ...kyc };
+    return { id: docRef.id, ...kyc, createdAt: kyc.createdAt.toISOString(), updatedAt: kyc.updatedAt.toISOString() };
 };
 
 // Find KYC by user
@@ -40,8 +41,7 @@ const findByUser = async (userId) => {
         .get();
 
     if (snapshot.empty) return null;
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() };
+    return serializeDoc(snapshot.docs[0]);
 };
 
 // Find KYC by ID
@@ -50,7 +50,7 @@ const findById = async (id) => {
     const doc = await db.collection(COLLECTION_NAME).doc(id).get();
 
     if (!doc.exists) return null;
-    return { id: doc.id, ...doc.data() };
+    return serializeDoc(doc);
 };
 
 // Update KYC
@@ -64,7 +64,7 @@ const updateById = async (id, updateData) => {
 // Update KYC by user
 const updateByUser = async (userId, updateData) => {
     const kyc = await findByUser(userId);
-    if (!kyc) return null;
+    if (!kyc) return null; // Or create? Original didn't create.
     return await updateById(kyc.id, updateData);
 };
 
@@ -88,9 +88,9 @@ const addVerificationHistory = async (userId, step, status, message) => {
 
 // Update document info
 const updateDocument = async (userId, documentType, documentImage, ocrData = null) => {
-    const kyc = await findByUser(userId);
+    let kyc = await findByUser(userId);
     if (!kyc) {
-        await createOrGet(userId);
+        kyc = await createOrGet(userId);
     }
 
     // Build ocrData object, converting undefined to null (Firestore doesn't accept undefined)
@@ -105,15 +105,18 @@ const updateDocument = async (userId, documentType, documentImage, ocrData = nul
         };
     }
 
-    return await updateByUser(userId, {
+    return await updateById(kyc.id, {
         documentType,
         documentImage,
         ocrData: ocrDataClean
     });
+    // Note: updateById calls findById, which uses serializeDoc. 
+    // So returned object has ISO strings for verifiedAt.
 };
 
 // Update selfie info
 const updateSelfie = async (userId, selfieImage, faceMatchScore) => {
+    // updateByUser calls updateById, which calls findById(serialized).
     return await updateByUser(userId, {
         selfieImage,
         faceMatchScore

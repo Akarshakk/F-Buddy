@@ -1,4 +1,5 @@
 const Debt = require('../models/Debt');
+const Expense = require('../models/Expense');
 
 // @desc    Create new debt
 // @route   POST /api/debts
@@ -15,6 +16,27 @@ exports.createDebt = async (req, res) => {
       description,
       dueDate: new Date(dueDate)
     });
+
+    // Create corresponding transaction (Transaction History)
+    if (type === 'they_owe_me') {
+      // I Lent Money -> Expense
+      await Expense.create({
+        user: req.user.id,
+        amount,
+        category: 'Debt Lent',
+        description: `Debt Lent - ${personName} (${description || ''})`,
+        date: new Date()
+      });
+    } else if (type === 'i_owe') {
+      // I Borrowed Money -> Expense (Negative)
+      await Expense.create({
+        user: req.user.id,
+        amount: -amount,
+        category: 'Debt Borrowed',
+        description: `Debt Borrowed - ${personName} (${description || ''})`,
+        date: new Date()
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -216,11 +238,33 @@ exports.settleDebt = async (req, res) => {
       });
     }
 
-    const settledDebt = await Debt.settle(req.params.id);
+    // Create corresponding transaction (Closing History)
+    if (debt.type === 'they_owe_me') {
+      // I Collected Money -> Expense (Negative - Reimbursement)
+      await Expense.create({
+        user: req.user.id,
+        amount: -debt.amount,
+        category: 'Debt Collected',
+        description: `Debt Collected - ${debt.personName}`,
+        date: new Date()
+      });
+    } else if (debt.type === 'i_owe') {
+      // I Repaid Money -> Expense
+      await Expense.create({
+        user: req.user.id,
+        amount: debt.amount,
+        category: 'Debt Repaid',
+        description: `Debt Repaid - ${debt.personName}`,
+        date: new Date()
+      });
+    }
+
+    // Delete the debt (Clean up active list)
+    await Debt.deleteById(req.params.id);
 
     res.json({
       success: true,
-      data: settledDebt
+      message: 'Debt settled and transaction recorded successfully'
     });
   } catch (error) {
     console.error('Settle debt error:', error);

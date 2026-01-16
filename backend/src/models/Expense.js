@@ -1,4 +1,5 @@
 const { getDb } = require('../config/firebase');
+const { serializeDoc } = require('../utils/firestore');
 
 const COLLECTION_NAME = 'expenses';
 
@@ -37,7 +38,8 @@ const create = async (expenseData) => {
   };
 
   const docRef = await db.collection(COLLECTION_NAME).add(expense);
-  return { id: docRef.id, ...expense };
+  // Return serialized
+  return { id: docRef.id, ...expense, date: expense.date.toISOString(), createdAt: expense.createdAt.toISOString() };
 };
 
 // Find expenses by user with optional filters
@@ -58,16 +60,36 @@ const findByUser = async (userId, options = {}) => {
     query = query.where('category', '==', options.category.toLowerCase());
   }
 
-  // Sort by date descending by default
-  query = query.orderBy('date', 'desc');
+  // Sort by date descending by default (moved to JS)
+  // query = query.orderBy('date', 'desc');
 
-  // Apply limit if provided
+  // Apply limit if provided (Note: limiting before sorting is risky if database order undefined, 
+  // but Firestore default order is usually ID/CreateTime? 
+  // If we want correct "Top 5 recent", we MUST fetch all then sort then slice?
+  // OR we keep orderBy ONLY if no complex filters?
+  // User filter is simple.
+  // If category filter present -> Composite required.
+  // If Date range present (where date >= X) -> Composite? User+Date. Exists?
+  // To be SAFE: fetch all matches, sort JS, slice JS. 
+  // Expense lists are not huge usually.
+
+  /*
   if (options.limit) {
     query = query.limit(options.limit);
   }
+  */
 
   const snapshot = await query.get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  let docs = snapshot.docs.map(doc => serializeDoc(doc));
+
+  // Sort in memory
+  docs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // Apply limit in memory
+  if (options.limit) {
+    docs = docs.slice(0, options.limit);
+  }
+  return docs;
 };
 
 // Find expense by ID
@@ -76,7 +98,7 @@ const findById = async (id) => {
   const doc = await db.collection(COLLECTION_NAME).doc(id).get();
 
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() };
+  return serializeDoc(doc);
 };
 
 // Update expense
@@ -136,6 +158,12 @@ const checkDuplicate = async (userId, amount, category, date, tolerance = 60000)
 
 // Aggregate expenses by category for a date range
 const aggregateByCategory = async (userId, startDate, endDate) => {
+  // Use findByUser to leverage existing serialization (or raw query if faster? findByUser is fine)
+  // But wait, aggregateByCategory logic expects Objects. serializeDoc returns Objects with Strings.
+  // JS string date comparison/math?
+  // Logic: categoryMap[cat].totalAmount += expense.amount
+  // Amount is number. access expense.category.
+  // Safe.
   const expenses = await findByUser(userId, { startDate, endDate });
 
   const categoryMap = {};
@@ -167,7 +195,8 @@ const getDailyExpenses = async (userId, startDate, endDate) => {
 
   const dailyMap = {};
   expenses.forEach(expense => {
-    const date = expense.date instanceof Date ? expense.date : expense.date.toDate();
+    // expense.date is ISO String now because findByUser uses serializeDoc
+    const date = new Date(expense.date); // Convert back for manipulation
     const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
     if (!dailyMap[key]) {
       dailyMap[key] = { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), totalExpense: 0 };
@@ -192,6 +221,7 @@ const getUniqueDatesCount = async (userId) => {
   const uniqueDates = new Set();
   snapshot.docs.forEach(doc => {
     const data = doc.data();
+    // Raw data access, so it is Timestamp
     const date = data.date instanceof Date ? data.date : data.date.toDate();
     uniqueDates.add(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
   });

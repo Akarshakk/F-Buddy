@@ -1,4 +1,5 @@
 const { getDb } = require('../config/firebase');
+const { serializeDoc } = require('../utils/firestore');
 
 const COLLECTION_NAME = 'groups';
 
@@ -16,6 +17,11 @@ const generateInviteCode = () => {
 const create = async (groupData) => {
     const db = getDb();
 
+    // Validate members
+    if (!groupData.members || !Array.isArray(groupData.members)) {
+        throw new Error('Invalid members data');
+    }
+
     const group = {
         name: groupData.name?.trim() || '',
         description: groupData.description?.trim() || '',
@@ -29,19 +35,21 @@ const create = async (groupData) => {
     };
 
     const docRef = await db.collection(COLLECTION_NAME).add(group);
-    return { id: docRef.id, ...group };
+    return { id: docRef.id, ...group, createdAt: group.createdAt.toISOString(), updatedAt: group.updatedAt.toISOString() };
 };
 
 // Find groups by member userId
 const findByMember = async (userId) => {
     const db = getDb();
-    // Firestore doesn't support array-contains on nested objects directly
-    // We need to get all groups and filter
+    // Fetch all groups and filter (Firestore restriction workaround)
     const snapshot = await db.collection(COLLECTION_NAME).get();
 
     return snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(group => group.members.some(member => member.userId === userId));
+        .map(doc => serializeDoc(doc))
+        .filter(group => {
+            if (!group || !Array.isArray(group.members)) return false;
+            return group.members.some(member => member.userId === userId);
+        });
 };
 
 // Find group by ID
@@ -50,7 +58,7 @@ const findById = async (id) => {
     const doc = await db.collection(COLLECTION_NAME).doc(id).get();
 
     if (!doc.exists) return null;
-    return { id: doc.id, ...doc.data() };
+    return serializeDoc(doc);
 };
 
 // Find group by invite code
@@ -62,8 +70,7 @@ const findByInviteCode = async (code) => {
         .get();
 
     if (snapshot.empty) return null;
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() };
+    return serializeDoc(snapshot.docs[0]);
 };
 
 // Update group
@@ -131,7 +138,7 @@ const addExpense = async (groupId, expense) => {
 
     group.expenses.push(newExpense);
 
-    // Update member balances
+    // Update member balances logic 
     const payer = group.members.find(m => m.userId === expense.paidBy);
     if (payer) {
         let totalSplit = 0;
