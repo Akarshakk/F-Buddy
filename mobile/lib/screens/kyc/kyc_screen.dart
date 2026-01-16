@@ -26,6 +26,8 @@ class _KycScreenState extends State<KycScreen> {
   Future<void> _fetchKycStatus() async {
     try {
       final data = await _kycService.getKycStatus();
+      if (!mounted) return; // Check if widget is still mounted
+      
       setState(() {
         _currentStep = data['step'] ?? 0;
         _status = data['status'] ?? 'NOT_STARTED';
@@ -45,10 +47,29 @@ class _KycScreenState extends State<KycScreen> {
         });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading status: $e'))
-      );
+      print('[KYC] Exception: $e');
+      if (!mounted) return; // Check if widget is still mounted
+      
+      // Even if API fails, show the screen (start from step 0)
+      setState(() {
+        _currentStep = 0;
+        _status = 'NOT_STARTED';
+        _isLoading = false;
+      });
+      
+      // Show error message but don't block the UI
+      if (mounted) {
+        Future.delayed(Duration(milliseconds: 300), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Could not load KYC status. Starting fresh.'),
+                duration: Duration(seconds: 2),
+              )
+            );
+          }
+        });
+      }
     }
   }
 

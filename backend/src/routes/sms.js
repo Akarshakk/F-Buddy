@@ -256,22 +256,25 @@ router.post('/parse-bulk', protect, async (req, res) => {
  */
 router.get('/transactions', protect, async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
-    const expenses = await Expense.find({ 
-      user: userId,
-      source: 'sms_auto'
-    })
-    .populate('category')
-    .sort({ date: -1 })
-    .limit(50);
+    // Get all expenses for this user
+    const allExpenses = await Expense.findByUser(userId);
+    
+    // Filter for SMS-created expenses
+    const expenses = allExpenses
+      .filter(exp => exp.source === 'sms_auto')
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 50);
 
-    const incomes = await Income.find({ 
-      user: userId,
-      smsId: { $exists: true }
-    })
-    .sort({ date: -1 })
-    .limit(50);
+    // Get all incomes for this user
+    const allIncomes = await Income.findByUser(userId);
+    
+    // Filter for SMS-created incomes
+    const incomes = allIncomes
+      .filter(inc => inc.source === 'sms_auto')
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 50);
 
     res.json({ 
       success: true, 

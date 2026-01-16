@@ -525,9 +525,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Refresh analytics data
+      // Force refresh all providers to get latest data
+      print('[AddExpense] Expense added successfully, refreshing data...');
+      
+      // Refresh expense provider first
+      await expenseProvider.fetchExpenses();
+      
+      // Then refresh analytics data
       await analyticsProvider.fetchDashboardData();
       await analyticsProvider.fetchBalanceChartData();
+      
+      print('[AddExpense] All data refreshed');
 
       // Check savings status and show alert
       final user = authProvider.user;

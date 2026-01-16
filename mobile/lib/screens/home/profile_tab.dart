@@ -11,6 +11,7 @@ import '../../providers/analytics_provider.dart';
 import '../auth/login_screen.dart';
 import '../feature_selection_screen.dart';
 import '../kyc/kyc_screen.dart';
+import '../sms_settings_screen.dart';
 import 'add_income_screen.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -312,6 +313,19 @@ class _ProfileTabState extends State<ProfileTab> {
                         },
                         textColor: textPrimaryColor,
                         subtitleColor: user?.kycStatus == 'VERIFIED' ? Colors.green : textSecondaryColor,
+                      ),
+                      const Divider(height: 1),
+                      _buildListTile(
+                        icon: Icons.message,
+                        title: 'SMS Auto-Tracking',
+                        subtitle: 'Track expenses from payment SMS',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const SmsSettingsScreen()),
+                          );
+                        },
+                        textColor: textPrimaryColor,
+                        subtitleColor: textSecondaryColor,
                       ),
                       const Divider(height: 1),
                       _buildListTile(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/sms_service.dart';
 import '../config/theme.dart';
 
@@ -15,6 +16,7 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
   bool _isLoading = true;
   bool _isScanning = false;
   int _smsTransactionCount = 0;
+  bool _isPermissionPermanentlyDenied = false;
 
   @override
   void initState() {
@@ -25,6 +27,15 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
 
   Future<void> _checkPermissions() async {
     final hasPermission = await _smsService.hasPermissions();
+    
+    // Check if permanently denied
+    if (!hasPermission) {
+      final status = await Permission.sms.status;
+      setState(() {
+        _isPermissionPermanentlyDenied = status.isPermanentlyDenied;
+      });
+    }
+    
     setState(() {
       _isEnabled = hasPermission;
       _isLoading = false;
@@ -47,11 +58,12 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
       // Enable SMS tracking
       final granted = await _smsService.requestPermissions();
       if (granted) {
-        await _smsService.initializeSmsListener();
         setState(() {
           _isEnabled = true;
         });
         _showSnackBar('SMS tracking enabled', isError: false);
+        // Start polling for SMS
+        _smsService.pollRecentSms();
       } else {
         _showSnackBar('SMS permission denied', isError: true);
       }
@@ -88,6 +100,78 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
       });
       _showSnackBar('Error scanning SMS: $e', isError: true);
     }
+  }
+
+  Future<void> _fetchAllSms() async {
+    setState(() {
+      _isScanning = true;
+    });
+
+    try {
+      final allMessages = await _smsService.fetchAllSms(daysBack: 30);
+      
+      setState(() {
+        _isScanning = false;
+      });
+
+      if (allMessages.isEmpty) {
+        _showSnackBar('No SMS found in last 30 days', isError: false);
+      } else {
+        // Show dialog with ALL messages
+        _showAllSmsDialog(allMessages);
+      }
+    } catch (e) {
+      setState(() {
+        _isScanning = false;
+      });
+      _showSnackBar('Error fetching SMS: $e', isError: true);
+    }
+  }
+
+  void _showAllSmsDialog(List<Map<String, dynamic>> messages) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Found ${messages.length} SMS Messages'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 500,
+          child: ListView.builder(
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              final msg = messages[index];
+              final preview = msg['body'].length > 100 
+                  ? '${msg['body'].substring(0, 100)}...' 
+                  : msg['body'];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text('${index + 1}'),
+                  ),
+                  title: Text(
+                    msg['sender'],
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    preview,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  isThreeLine: true,
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showTransactionsDialog(List<Map<String, dynamic>> transactions) {
@@ -172,7 +256,7 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                           children: [
                             Icon(
                               Icons.message,
-                              color: AppTheme.primaryColor,
+                              color: AppColors.primary,
                               size: 32,
                             ),
                             const SizedBox(width: 12),
@@ -210,8 +294,65 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                           ),
                           value: _isEnabled,
                           onChanged: _toggleSmsTracking,
-                          activeColor: AppTheme.primaryColor,
+                          activeColor: AppColors.primary,
                         ),
+                        
+                        // Show permission warning if denied
+                        if (!_isEnabled && _isPermissionPermanentlyDenied)
+                          Container(
+                            margin: const EdgeInsets.only(top: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.warning, color: Colors.orange.shade700, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'SMS Permission Required',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Please enable SMS permission in Settings to use auto-tracking.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await openAppSettings();
+                                    // Recheck after returning
+                                    Future.delayed(const Duration(seconds: 1), () {
+                                      _checkPermissions();
+                                    });
+                                  },
+                                  icon: const Icon(Icons.settings, size: 18),
+                                  label: const Text('Open Settings'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange.shade700,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -289,6 +430,30 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                           )
                         : const Icon(Icons.arrow_forward),
                     onTap: _isScanning ? null : _scanExistingSms,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Fetch ALL SMS for debugging
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.blue.shade200),
+                  ),
+                  child: ListTile(
+                    leading: Icon(Icons.bug_report, size: 32, color: Colors.blue.shade700),
+                    title: Text('Debug: Fetch ALL SMS', style: TextStyle(color: Colors.blue.shade900)),
+                    subtitle: const Text('Show all SMS with sender numbers (for testing)'),
+                    trailing: _isScanning
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(Icons.arrow_forward, color: Colors.blue.shade700),
+                    onTap: _isScanning ? null : _fetchAllSms,
                   ),
                 ),
 
@@ -382,10 +547,10 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: AppTheme.primaryColor),
+            child: Icon(icon, color: AppColors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
