@@ -20,7 +20,10 @@ import 'pages/home_loan_page.dart';
 import 'pages/vehicle_loan_page.dart';
 import 'pages/itr_planning_page.dart';
 import 'pages/itr_filing_page.dart';
+import 'pages/tax_calculator_page.dart';
 import 'pages/coming_soon_page.dart';
+import 'pages/loan_dashboard_page.dart';
+import 'pages/tax_dashboard_page.dart';
 
 /// Personal Finance Manager Screen with top navigation bar
 class FinanceManagerScreen extends StatefulWidget {
@@ -66,6 +69,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
       id: 'loans',
       titleKey: 'loan_management',
       items: [
+        _NavItem(
+            id: 'loan_dashboard', titleKey: '', titleText: 'Loan Tracking'),
         _NavItem(id: 'home_loan', titleKey: 'home_loan'),
         _NavItem(id: 'vehicle_loan', titleKey: 'vehicle_loan'),
         _NavItem(id: 'gold_loan', titleKey: 'gold_loan'),
@@ -75,6 +80,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
       id: 'tax',
       titleKey: 'tax_management',
       items: [
+        _NavItem(id: 'tax_dashboard', titleKey: '', titleText: 'Tax Tracking'),
+        _NavItem(id: 'tax_calculator', titleKey: 'tax_calculator'),
         _NavItem(id: 'itr_planning', titleKey: 'itr_planning'),
         _NavItem(id: 'itr_filing', titleKey: 'itr_filing'),
       ],
@@ -116,6 +123,12 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
         return const ItrPlanningPage();
       case 'itr_filing':
         return const ItrFilingPage();
+      case 'tax_calculator':
+        return const TaxCalculatorPage();
+      case 'loan_dashboard':
+        return const LoanDashboardPage();
+      case 'tax_dashboard':
+        return const TaxDashboardPage();
       default:
         return const FinancialAdvisoryPage();
     }
@@ -280,7 +293,7 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
-              l10n.t(item.titleKey),
+              item.titleText ?? l10n.t(item.titleKey),
               style: TextStyle(
                 fontWeight:
                     isItemSelected ? FontWeight.bold : FontWeight.normal,
@@ -339,6 +352,7 @@ class _NavCategory {
 class _NavItem {
   final String id;
   final String titleKey;
+  final String? titleText;
 
-  _NavItem({required this.id, required this.titleKey});
+  _NavItem({required this.id, required this.titleKey, this.titleText});
 }

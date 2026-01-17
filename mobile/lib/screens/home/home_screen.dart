@@ -15,6 +15,7 @@ import 'dashboard_tab.dart';
 import 'expenses_tab.dart';
 import 'add_expense_screen.dart';
 import 'profile_tab.dart';
+import 'live_finance_tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -98,6 +99,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         centerTitle: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.pie_chart),
+            color: Colors.purple, // Distinct color to stand out
+            tooltip: 'Live Finance Tracking',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const LiveFinanceTrackingScreen()),
+              );
+            },
+          ),
           // KYC Status Icon
           Consumer<AuthProvider>(
             builder: (context, auth, _) {
