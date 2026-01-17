@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
+import 'package:url_launcher/url_launcher.dart';
 
 /// ITR Filing Page with step-by-step guide
 class ItrFilingPage extends StatelessWidget {
@@ -305,8 +305,12 @@ class ItrFilingPage extends StatelessWidget {
     );
   }
 
-  void _launchUrl(String url) {
-    html.window.open(url, '_blank');
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      // Fallback: try without mode parameter
+      await launchUrl(url);
+    }
   }
 
   Widget _buildItrFormTable() {

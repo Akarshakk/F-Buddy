@@ -43,6 +43,7 @@ dependencies:
   fluttertoast: ^8.2.4
   image_picker: ^1.0.7
   file_picker: ^8.0.0
+  url_launcher: ^6.2.5
   
   # SMS & Permissions
   # flutter_sms_inbox: ^1.0.3
