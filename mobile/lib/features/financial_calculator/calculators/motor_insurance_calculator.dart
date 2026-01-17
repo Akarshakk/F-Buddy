@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:f_buddy/l10n/app_localizations.dart';
+import 'package:f_buddy/widgets/auto_translated_text.dart';
 
 /// Motor Insurance Premium Calculator
 class MotorInsuranceCalculator extends StatefulWidget {
@@ -74,7 +76,7 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
   @override
   Widget build(BuildContext context) {
     return _buildCalculatorCard(
-      title: 'Motor Insurance Calculator',
+      title: context.l10n.t('motor_insurance'),
       subtitle: 'Estimate your vehicle insurance premium',
       children: [
         _buildDropdown(
@@ -135,7 +137,7 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
                 style:
                     const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(subtitle,
+            AutoTranslatedText(subtitle,
                 style: TextStyle(color: Colors.grey[600], fontSize: 14)),
             const SizedBox(height: 24),
             ...children,
@@ -148,15 +150,29 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
   Widget _buildInput(TextEditingController controller, String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: TextField(
-        controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, left: 4),
+            child: AutoTranslatedText(
+              label,
+              style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+          TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -165,18 +181,34 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
       ValueChanged<String?> onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-        items: items.entries
-            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-            .toList(),
-        onChanged: onChanged,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, left: 4),
+            child: AutoTranslatedText(
+              label,
+              style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+          DropdownButtonFormField<String>(
+            value: value,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+            items: items.entries
+                .map((e) => DropdownMenuItem(
+                    value: e.key,
+                    child: AutoTranslatedText(e.value)))
+                .toList(),
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }
@@ -192,8 +224,8 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: const Text('Calculate',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        child: Text(context.l10n.t('calculate'),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -207,7 +239,7 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.green.shade200),
       ),
-      child: Text(
+      child: AutoTranslatedText(
         _result,
         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,

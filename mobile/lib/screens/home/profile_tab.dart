@@ -14,6 +14,7 @@ import '../kyc/kyc_screen.dart';
 import '../sms_settings_screen.dart';
 import '../bank_statement_screen.dart';
 import 'add_income_screen.dart';
+import '../../widgets/auto_translated_text.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -35,7 +36,7 @@ class _ProfileTabState extends State<ProfileTab> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera),
-              title: const Text('Take a Photo'),
+              title: const AutoTranslatedText('Take a Photo'),
               onTap: () {
                 Navigator.pop(context);
                 _getImage(ImageSource.camera);
@@ -43,7 +44,7 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
+              title: const AutoTranslatedText('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(context);
                 _getImage(ImageSource.gallery);
@@ -52,7 +53,7 @@ class _ProfileTabState extends State<ProfileTab> {
             if (Provider.of<AuthProvider>(context, listen: false).user?.profilePicture != null)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Remove Photo', style: TextStyle(color: Colors.red)),
+                title: const AutoTranslatedText('Remove Photo', style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context);
                   _removeProfilePicture();
@@ -90,14 +91,14 @@ class _ProfileTabState extends State<ProfileTab> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Profile picture updated! 📸'),
+              content: AutoTranslatedText('Profile picture updated! 📸'),
               backgroundColor: AppColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to update profile picture'),
+              content: AutoTranslatedText('Failed to update profile picture'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -107,7 +108,7 @@ class _ProfileTabState extends State<ProfileTab> {
       setState(() => _isUploadingImage = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text('Error: ${e.toString()}'), // Keeping error technical trace as Text
           backgroundColor: AppColors.error,
         ),
       );
@@ -129,7 +130,7 @@ class _ProfileTabState extends State<ProfileTab> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Profile picture removed'),
+          content: const AutoTranslatedText('Profile picture removed'),
           backgroundColor: successColor,
         ),
       );
@@ -145,7 +146,7 @@ class _ProfileTabState extends State<ProfileTab> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const AutoTranslatedText('Profile'),
         backgroundColor: bgColor,
         elevation: 0,
         titleTextStyle: TextStyle(
@@ -306,7 +307,7 @@ class _ProfileTabState extends State<ProfileTab> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Your account is already verified! ✅'),
+                                content: AutoTranslatedText('Your account is already verified! ✅'),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -350,12 +351,12 @@ class _ProfileTabState extends State<ProfileTab> {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('Switch Feature'),
-                              content: const Text('Switch to Group Expenses (SmartSplit)?'),
+                              title: const AutoTranslatedText('Switch Feature'),
+                              content: const AutoTranslatedText('Switch to Group Expenses (SmartSplit)?'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
-                                  child: const Text('Cancel'),
+                                  child: const AutoTranslatedText('Cancel'),
                                 ),
                                 TextButton(
                                   onPressed: () {
@@ -364,7 +365,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                       MaterialPageRoute(builder: (_) => const FeatureSelectionScreen()),
                                     );
                                   },
-                                  child: const Text('Switch'),
+                                  child: const AutoTranslatedText('Switch'),
                                 ),
                               ],
                             ),
@@ -404,7 +405,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   child: ElevatedButton.icon(
                     onPressed: () => _logout(context),
                     icon: const Icon(Icons.logout, color: Colors.white),
-                    label: const Text(
+                    label: const AutoTranslatedText(
                       'Logout',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                     ),
@@ -447,11 +448,11 @@ class _ProfileTabState extends State<ProfileTab> {
         ),
         child: Icon(icon, color: primaryColor, size: 22),
       ),
-      title: Text(title, style: AppTextStyles.body1.copyWith(
+      title: AutoTranslatedText(title, style: AppTextStyles.body1.copyWith(
         fontWeight: FontWeight.w600,
         color: textColorFinal,
       )),
-      subtitle: Text(subtitle, style: AppTextStyles.caption.copyWith(
+      subtitle: AutoTranslatedText(subtitle, style: AppTextStyles.caption.copyWith(
         color: subtitleColorFinal,
       )),
       trailing: Icon(Icons.chevron_right, color: subtitleColorFinal, size: 20),
@@ -471,12 +472,12 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Set Savings Target'),
+        title: const AutoTranslatedText('Set Savings Target'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const AutoTranslatedText(
               'What percentage of your monthly income do you want to save?',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
@@ -485,11 +486,15 @@ class _ProfileTabState extends State<ProfileTab> {
               controller: controller,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Savings Target',
+                label: AutoTranslatedText('Savings Target'),
                 suffixText: '%',
                 border: OutlineInputBorder(),
-                helperText: 'Enter a value between 0-100',
               ),
+            ),
+            const SizedBox(height: 4),
+            const AutoTranslatedText( // Moved helper text here
+              'Enter a value between 0-100',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 12),
             Container(
@@ -503,7 +508,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
+                    child: AutoTranslatedText(
                       'Example: If income is ₹5000 and target is 20%, you should spend max ₹4000',
                       style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
                     ),
@@ -516,7 +521,7 @@ class _ProfileTabState extends State<ProfileTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const AutoTranslatedText('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -527,20 +532,20 @@ class _ProfileTabState extends State<ProfileTab> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Savings target set to ${target.toStringAsFixed(0)}%! 🎯'),
+                    content: AutoTranslatedText('Savings target set to ${target.toStringAsFixed(0)}%! 🎯'),
                     backgroundColor: AppColors.success,
                   ),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Please enter a valid percentage (0-100)'),
+                    content: AutoTranslatedText('Please enter a valid percentage (0-100)'),
                     backgroundColor: AppColors.error,
                   ),
                 );
               }
             },
-            child: const Text('Save'),
+            child: const AutoTranslatedText('Save'),
           ),
         ],
       ),
@@ -555,19 +560,19 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Name'),
+        title: const AutoTranslatedText('Edit Name'),
         content: TextField(
           controller: controller,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
-            labelText: 'Full Name',
+            label: AutoTranslatedText('Full Name'),
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const AutoTranslatedText('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -577,7 +582,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Save'),
+            child: const AutoTranslatedText('Save'),
           ),
         ],
       ),
@@ -588,12 +593,12 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: const AutoTranslatedText('Logout'),
+        content: const AutoTranslatedText('Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const AutoTranslatedText('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -609,7 +614,7 @@ class _ProfileTabState extends State<ProfileTab> {
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            child: const AutoTranslatedText('Logout', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -620,12 +625,12 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Choose Theme'),
+        title: const AutoTranslatedText('Choose Theme'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<ThemeMode>(
-              title: const Text('Light Theme'),
+              title: const AutoTranslatedText('Light Theme'),
               value: ThemeMode.light,
               groupValue: themeProvider.themeMode,
               onChanged: (ThemeMode? value) {
@@ -636,7 +641,7 @@ class _ProfileTabState extends State<ProfileTab> {
               },
             ),
             RadioListTile<ThemeMode>(
-              title: const Text('Dark Theme'),
+              title: const AutoTranslatedText('Dark Theme'),
               value: ThemeMode.dark,
               groupValue: themeProvider.themeMode,
               onChanged: (ThemeMode? value) {
@@ -647,7 +652,7 @@ class _ProfileTabState extends State<ProfileTab> {
               },
             ),
             RadioListTile<ThemeMode>(
-              title: const Text('System Default'),
+              title: const AutoTranslatedText('System Default'),
               value: ThemeMode.system,
               groupValue: themeProvider.themeMode,
               onChanged: (ThemeMode? value) {

@@ -6,6 +6,7 @@ import '../../providers/expense_provider.dart';
 import '../../models/expense.dart';
 import '../../models/category.dart';
 import '../widgets/expense_card.dart';
+import '../../widgets/auto_translated_text.dart';
 
 class ExpensesTab extends StatefulWidget {
   const ExpensesTab({super.key});
@@ -60,7 +61,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Expenses'),
+        title: const AutoTranslatedText('Expenses'),
         backgroundColor: bgColor,
         elevation: 0,
         titleTextStyle: TextStyle(
@@ -87,7 +88,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                 children: [
                   if (_selectedCategory != null)
                     Chip(
-                      label: Text(
+                      label: AutoTranslatedText(
                         Category.getByName(_selectedCategory!).displayName,
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                       ),
@@ -102,7 +103,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                     ),
                   if (_dateRange != null)
                     Chip(
-                      label: Text(
+                      label: AutoTranslatedText(
                         '${DateFormat('MMM d').format(_dateRange!.start)} - ${DateFormat('MMM d').format(_dateRange!.end)}',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                       ),
@@ -137,7 +138,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                   children: [
                     Icon(Icons.swipe_left, size: 16, color: primaryColor),
                     const SizedBox(width: 8),
-                    Text(
+                    AutoTranslatedText(
                       'Swipe left to delete an expense',
                       style: TextStyle(
                         fontSize: 12,
@@ -172,14 +173,14 @@ class _ExpensesTabState extends State<ExpensesTab> {
                           color: AppColors.primary.withOpacity(0.3),
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        AutoTranslatedText(
                           'No expenses found',
                           style: AppTextStyles.heading3.copyWith(
                             color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        const AutoTranslatedText(
                           'Start tracking your expenses',
                           style: AppTextStyles.body2,
                         ),
@@ -212,7 +213,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
+                                AutoTranslatedText(
                                   _formatDate(date),
                                   style: AppTextStyles.body1.copyWith(
                                     fontWeight: FontWeight.w700,
@@ -255,20 +256,20 @@ class _ExpensesTabState extends State<ExpensesTab> {
                                     return await showDialog(
                                       context: context,
                                       builder: (context) => AlertDialog(
-                                        title: const Text('Delete Expense'),
-                                        content: const Text(
+                                        title: const AutoTranslatedText('Delete Expense'),
+                                        content: const AutoTranslatedText(
                                           'Are you sure you want to delete this expense?',
                                         ),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(context, false),
-                                            child: const Text('Cancel'),
+                                            child: const AutoTranslatedText('Cancel'),
                                           ),
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(context, true),
-                                            child: const Text(
+                                            child: const AutoTranslatedText(
                                               'Delete',
                                               style: TextStyle(color: AppColors.error),
                                             ),
@@ -281,7 +282,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                                     expenseProvider.deleteExpense(dayExpenses[i].id);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Expense deleted'),
+                                        content: AutoTranslatedText('Expense deleted'),
                                         duration: Duration(seconds: 2),
                                       ),
                                     );
@@ -348,11 +349,11 @@ class _ExpensesTabState extends State<ExpensesTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Filter Expenses', style: AppTextStyles.heading3),
+              const AutoTranslatedText('Filter Expenses', style: AppTextStyles.heading3),
               const SizedBox(height: 24),
               
               // Category filter
-              const Text('Category', style: AppTextStyles.body1),
+              const AutoTranslatedText('Category', style: AppTextStyles.body1),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -361,7 +362,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                   final isSelected = _selectedCategory == category.name;
                   return FilterChip(
                     avatar: Icon(category.icon, size: 18, color: isSelected ? category.color : AppColors.textSecondary),
-                    label: Text(category.displayName),
+                    label: AutoTranslatedText(category.displayName), // Category displayName is usually localized? No, it's a string. AutoTranslate it.
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() {
@@ -380,12 +381,12 @@ class _ExpensesTabState extends State<ExpensesTab> {
               // Date range filter
               ListTile(
                 leading: const Icon(Icons.date_range),
-                title: const Text('Select Date Range'),
+                title: const AutoTranslatedText('Select Date Range'),
                 subtitle: _dateRange != null
-                    ? Text(
+                    ? AutoTranslatedText(
                         '${DateFormat('MMM d').format(_dateRange!.start)} - ${DateFormat('MMM d').format(_dateRange!.end)}',
                       )
-                    : const Text('All time'),
+                    : const AutoTranslatedText('All time'),
                 onTap: () {
                   Navigator.pop(context);
                   _selectDateRange();
@@ -405,7 +406,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                     Navigator.pop(context);
                     _loadExpenses();
                   },
-                  child: const Text('Clear All Filters'),
+                  child: const AutoTranslatedText('Clear All Filters'),
                 ),
               ),
             ],

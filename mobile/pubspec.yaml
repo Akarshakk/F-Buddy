@@ -11,6 +11,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # UI Components
   cupertino_icons: ^1.0.6
@@ -48,6 +50,7 @@ dependencies:
   # flutter_sms_inbox: ^1.0.3
   permission_handler: ^11.0.1
   flutter_local_notifications: ^17.2.3
+  google_mlkit_translation: ^0.13.0
 
 dev_dependencies:
   flutter_test:

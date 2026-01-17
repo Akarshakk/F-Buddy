@@ -3,6 +3,7 @@ import '../config/theme.dart';
 import 'home/home_screen.dart';
 import 'splitwise/splitwise_home_screen.dart';
 import '../features/financial_calculator/calculator_feature.dart';
+import '../widgets/auto_translated_text.dart';
 
 class FeatureSelectionScreen extends StatelessWidget {
   const FeatureSelectionScreen({super.key});
@@ -55,13 +56,13 @@ class FeatureSelectionScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              Text(
+              AutoTranslatedText(
                 'Welcome to F-Buddy',
                 style: AppTextStyles.heading1.copyWith(color: textPrimaryColor),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              Text(
+              AutoTranslatedText(
                 'Choose how you want to manage your finances',
                 style: AppTextStyles.body1.copyWith(color: textSecondaryColor),
                 textAlign: TextAlign.center,
@@ -135,7 +136,7 @@ class FeatureSelectionScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
+                      child: AutoTranslatedText(
                         'You can switch between features anytime from the settings menu',
                         style: AppTextStyles.caption.copyWith(
                           color: textSecondaryColor,
@@ -200,12 +201,12 @@ class FeatureSelectionScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
+            AutoTranslatedText(
               title,
               style: AppTextStyles.heading3.copyWith(color: color),
             ),
             const SizedBox(height: 8),
-            Text(
+            AutoTranslatedText(
               subtitle,
               style: AppTextStyles.body2.copyWith(
                 color: isDark
@@ -216,7 +217,7 @@ class FeatureSelectionScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(
+                AutoTranslatedText(
                   'Get Started',
                   style: AppTextStyles.body1.copyWith(
                     color: color,

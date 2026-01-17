@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'config/theme.dart';
 import 'providers/theme_provider.dart';
@@ -11,9 +12,12 @@ import 'providers/analytics_provider.dart';
 import 'providers/debt_provider.dart';
 import 'providers/splitwise_provider.dart';
 import 'providers/sms_provider.dart';
+import 'providers/language_provider.dart';
+import 'package:f_buddy/l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home/debt_list_screen.dart';
 import 'screens/feature_selection_screen.dart';
+import 'widgets/rag_chat_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,11 +46,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DebtProvider()),
         ChangeNotifierProvider(create: (_) => SplitWiseProvider()),
         ChangeNotifierProvider.value(value: smsProvider),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()..load()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
-            title: 'F Buddy',
+            onGenerateTitle: (context) => context.l10n.t('app_title'),
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme.copyWith(
               textTheme: GoogleFonts.poppinsTextTheme(),
@@ -55,13 +60,29 @@ class MyApp extends StatelessWidget {
               textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
             ),
             themeMode: themeProvider.themeMode,
+            locale: context.watch<LanguageProvider>().locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             home: const SplashScreen(),
             routes: {
               '/home': (context) => const FeatureSelectionScreen(),
               '/debts': (context) => const DebtListScreen(),
             },
+            // Global overlay to make AI chat available across the app
+            builder: (context, child) {
+              return Stack(
+                children: [
+                  if (child != null) child,
+                  const RagChatWidget(),
+                ],
+              );
+            },
             onUnknownRoute: (settings) {
-              // Handle unknown routes gracefully
               return MaterialPageRoute(
                 builder: (context) => const FeatureSelectionScreen(),
               );

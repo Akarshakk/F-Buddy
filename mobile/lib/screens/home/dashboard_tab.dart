@@ -12,6 +12,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/splitwise_provider.dart';
 import '../widgets/expense_card.dart';
 import '../widgets/summary_card.dart';
+import '../../widgets/auto_translated_text.dart';
+import '../../l10n/app_localizations.dart';
 import 'add_income_screen.dart';
 import '../splitwise/splitwise_home_screen.dart';
 
@@ -185,9 +187,9 @@ class _DashboardTabState extends State<DashboardTab> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
+                                  AutoTranslatedText(
                                     'Monthly Balance',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 14,
                                     ),
@@ -205,7 +207,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                     },
                                     icon: const Icon(Icons.add,
                                         color: Colors.white, size: 18),
-                                    label: const Text(
+                                    label: const AutoTranslatedText(
                                       'Add Income',
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 12),
@@ -315,7 +317,7 @@ class _DashboardTabState extends State<DashboardTab> {
             children: [
               Icon(icon, color: color, size: 16),
               const SizedBox(width: 4),
-              Text(
+              AutoTranslatedText(
                 label,
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
@@ -349,12 +351,12 @@ class _DashboardTabState extends State<DashboardTab> {
                 const Icon(Icons.pie_chart_outline,
                     size: 48, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
-                Text(
+                AutoTranslatedText(
                   'No expenses yet',
                   style: AppTextStyles.body1
                       .copyWith(color: AppColors.textSecondary),
                 ),
-                const Text(
+                const AutoTranslatedText(
                   'Add your first expense to see the breakdown',
                   style: AppTextStyles.caption,
                 ),
@@ -369,9 +371,9 @@ class _DashboardTabState extends State<DashboardTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Expense Categories', style: AppTextStyles.heading3),
+              const AutoTranslatedText('Expense Categories', style: AppTextStyles.heading3),
               const SizedBox(height: 8),
-              const Text(
+              const AutoTranslatedText(
                 'Monthly breakdown by category',
                 style: AppTextStyles.caption,
               ),
@@ -448,7 +450,7 @@ class _DashboardTabState extends State<DashboardTab> {
                             Icon(category.icon,
                                 size: 14, color: category.color),
                             const SizedBox(width: 4),
-                            Text(
+                            AutoTranslatedText(
                               category.displayName,
                               style: AppTextStyles.caption.copyWith(
                                 fontWeight: FontWeight.w500,
@@ -493,13 +495,13 @@ class _DashboardTabState extends State<DashboardTab> {
                 const Icon(Icons.show_chart,
                     size: 48, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
-                Text(
+                AutoTranslatedText(
                   '7-Day Balance Chart',
                   style: AppTextStyles.body1
                       .copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                AutoTranslatedText(
                   analytics.daysRemainingForChart > 0
                       ? 'Add expenses for ${analytics.daysRemainingForChart} more unique dates'
                       : 'Start adding expenses to see the chart',
@@ -521,7 +523,7 @@ class _DashboardTabState extends State<DashboardTab> {
                 const Icon(Icons.show_chart,
                     size: 48, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
-                Text(
+                AutoTranslatedText(
                   'Loading chart data...',
                   style: AppTextStyles.body1
                       .copyWith(color: AppColors.textSecondary),
@@ -543,12 +545,12 @@ class _DashboardTabState extends State<DashboardTab> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('7-Day Overview', style: AppTextStyles.heading3),
+                    const AutoTranslatedText('7-Day Overview', style: AppTextStyles.heading3),
                     _buildWeekSelector(analytics),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
+                AutoTranslatedText(
                   analytics.isCurrentWeek
                       ? 'Income vs Expenses (Last 7 Days)'
                       : 'Income vs Expenses',
@@ -781,7 +783,7 @@ class _DashboardTabState extends State<DashboardTab> {
           ),
         ),
         const SizedBox(width: 6),
-        Text(
+        AutoTranslatedText(
           label,
           style: const TextStyle(
             fontSize: 12,
@@ -1109,7 +1111,7 @@ class _DashboardTabState extends State<DashboardTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Group Expenses', style: AppTextStyles.heading3),
+                  const AutoTranslatedText('Group Expenses', style: AppTextStyles.heading3),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pushReplacement(
@@ -1117,12 +1119,12 @@ class _DashboardTabState extends State<DashboardTab> {
                             builder: (_) => const SplitwiseHomeScreen()),
                       );
                     },
-                    child: const Text('View All'),
+                    child: const AutoTranslatedText('View All'),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              const AutoTranslatedText(
                 'Your spending in group expenses',
                 style: AppTextStyles.caption,
               ),
@@ -1146,7 +1148,7 @@ class _DashboardTabState extends State<DashboardTab> {
                           Icon(Icons.payment,
                               color: AppColors.primary, size: 20),
                           const SizedBox(height: 8),
-                          Text(
+                          const AutoTranslatedText(
                             'Total Spent',
                             style: AppTextStyles.caption,
                           ),
@@ -1179,7 +1181,7 @@ class _DashboardTabState extends State<DashboardTab> {
                           Icon(Icons.groups,
                               color: AppColors.secondary, size: 20),
                           const SizedBox(height: 8),
-                          Text(
+                          const AutoTranslatedText(
                             'Active Groups',
                             style: AppTextStyles.caption,
                           ),
@@ -1202,7 +1204,7 @@ class _DashboardTabState extends State<DashboardTab> {
 
               // Group breakdown
               if (groups.isNotEmpty) ...[
-                Text(
+                AutoTranslatedText(
                   'Recent Groups',
                   style:
                       AppTextStyles.body2.copyWith(fontWeight: FontWeight.w600),
@@ -1257,9 +1259,26 @@ class _DashboardTabState extends State<DashboardTab> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                '${group.members.length} members • ${group.expenses.length} expenses',
-                                style: AppTextStyles.caption,
+                              Row(
+                                children: [
+                                  Text(
+                                    '${group.members.length} ',
+                                    style: AppTextStyles.caption,
+                                  ),
+                                  const AutoTranslatedText(
+                                    'members',
+                                    style: AppTextStyles.caption,
+                                  ),
+                                  const Text(' • ', style: AppTextStyles.caption),
+                                  Text(
+                                    '${group.expenses.length} ',
+                                    style: AppTextStyles.caption,
+                                  ),
+                                  const AutoTranslatedText(
+                                    'expenses',
+                                    style: AppTextStyles.caption,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -1274,7 +1293,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                 color: AppColors.primary,
                               ),
                             ),
-                            Text(
+                            AutoTranslatedText(
                               balance >= 0
                                   ? 'Gets ₹${balance.abs().toStringAsFixed(0)}'
                                   : 'Owes ₹${balance.abs().toStringAsFixed(0)}',

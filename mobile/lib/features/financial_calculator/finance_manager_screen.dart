@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../config/theme.dart';
 import '../../screens/feature_selection_screen.dart';
 import '../../widgets/rag_chat_widget.dart';
+import '../../providers/language_provider.dart';
+import 'package:f_buddy/l10n/app_localizations.dart';
 import 'calculators/inflation_calculator.dart';
 import 'calculators/investment_return_calculator.dart';
 import 'calculators/retirement_calculator.dart';
@@ -33,44 +37,45 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
   final List<_NavCategory> _navCategories = [
     _NavCategory(
       id: 'advisory',
-      title: 'Financial Advisory',
+      titleKey: 'financial_advisory',
       items: [],
     ),
     _NavCategory(
       id: 'calculators',
-      title: 'Financial Calculators',
+      titleKey: 'financial_calculators',
       items: [
-        _NavItem(id: 'inflation', title: 'Inflation Calculator'),
-        _NavItem(id: 'investment', title: 'Investment Return'),
-        _NavItem(id: 'retirement', title: 'Retirement Corpus'),
-        _NavItem(id: 'sip', title: 'SIP Calculator'),
-        _NavItem(id: 'emi', title: 'EMI Calculator'),
-        _NavItem(id: 'emergency', title: 'Emergency Fund'),
+        _NavItem(id: 'inflation', titleKey: 'inflation_calculator'),
+        _NavItem(id: 'investment', titleKey: 'investment_return'),
+        _NavItem(id: 'retirement', titleKey: 'retirement_corpus'),
+        _NavItem(id: 'sip', titleKey: 'sip_calculator'),
+        _NavItem(id: 'emi', titleKey: 'emi_calculator'),
+        _NavItem(id: 'emergency', titleKey: 'emergency_fund'),
       ],
     ),
     _NavCategory(
       id: 'insurance',
-      title: 'Insurance Management',
+      titleKey: 'insurance_management',
       items: [
-        _NavItem(id: 'term_insurance', title: 'Life - Term Insurance'),
-        _NavItem(id: 'health_insurance', title: 'Health Insurance Premium'),
-        _NavItem(id: 'motor_insurance', title: 'Motor Insurance Premium'),
+        _NavItem(id: 'term_insurance', titleKey: 'life_term_insurance'),
+        _NavItem(id: 'health_insurance', titleKey: 'health_insurance'),
+        _NavItem(id: 'motor_insurance', titleKey: 'motor_insurance'),
       ],
     ),
     _NavCategory(
       id: 'loans',
-      title: 'Loan Management',
+      titleKey: 'loan_management',
       items: [
-        _NavItem(id: 'home_loan', title: 'Home Loan'),
-        _NavItem(id: 'vehicle_loan', title: 'Vehicle Loan'),
+        _NavItem(id: 'home_loan', titleKey: 'home_loan'),
+        _NavItem(id: 'vehicle_loan', titleKey: 'vehicle_loan'),
+        _NavItem(id: 'gold_loan', titleKey: 'gold_loan'),
       ],
     ),
     _NavCategory(
       id: 'tax',
-      title: 'Tax Management',
+      titleKey: 'tax_management',
       items: [
-        _NavItem(id: 'itr_planning', title: 'ITR Planning'),
-        _NavItem(id: 'itr_filing', title: 'ITR Filing'),
+        _NavItem(id: 'itr_planning', titleKey: 'itr_planning'),
+        _NavItem(id: 'itr_filing', titleKey: 'itr_filing'),
       ],
     ),
   ];
@@ -101,6 +106,11 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
         return const HomeLoanPage();
       case 'vehicle_loan':
         return const VehicleLoanPage();
+      case 'gold_loan':
+        return ComingSoonPage(
+            title: context.l10n.t('gold_loan'),
+            description: context.l10n.t('coming_soon_desc_gold'),
+            icon: Icons.diamond);
       case 'itr_planning':
         return const ItrPlanningPage();
       case 'itr_filing':
@@ -122,6 +132,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
     final bgColor = isDark ? AppColorsDark.background : const Color(0xFFF5F5F5);
     final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
     final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
+    final languageProvider = context.watch<LanguageProvider>();
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -131,13 +143,37 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: primaryColor),
           onPressed: _goBack,
-          tooltip: 'Back to Menu',
+          tooltip: context.l10n.t('back_to_menu'),
         ),
         title: Text(
-          'Personal Finance Manager',
+          l10n.t('finance_manager'),
           style: AppTextStyles.heading2.copyWith(color: primaryColor),
         ),
         centerTitle: false,
+        actions: [
+          PopupMenuButton<AppLanguage>(
+            tooltip: context.l10n.t('language'),
+            initialValue: languageProvider.language,
+            icon: Row(
+              children: [
+                const Icon(Icons.translate),
+                const SizedBox(width: 4),
+                Text(
+                  languageProvider.displayName,
+                  style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            onSelected: (lang) {
+              languageProvider.setLanguage(lang);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: AppLanguage.english, child: Text('English')),
+              PopupMenuItem(value: AppLanguage.hindi, child: Text('हिंदी (Hindi)')),
+              PopupMenuItem(value: AppLanguage.marathi, child: Text('मराठी (Marathi)')),
+            ],
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -152,11 +188,12 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
                   child: Row(
                     children: _navCategories.map((category) {
                       final isSelected = _selectedCategory == category.id;
+                      final title = l10n.t(category.titleKey);
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: category.items.isEmpty
                             ? _buildSimpleTab(
-                                category, isSelected, primaryColor, isDark)
+                                category, title, isSelected, primaryColor, isDark)
                             : _buildDropdownTab(category, isSelected, primaryColor,
                                 isDark, surfaceColor),
                       );
@@ -186,8 +223,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
     );
   }
 
-  Widget _buildSimpleTab(
-      _NavCategory category, bool isSelected, Color primaryColor, bool isDark) {
+    Widget _buildSimpleTab(
+      _NavCategory category, String title, bool isSelected, Color primaryColor, bool isDark) {
     return InkWell(
       onTap: () {
         setState(() {
@@ -206,7 +243,7 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
           ),
         ),
         child: Text(
-          category.title,
+          title,
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -219,84 +256,85 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
     );
   }
 
-  Widget _buildDropdownTab(_NavCategory category, bool isSelected,
-      Color primaryColor, bool isDark, Color surfaceColor) {
-    return PopupMenuButton<String>(
-      tooltip: category.title,
-      offset: const Offset(0, 50),
-      color: surfaceColor,
-      onSelected: (itemId) {
-        setState(() {
-          _selectedCategory = category.id;
-          _selectedItem = itemId;
-        });
-      },
-      itemBuilder: (context) => category.items.map((item) {
-        final isItemSelected = _selectedItem == item.id;
-        return PopupMenuItem<String>(
-          value: item.id,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              item.title,
-              style: TextStyle(
-                fontWeight:
-                    isItemSelected ? FontWeight.bold : FontWeight.normal,
-                color: isItemSelected ? primaryColor : null,
+    Widget _buildDropdownTab(_NavCategory category, bool isSelected,
+        Color primaryColor, bool isDark, Color surfaceColor) {
+      final l10n = context.l10n;
+      return PopupMenuButton<String>(
+        tooltip: l10n.t(category.titleKey),
+        offset: const Offset(0, 50),
+        color: surfaceColor,
+        onSelected: (itemId) {
+          setState(() {
+            _selectedCategory = category.id;
+            _selectedItem = itemId;
+          });
+        },
+        itemBuilder: (context) => category.items.map((item) {
+          final isItemSelected = _selectedItem == item.id;
+          return PopupMenuItem<String>(
+            value: item.id,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                l10n.t(item.titleKey),
+                style: TextStyle(
+                  fontWeight:
+                      isItemSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isItemSelected ? primaryColor : null,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? primaryColor : Colors.transparent,
+                width: 3,
               ),
             ),
           ),
-        );
-      }).toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? primaryColor : Colors.transparent,
-              width: 3,
-            ),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              category.title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.t(category.titleKey),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected
+                      ? primaryColor
+                      : (isDark ? Colors.white70 : Colors.black87),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 18,
                 color: isSelected
                     ? primaryColor
-                    : (isDark ? Colors.white70 : Colors.black87),
+                    : (isDark ? Colors.white70 : Colors.black54),
               ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 18,
-              color: isSelected
-                  ? primaryColor
-                  : (isDark ? Colors.white70 : Colors.black54),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 }
 
 class _NavCategory {
   final String id;
-  final String title;
+  final String titleKey;
   final List<_NavItem> items;
 
-  _NavCategory({required this.id, required this.title, required this.items});
+  _NavCategory({required this.id, required this.titleKey, required this.items});
 }
 
 class _NavItem {
   final String id;
-  final String title;
+  final String titleKey;
 
-  _NavItem({required this.id, required this.title});
+  _NavItem({required this.id, required this.titleKey});
 }

@@ -6,6 +6,7 @@ import '../feature_selection_screen.dart';
 import '../kyc/kyc_screen.dart';
 import 'email_verification_screen.dart';
 import 'register_screen.dart';
+import '../../widgets/auto_translated_text.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -124,13 +125,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 32),
                         // Heading
-                        const Text(
+                        const AutoTranslatedText(
                           'Welcome to F-Buddy',
                           style: AppTextStyles.heading2,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),
-                        const Text(
+                        const AutoTranslatedText(
                           'Manage your finances effortlessly',
                           style: AppTextStyles.body2,
                           textAlign: TextAlign.center,
@@ -141,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Email', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                            const AutoTranslatedText('Email', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: _emailController,
@@ -185,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Password', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                            const AutoTranslatedText('Password', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: _passwordController,
@@ -256,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       ),
                                     )
-                                  : const Text(
+                                  : const AutoTranslatedText(
                                       'Sign In',
                                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
                                     ),
@@ -269,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
+                            const AutoTranslatedText(
                               "Don't have an account? ",
                               style: AppTextStyles.body2,
                             ),
@@ -280,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 );
                               },
                               style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                              child: const Text(
+                              child: const AutoTranslatedText(
                                 'Sign Up',
                                 style: TextStyle(
                                   color: AppColors.secondary,

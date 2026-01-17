@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
+import '../../widgets/auto_translated_text.dart';
 
 class SummaryCard extends StatelessWidget {
   final String title;
@@ -46,13 +47,13 @@ class SummaryCard extends StatelessWidget {
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(height: 12),
-            Text(
+            AutoTranslatedText(
               title,
               style: AppTextStyles.caption,
             ),
             const SizedBox(height: 4),
             Text(
-              value,
+              value, // Value might be number or date, usually doesn't need translation or handled by caller formatting
               style: AppTextStyles.body1.copyWith(
                 fontWeight: FontWeight.w600,
               ),

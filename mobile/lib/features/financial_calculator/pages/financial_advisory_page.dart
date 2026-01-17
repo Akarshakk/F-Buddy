@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:f_buddy/l10n/app_localizations.dart';
+import 'package:f_buddy/widgets/auto_translated_text.dart';
 
 /// Financial Advisory page with Q&A, income inputs, and personalized allocation
 class FinancialAdvisoryPage extends StatefulWidget {
@@ -16,44 +18,44 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
 
   final List<Map<String, dynamic>> _questions = [
     {
-      'question': 'Do you have an emergency fund?',
+      'question': 'q_emergency_fund',
       'answer': null,
       'longWeight': 1
     },
     {
-      'question': 'Do you have health insurance?',
+      'question': 'q_health_insurance',
       'answer': null,
       'longWeight': 1,
       'insuranceType': 'health'
     },
     {
-      'question': 'Do you have term insurance?',
+      'question': 'q_term_insurance',
       'answer': null,
       'longWeight': 1,
       'insuranceType': 'term'
     },
     {
-      'question': 'Are you saving for retirement?',
+      'question': 'q_retirement_saving',
       'answer': null,
       'longWeight': 2
     },
     {
-      'question': 'Do you have any outstanding loans?',
+      'question': 'q_outstanding_loans',
       'answer': null,
       'longWeight': -1
     },
     {
-      'question': 'Are you comfortable with stock market corrections?',
+      'question': 'q_market_corrections',
       'answer': null,
       'longWeight': 2
     },
     {
-      'question': 'Do you have a fixed income?',
+      'question': 'q_fixed_income',
       'answer': null,
       'longWeight': 1
     },
     {
-      'question': 'Are you okay with being invested for long term?',
+      'question': 'q_long_term_invested',
       'answer': null,
       'longWeight': 3
     },
@@ -65,6 +67,13 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
     _investmentController.dispose();
     _horizonController.dispose();
     super.dispose();
+  }
+
+  String _localizedQuestion(BuildContext context, String keyOrText) {
+    // If the provided value matches our keys, translate; else return as-is.
+    final l10n = context.l10n;
+    final translated = l10n.t(keyOrText);
+    return translated;
   }
 
   @override
@@ -79,30 +88,30 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Personalized Investment Planner',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              Text(
+                context.l10n.t('advisory_title'),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'Get a customized investment allocation based on your profile',
+                context.l10n.t('advisory_subtitle'),
                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
               const SizedBox(height: 24),
 
               // Income Inputs Section
-              _buildSectionHeader(
-                  'Financial Details', Icons.account_balance_wallet),
+                _buildSectionHeader(
+                  context.l10n.t('financial_details'), Icons.account_balance_wallet),
               const SizedBox(height: 12),
-              _buildNumericInput(
-                  _incomeController, 'Annual Income (₹)', 'e.g. 1000000'),
-              _buildNumericInput(_investmentController,
-                  'Yearly Investment Budget (₹)', 'e.g. 300000'),
-              _buildNumericInput(
-                  _horizonController, 'Investment Horizon (Years)', 'e.g. 5'),
+                _buildNumericInput(
+                  _incomeController, context.l10n.t('annual_income_label'), 'e.g. 1000000'),
+                _buildNumericInput(_investmentController,
+                  context.l10n.t('investment_budget_label'), 'e.g. 300000'),
+                _buildNumericInput(
+                  _horizonController, context.l10n.t('investment_horizon_label'), 'e.g. 5'),
 
               const SizedBox(height: 24),
-              _buildSectionHeader('Financial Health Questions', Icons.quiz),
+              _buildSectionHeader(context.l10n.t('financial_questions'), Icons.quiz),
               const SizedBox(height: 12),
 
               // Questions
@@ -117,7 +126,7 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              '${index + 1}. ${q['question']}',
+                              '${index + 1}. ${_localizedQuestion(context, q['question'] as String)}',
                               style: const TextStyle(fontSize: 15),
                             ),
                           ),
@@ -142,9 +151,9 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('Generate My Investment Plan',
+                  child: Text(context.l10n.t('generate_investment_plan'),
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -188,9 +197,9 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildChoiceButton('Yes', true, currentAnswer, index),
+        _buildChoiceButton(context.l10n.t('yes'), true, currentAnswer, index),
         const SizedBox(width: 8),
-        _buildChoiceButton('No', false, currentAnswer, index),
+        _buildChoiceButton(context.l10n.t('no'), false, currentAnswer, index),
       ],
     );
   }
@@ -235,7 +244,7 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
 
     if (income <= 0 || investment <= 0 || horizon <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter all financial details')),
+        SnackBar(content: Text(context.l10n.t('enter_financial_details'))),
       );
       return;
     }
@@ -243,7 +252,7 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
     final answered = _questions.where((q) => q['answer'] != null).length;
     if (answered < _questions.length) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please answer all questions')),
+        SnackBar(content: Text(context.l10n.t('answer_all_questions'))),
       );
       return;
     }
@@ -321,6 +330,12 @@ class _PersonalizedPlanPage extends StatelessWidget {
     return '₹${amount.toStringAsFixed(0)}';
   }
 
+  String _getInvestorTypeLabel(BuildContext context) {
+    if (investorType == 'Short-Term') return context.l10n.t('investor_type_short');
+    if (investorType == 'Medium-Term') return context.l10n.t('investor_type_medium');
+    return context.l10n.t('investor_type_long');
+  }
+
   @override
   Widget build(BuildContext context) {
     // Calculate insurance allocation if needed
@@ -342,7 +357,7 @@ class _PersonalizedPlanPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Investment Plan'),
+        title: Text(context.l10n.t('your_investment_plan')),
         backgroundColor: typeColor,
         foregroundColor: Colors.white,
       ),
@@ -352,25 +367,25 @@ class _PersonalizedPlanPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Summary Card
-            _buildSummaryCard(),
+            _buildSummaryCard(context),
             const SizedBox(height: 20),
 
             // Insurance Allocation (if needed)
             if (needsHealthInsurance || needsTermInsurance) ...[
               _buildInsuranceSection(
-                  healthPremium, termPremium, insuranceAllocation),
+                  context, healthPremium, termPremium, insuranceAllocation),
               const SizedBox(height: 20),
             ],
 
             // Investment Allocation
-            _buildInvestmentAllocation(remainingForInvestment),
+            _buildInvestmentAllocation(context, remainingForInvestment),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(BuildContext context) {
     return Card(
       elevation: 4,
       color: typeColor.withValues(alpha: 0.1),
@@ -393,7 +408,7 @@ class _PersonalizedPlanPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '$investorType Investor',
+                  '${_getInvestorTypeLabel(context)} ${context.l10n.t('investor_role')}',
                   style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -405,9 +420,9 @@ class _PersonalizedPlanPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildInfoItem('Annual Income', _formatCurrency(annualIncome)),
-                _buildInfoItem('Investment', _formatCurrency(investmentBudget)),
-                _buildInfoItem('Horizon', '$horizon Years'),
+                _buildInfoItem(context.l10n.t('annual_income'), _formatCurrency(annualIncome)),
+                _buildInfoItem(context.l10n.t('investment'), _formatCurrency(investmentBudget)),
+                _buildInfoItem(context.l10n.t('horizon'), '$horizon ${context.l10n.t('years')}'),
               ],
             ),
           ],
@@ -427,7 +442,7 @@ class _PersonalizedPlanPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInsuranceSection(
+  Widget _buildInsuranceSection(BuildContext context,
       double healthPremium, double termPremium, double total) {
     return Card(
       color: Colors.red.shade50,
@@ -440,7 +455,7 @@ class _PersonalizedPlanPage extends StatelessWidget {
               children: [
                 Icon(Icons.shield, color: Colors.red.shade700),
                 const SizedBox(width: 8),
-                Text('Insurance First!',
+                Text(context.l10n.t('insurance_first'),
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -448,18 +463,18 @@ class _PersonalizedPlanPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            const Text('Before investing, secure yourself with insurance:',
-                style: TextStyle(fontSize: 14)),
+            Text(context.l10n.t('insurance_intro'),
+              style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 12),
             if (needsHealthInsurance)
-              _buildAllocationRow('Health Insurance Premium', healthPremium,
+                _buildAllocationRow(context.l10n.t('health_insurance_premium'), healthPremium,
                   Colors.red.shade400),
             if (needsTermInsurance)
-              _buildAllocationRow(
-                  'Term Insurance Premium', termPremium, Colors.red.shade400),
+                _buildAllocationRow(
+                  context.l10n.t('term_insurance_premium'), termPremium, Colors.red.shade400),
             const Divider(),
             _buildAllocationRow(
-                'Total Insurance Allocation', total, Colors.red.shade700,
+              context.l10n.t('total_insurance_allocation'), total, Colors.red.shade700,
                 isBold: true),
           ],
         ),
@@ -467,7 +482,7 @@ class _PersonalizedPlanPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInvestmentAllocation(double amount) {
+  Widget _buildInvestmentAllocation(BuildContext context, double amount) {
     // Calculate allocations based on investor type
     Map<String, double> allocations;
 
@@ -506,7 +521,7 @@ class _PersonalizedPlanPage extends StatelessWidget {
               children: [
                 Icon(Icons.pie_chart, color: typeColor),
                 const SizedBox(width: 8),
-                Text('Investment Allocation',
+                Text(context.l10n.t('investment_allocation'),
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -514,14 +529,14 @@ class _PersonalizedPlanPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Total for Investment: ${_formatCurrency(amount)}',
+            Text('${context.l10n.t('total_for_investment')}: ${_formatCurrency(amount)}',
                 style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 16),
             ...allocations.entries.map((entry) =>
                 _buildAllocationRow(entry.key, entry.value, typeColor)),
             const Divider(),
             const SizedBox(height: 12),
-            _buildRecommendedFunds(),
+            _buildRecommendedFunds(context),
           ],
         ),
       ),
@@ -535,7 +550,8 @@ class _PersonalizedPlanPage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
+          // Using AutoTranslatedText for dynamic category names!
+          AutoTranslatedText(label,
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
@@ -556,7 +572,7 @@ class _PersonalizedPlanPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRecommendedFunds() {
+  Widget _buildRecommendedFunds(BuildContext context) {
     List<String> funds;
 
     if (investorType == 'Short-Term') {
@@ -586,15 +602,16 @@ class _PersonalizedPlanPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Recommended Funds:',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(context.l10n.t('recommended_funds'),
+          style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: funds
               .map((fund) => Chip(
-                    label: Text(fund, style: const TextStyle(fontSize: 12)),
+                    // Using AutoTranslatedText for dynamic fund names!
+                    label: AutoTranslatedText(fund, style: const TextStyle(fontSize: 12)),
                     backgroundColor: typeColor.withValues(alpha: 0.1),
                     side: BorderSide.none,
                   ))

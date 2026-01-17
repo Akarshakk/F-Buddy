@@ -10,6 +10,7 @@ import 'splitwise_groups_tab.dart';
 import 'splitwise_friends_tab.dart';
 import 'splitwise_activity_tab.dart';
 import 'splitwise_settings_tab.dart';
+import '../../widgets/auto_translated_text.dart';
 
 class SplitwiseHomeScreen extends StatefulWidget {
   const SplitwiseHomeScreen({super.key});
@@ -216,7 +217,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
             size: 24,
           ),
           const SizedBox(height: 4),
-          Text(
+          AutoTranslatedText(
             label,
             style: TextStyle(
               fontSize: 11,
@@ -237,14 +238,14 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Create Group'),
+        title: const AutoTranslatedText('Create Group'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
               decoration: InputDecoration(
-                labelText: 'Group Name',
+                label: const AutoTranslatedText('Group Name'), // Using label widget instead of labelText string
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -254,7 +255,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
             TextField(
               controller: descriptionController,
               decoration: InputDecoration(
-                labelText: 'Description',
+                label: const AutoTranslatedText('Description'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -266,7 +267,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const AutoTranslatedText('Cancel'),
           ),
           TextButton(
             onPressed: () async {
@@ -288,17 +289,17 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Group created successfully!')),
+                        content: AutoTranslatedText('Group created successfully!')),
                   );
                 } else if (mounted && provider.errorMessage != null) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${provider.errorMessage}')),
+                    SnackBar(content: Text('Error: ${provider.errorMessage}')), // Error message might be technical, keep as Text or handle carefully? keeping as Text for safety, or simple AutoTranslatedText if safe.
                   );
                 }
               }
             },
-            child: const Text('Create'),
+            child: const AutoTranslatedText('Create'),
           ),
         ],
       ),
@@ -316,12 +317,12 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
 
         return AlertDialog(
           backgroundColor: surfaceColor,
-          title: const Text('Join Group'),
+          title: const AutoTranslatedText('Join Group'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                AutoTranslatedText(
                   'Enter the 6-character invite code from the group creator',
                   style: TextStyle(
                     fontSize: 13,
@@ -334,7 +335,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
                 TextField(
                   controller: inviteCodeController,
                   decoration: InputDecoration(
-                    labelText: 'Invite Code',
+                    label: const AutoTranslatedText('Invite Code'),
                     hintText: 'e.g., ABC123',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -349,7 +350,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const AutoTranslatedText('Cancel'),
             ),
             TextButton(
               onPressed: () async {
@@ -370,7 +371,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Joined group successfully!'),
+                        content: AutoTranslatedText('Joined group successfully!'),
                       ),
                     );
                   } else if (mounted && provider.errorMessage != null) {
@@ -384,12 +385,12 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Code must be exactly 6 characters'),
+                      content: AutoTranslatedText('Code must be exactly 6 characters'),
                     ),
                   );
                 }
               },
-              child: const Text('Join'),
+              child: const AutoTranslatedText('Join'),
             ),
           ],
         );

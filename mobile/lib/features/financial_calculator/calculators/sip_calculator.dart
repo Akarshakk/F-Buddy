@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:f_buddy/l10n/app_localizations.dart';
+import 'package:f_buddy/widgets/auto_translated_text.dart';
 import 'dart:math';
 
 /// SIP Calculator
@@ -31,11 +33,11 @@ class _SipCalculatorState extends State<SipCalculator> {
     final years = double.tryParse(_yearsController.text);
 
     if (monthly == null || annualRate == null || years == null) {
-      setState(() => _result = 'Please fill all fields');
+      setState(() => _result = context.l10n.t('please_fill_all_fields'));
       return;
     }
     if (monthly < 0 || annualRate < 0 || years < 0) {
-      setState(() => _result = 'Values cannot be negative');
+      setState(() => _result = context.l10n.t('values_cannot_be_negative'));
       return;
     }
 
@@ -53,6 +55,7 @@ class _SipCalculatorState extends State<SipCalculator> {
     final returns = maturity - totalInvested;
 
     setState(() {
+      // We will let AutoTranslatedText handle the full string translation for the result
       _result = 'Maturity Value: ₹${_formatNumber(maturity)}\n\n'
           'Total Invested: ₹${_formatNumber(totalInvested)}\n'
           'Returns: ₹${_formatNumber(returns)}';
@@ -71,8 +74,8 @@ class _SipCalculatorState extends State<SipCalculator> {
   @override
   Widget build(BuildContext context) {
     return _buildCalculatorCard(
-      title: 'SIP Calculator',
-      subtitle: 'Calculate SIP maturity value',
+      title: context.l10n.t('sip_calculator'),
+      subtitle: 'Calculate SIP maturity value', // Dynamic translation
       children: [
         _buildInput(_monthlyController, 'Monthly Investment (₹)'),
         _buildInput(_rateController, 'Expected Annual Return (%)'),
@@ -97,11 +100,11 @@ class _SipCalculatorState extends State<SipCalculator> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
+            Text(title, // Title is already localized via l10n.t()
                 style:
                     const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(subtitle,
+            AutoTranslatedText(subtitle, // Use AutoTranslatedText for description
                 style: TextStyle(color: Colors.grey[600], fontSize: 14)),
             const SizedBox(height: 24),
             ...children,
@@ -114,15 +117,38 @@ class _SipCalculatorState extends State<SipCalculator> {
   Widget _buildInput(TextEditingController controller, String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: TextField(
-        controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Use AutoTranslatedText for the label above the field for clarity
+          // OR inside the decoration? Decoration only takes String.
+          // So we must use a label widget or use a builder.
+          // Since TextField labelText is a String, we can't put a widget there.
+          // We will use 'label' widget above the text field or use hintText.
+          // Actually, standard Material design uses labelText.
+          // To support dynamic translation for labelText without keys, we'd need to async translate it before passing.
+          // THAT is hard.
+          // ALTERNATIVE: Use AutoTranslatedText AS A LABEL above the TextField.
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, left: 4),
+            child: AutoTranslatedText(
+              label,
+              style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+          TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration( // Removed labelText
+              border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -138,8 +164,8 @@ class _SipCalculatorState extends State<SipCalculator> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: const Text('Calculate',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        child: Text(context.l10n.t('calculate'),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -153,7 +179,7 @@ class _SipCalculatorState extends State<SipCalculator> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.green.shade200),
       ),
-      child: Text(
+      child: AutoTranslatedText( // Use AutoTranslatedText for the result
         _result,
         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,

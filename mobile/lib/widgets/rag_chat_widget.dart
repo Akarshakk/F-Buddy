@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../config/theme.dart';
 import '../../services/rag_service.dart';
+import '../../services/translation_service.dart';
+import '../../providers/language_provider.dart';
+import 'package:f_buddy/l10n/app_localizations.dart';
 
 /// Floating chat widget for RAG-based financial advisory
 class RagChatWidget extends StatefulWidget {
@@ -17,6 +22,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final RagService _ragService = RagService();
+  final TranslationService _translationService = TranslationService.instance;
   bool _isLoading = false;
 
   late AnimationController _animationController;
@@ -35,14 +41,17 @@ class _RagChatWidgetState extends State<RagChatWidget>
     );
 
     // Add welcome message
-    _addMessage(
-      ChatMessage(
-        text:
-            "👋 Hi! I'm your financial advisor AI. Ask me anything about personal finance, investments, budgeting, or money management!",
-        isUser: false,
-        timestamp: DateTime.now(),
-      ),
-    );
+    // Welcome message is localized when widget builds (header shows language)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final l10n = context.l10n;
+      _addMessage(
+        ChatMessage(
+          text: l10n.t('welcome_ai'),
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+    });
   }
 
   @override
@@ -84,6 +93,9 @@ class _RagChatWidgetState extends State<RagChatWidget>
   }
 
   Future<void> _sendMessage() async {
+    final languageProvider = context.read<LanguageProvider>();
+    final selectedLang = languageProvider.language;
+
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
@@ -100,13 +112,49 @@ class _RagChatWidgetState extends State<RagChatWidget>
     setState(() => _isLoading = true);
 
     try {
+      // Translate user message to English if needed
+      String outbound = text;
+      if (selectedLang != AppLanguage.english) {
+        try {
+          outbound = await _translationService.translate(
+            text,
+            source: selectedLang,
+            target: AppLanguage.english,
+          );
+        } catch (e) {
+          _addMessage(
+            ChatMessage(
+              text: context.l10n.t('translate_fail'),
+              isUser: false,
+              timestamp: DateTime.now(),
+              isError: true,
+            ),
+          );
+        }
+      }
+
       // Get AI response
-      final response = await _ragService.chat(text);
+      final response = await _ragService.chat(outbound);
 
       if (response.success) {
+        String answerText = response.answer;
+
+        // Translate answer back to selected language if needed
+        if (selectedLang != AppLanguage.english) {
+          try {
+            answerText = await _translationService.translate(
+              response.answer,
+              source: AppLanguage.english,
+              target: selectedLang,
+            );
+          } catch (_) {
+            answerText = '${response.answer}\n\n${context.l10n.t('translation_unavailable')}';
+          }
+        }
+
         _addMessage(
           ChatMessage(
-            text: response.answer,
+            text: answerText,
             isUser: false,
             timestamp: DateTime.now(),
             sources: response.sources,
@@ -115,8 +163,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
       } else {
         _addMessage(
           ChatMessage(
-            text:
-                "Sorry, I encountered an error. Please try again. Error: ${response.message}",
+            text: "${context.l10n.t('error_generic')} Error: ${response.message}",
             isUser: false,
             timestamp: DateTime.now(),
             isError: true,
@@ -126,7 +173,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
     } catch (e) {
       _addMessage(
         ChatMessage(
-          text: "Sorry, I couldn't connect to the advisory service. Please try again later.",
+          text: context.l10n.t('error_connect'),
           isUser: false,
           timestamp: DateTime.now(),
           isError: true,
@@ -143,6 +190,8 @@ class _RagChatWidgetState extends State<RagChatWidget>
     final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
     final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
     final backgroundColor = isDark ? AppColorsDark.background : Colors.white;
+    final languageProvider = context.watch<LanguageProvider>();
+    final l10n = context.l10n;
 
     return Stack(
       children: [
@@ -186,14 +235,26 @@ class _RagChatWidgetState extends State<RagChatWidget>
                           children: [
                             const Icon(Icons.smart_toy, color: Colors.white),
                             const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text(
-                                'Financial Advisor AI',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.t('ai_header'),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${context.l10n.t('language')}: ${languageProvider.displayName}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             IconButton(
@@ -238,7 +299,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Thinking...',
+                                context.l10n.t('thinking'),
                                 style: TextStyle(
                                   color: primaryColor,
                                   fontSize: 12,
@@ -265,7 +326,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
                               child: TextField(
                                 controller: _messageController,
                                 decoration: InputDecoration(
-                                  hintText: 'Ask me about finance...',
+                                  hintText: context.l10n.t('chat_hint_finance'),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(24),
                                     borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
@@ -298,7 +359,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
                                   colors: [primaryColor, primaryColor.withOpacity(0.8)],
                                 ),
                                 shape: BoxShape.circle,
-                              ),
+                                ),
                               child: IconButton(
                                 icon: const Icon(Icons.send, color: Colors.white),
                                 onPressed: _isLoading ? null : _sendMessage,
@@ -370,7 +431,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
               Padding(
                 padding: const EdgeInsets.only(top: 4, left: 8),
                 child: Text(
-                  'Sources: ${message.sources!.join(", ")}',
+                  '${context.l10n.t('sources_label')}: ${message.sources!.join(", ")}',
                   style: TextStyle(
                     fontSize: 10,
                     color: textColor.withOpacity(0.6),
