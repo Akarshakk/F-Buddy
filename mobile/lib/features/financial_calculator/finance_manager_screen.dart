@@ -20,6 +20,7 @@ import 'pages/home_loan_page.dart';
 import 'pages/vehicle_loan_page.dart';
 import 'pages/itr_planning_page.dart';
 import 'pages/itr_filing_page.dart';
+import 'pages/coming_soon_page.dart';
 
 /// Personal Finance Manager Screen with top navigation bar
 class FinanceManagerScreen extends StatefulWidget {
@@ -160,7 +161,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
                 const SizedBox(width: 4),
                 Text(
                   languageProvider.displayName,
-                  style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: primaryColor, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -169,8 +171,10 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: AppLanguage.english, child: Text('English')),
-              PopupMenuItem(value: AppLanguage.hindi, child: Text('हिंदी (Hindi)')),
-              PopupMenuItem(value: AppLanguage.marathi, child: Text('मराठी (Marathi)')),
+              PopupMenuItem(
+                  value: AppLanguage.hindi, child: Text('हिंदी (Hindi)')),
+              PopupMenuItem(
+                  value: AppLanguage.marathi, child: Text('मराठी (Marathi)')),
             ],
           ),
         ],
@@ -192,10 +196,10 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: category.items.isEmpty
-                            ? _buildSimpleTab(
-                                category, title, isSelected, primaryColor, isDark)
-                            : _buildDropdownTab(category, isSelected, primaryColor,
-                                isDark, surfaceColor),
+                            ? _buildSimpleTab(category, title, isSelected,
+                                primaryColor, isDark)
+                            : _buildDropdownTab(category, isSelected,
+                                primaryColor, isDark, surfaceColor),
                       );
                     }).toList(),
                   ),
@@ -223,8 +227,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
     );
   }
 
-    Widget _buildSimpleTab(
-      _NavCategory category, String title, bool isSelected, Color primaryColor, bool isDark) {
+  Widget _buildSimpleTab(_NavCategory category, String title, bool isSelected,
+      Color primaryColor, bool isDark) {
     return InkWell(
       onTap: () {
         setState(() {
@@ -256,72 +260,72 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
     );
   }
 
-    Widget _buildDropdownTab(_NavCategory category, bool isSelected,
-        Color primaryColor, bool isDark, Color surfaceColor) {
-      final l10n = context.l10n;
-      return PopupMenuButton<String>(
-        tooltip: l10n.t(category.titleKey),
-        offset: const Offset(0, 50),
-        color: surfaceColor,
-        onSelected: (itemId) {
-          setState(() {
-            _selectedCategory = category.id;
-            _selectedItem = itemId;
-          });
-        },
-        itemBuilder: (context) => category.items.map((item) {
-          final isItemSelected = _selectedItem == item.id;
-          return PopupMenuItem<String>(
-            value: item.id,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                l10n.t(item.titleKey),
-                style: TextStyle(
-                  fontWeight:
-                      isItemSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isItemSelected ? primaryColor : null,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? primaryColor : Colors.transparent,
-                width: 3,
+  Widget _buildDropdownTab(_NavCategory category, bool isSelected,
+      Color primaryColor, bool isDark, Color surfaceColor) {
+    final l10n = context.l10n;
+    return PopupMenuButton<String>(
+      tooltip: l10n.t(category.titleKey),
+      offset: const Offset(0, 50),
+      color: surfaceColor,
+      onSelected: (itemId) {
+        setState(() {
+          _selectedCategory = category.id;
+          _selectedItem = itemId;
+        });
+      },
+      itemBuilder: (context) => category.items.map((item) {
+        final isItemSelected = _selectedItem == item.id;
+        return PopupMenuItem<String>(
+          value: item.id,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              l10n.t(item.titleKey),
+              style: TextStyle(
+                fontWeight:
+                    isItemSelected ? FontWeight.bold : FontWeight.normal,
+                color: isItemSelected ? primaryColor : null,
               ),
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10n.t(category.titleKey),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? primaryColor
-                      : (isDark ? Colors.white70 : Colors.black87),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_drop_down,
-                size: 18,
-                color: isSelected
-                    ? primaryColor
-                    : (isDark ? Colors.white70 : Colors.black54),
-              ),
-            ],
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isSelected ? primaryColor : Colors.transparent,
+              width: 3,
+            ),
           ),
         ),
-      );
-    }
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.t(category.titleKey),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? primaryColor
+                    : (isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 18,
+              color: isSelected
+                  ? primaryColor
+                  : (isDark ? Colors.white70 : Colors.black54),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _NavCategory {

@@ -27,7 +27,6 @@ class _ProfileTabState extends State<ProfileTab> {
   bool _isUploadingImage = false;
 
   Future<void> _pickAndUploadImage() async {
-    
     // Show options dialog
     showModalBottomSheet(
       context: context,
@@ -50,10 +49,14 @@ class _ProfileTabState extends State<ProfileTab> {
                 _getImage(ImageSource.gallery);
               },
             ),
-            if (Provider.of<AuthProvider>(context, listen: false).user?.profilePicture != null)
+            if (Provider.of<AuthProvider>(context, listen: false)
+                    .user
+                    ?.profilePicture !=
+                null)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const AutoTranslatedText('Remove Photo', style: TextStyle(color: Colors.red)),
+                title: const AutoTranslatedText('Remove Photo',
+                    style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context);
                   _removeProfilePicture();
@@ -77,17 +80,17 @@ class _ProfileTabState extends State<ProfileTab> {
 
       if (image != null) {
         setState(() => _isUploadingImage = true);
-        
+
         // Convert image to base64
         final bytes = await image.readAsBytes();
         final base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-        
+
         // Update profile with base64 image
         final success = await Provider.of<AuthProvider>(context, listen: false)
             .updateProfile(profilePicture: base64Image);
-        
+
         setState(() => _isUploadingImage = false);
-        
+
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -108,7 +111,8 @@ class _ProfileTabState extends State<ProfileTab> {
       setState(() => _isUploadingImage = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'), // Keeping error technical trace as Text
+          content: Text(
+              'Error: ${e.toString()}'), // Keeping error technical trace as Text
           backgroundColor: AppColors.error,
         ),
       );
@@ -117,17 +121,17 @@ class _ProfileTabState extends State<ProfileTab> {
 
   Future<void> _removeProfilePicture() async {
     setState(() => _isUploadingImage = true);
-    
+
     // Set profilePicture to empty string to remove it
     final success = await Provider.of<AuthProvider>(context, listen: false)
         .updateProfile(profilePicture: '');
-    
+
     setState(() => _isUploadingImage = false);
-    
+
     if (success) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       final successColor = isDark ? AppColorsDark.success : AppColors.success;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const AutoTranslatedText('Profile picture removed'),
@@ -141,7 +145,8 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColorsDark.background : AppColors.background;
-    final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+    final textPrimaryColor =
+        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -159,11 +164,17 @@ class _ProfileTabState extends State<ProfileTab> {
         builder: (context, auth, _) {
           final user = auth.user;
           final isDark = Theme.of(context).brightness == Brightness.dark;
-          final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-          final secondaryColor = isDark ? AppColorsDark.secondary : AppColors.secondary;
-          final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-          final textSecondaryColor = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-          final cardDecoration = isDark ? AppDecorations.cardDecorationDark : AppDecorations.cardDecoration;
+          final primaryColor =
+              isDark ? AppColorsDark.primary : AppColors.primary;
+          final secondaryColor =
+              isDark ? AppColorsDark.secondary : AppColors.secondary;
+          final textPrimaryColor =
+              isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+          final textSecondaryColor =
+              isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+          final cardDecoration = isDark
+              ? AppDecorations.cardDecorationDark
+              : AppDecorations.cardDecoration;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -192,11 +203,14 @@ class _ProfileTabState extends State<ProfileTab> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : user?.profilePicture != null && user!.profilePicture!.isNotEmpty
+                                : user?.profilePicture != null &&
+                                        user!.profilePicture!.isNotEmpty
                                     ? CircleAvatar(
                                         radius: 50,
                                         backgroundImage: MemoryImage(
-                                          base64Decode(user.profilePicture!.split(',').last),
+                                          base64Decode(user.profilePicture!
+                                              .split(',')
+                                              .last),
                                         ),
                                       )
                                     : CircleAvatar(
@@ -224,7 +238,8 @@ class _ProfileTabState extends State<ProfileTab> {
                                 decoration: BoxDecoration(
                                   color: secondaryColor,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                 ),
                                 child: const Icon(
                                   Icons.camera_alt,
@@ -265,7 +280,8 @@ class _ProfileTabState extends State<ProfileTab> {
                       _buildListTile(
                         icon: Icons.savings_outlined,
                         title: 'Savings Target',
-                        subtitle: '${user?.savingsTarget.toStringAsFixed(0) ?? '0'}% of income',
+                        subtitle:
+                            '${user?.savingsTarget.toStringAsFixed(0) ?? '0'}% of income',
                         onTap: () => _showEditSavingsTargetDialog(context),
                         textColor: textPrimaryColor,
                         subtitleColor: textSecondaryColor,
@@ -277,7 +293,8 @@ class _ProfileTabState extends State<ProfileTab> {
                         subtitle: 'Add pocket money or income',
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const AddIncomeScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const AddIncomeScreen()),
                           );
                         },
                         textColor: textPrimaryColor,
@@ -295,8 +312,10 @@ class _ProfileTabState extends State<ProfileTab> {
                       const Divider(height: 1),
                       _buildListTile(
                         icon: Icons.verified_user_outlined,
-                        title: user?.kycStatus == 'VERIFIED' ? 'KYC Verified' : 'Complete KYC',
-                        subtitle: user?.kycStatus == 'VERIFIED' 
+                        title: user?.kycStatus == 'VERIFIED'
+                            ? 'KYC Verified'
+                            : 'Complete KYC',
+                        subtitle: user?.kycStatus == 'VERIFIED'
                             ? 'Your account is verified ✓'
                             : 'Verify your identity',
                         onTap: () {
@@ -307,14 +326,17 @@ class _ProfileTabState extends State<ProfileTab> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: AutoTranslatedText('Your account is already verified! ✅'),
+                                content: AutoTranslatedText(
+                                    'Your account is already verified! ✅'),
                                 backgroundColor: Colors.green,
                               ),
                             );
                           }
                         },
                         textColor: textPrimaryColor,
-                        subtitleColor: user?.kycStatus == 'VERIFIED' ? Colors.green : textSecondaryColor,
+                        subtitleColor: user?.kycStatus == 'VERIFIED'
+                            ? Colors.green
+                            : textSecondaryColor,
                       ),
                       const Divider(height: 1),
                       _buildListTile(
@@ -323,7 +345,8 @@ class _ProfileTabState extends State<ProfileTab> {
                         subtitle: 'Track expenses from payment SMS',
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const SmsSettingsScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const SmsSettingsScreen()),
                           );
                         },
                         textColor: textPrimaryColor,
@@ -336,7 +359,8 @@ class _ProfileTabState extends State<ProfileTab> {
                         subtitle: 'Upload statement to extract transactions',
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const BankStatementScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const BankStatementScreen()),
                           );
                         },
                         textColor: textPrimaryColor,
@@ -352,7 +376,8 @@ class _ProfileTabState extends State<ProfileTab> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const AutoTranslatedText('Switch Feature'),
-                              content: const AutoTranslatedText('Switch to Group Expenses (SmartSplit)?'),
+                              content: const AutoTranslatedText(
+                                  'Switch to Group Expenses (SmartSplit)?'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
@@ -362,7 +387,9 @@ class _ProfileTabState extends State<ProfileTab> {
                                   onPressed: () {
                                     Navigator.pop(context);
                                     Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(builder: (_) => const FeatureSelectionScreen()),
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const FeatureSelectionScreen()),
                                     );
                                   },
                                   child: const AutoTranslatedText('Switch'),
@@ -380,15 +407,17 @@ class _ProfileTabState extends State<ProfileTab> {
                           String themeName = 'System';
                           if (themeProvider.themeMode == ThemeMode.light) {
                             themeName = 'Light';
-                          } else if (themeProvider.themeMode == ThemeMode.dark) {
+                          } else if (themeProvider.themeMode ==
+                              ThemeMode.dark) {
                             themeName = 'Dark';
                           }
-                          
+
                           return _buildListTile(
                             icon: Icons.brightness_4_outlined,
                             title: 'Theme',
                             subtitle: '$themeName theme',
-                            onTap: () => _showThemePickerDialog(context, themeProvider),
+                            onTap: () =>
+                                _showThemePickerDialog(context, themeProvider),
                             textColor: textPrimaryColor,
                             subtitleColor: textSecondaryColor,
                           );
@@ -407,7 +436,8 @@ class _ProfileTabState extends State<ProfileTab> {
                     icon: const Icon(Icons.logout, color: Colors.white),
                     label: const AutoTranslatedText(
                       'Logout',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.error,
@@ -426,7 +456,9 @@ class _ProfileTabState extends State<ProfileTab> {
         },
       ),
     );
-  }  Widget _buildListTile({
+  }
+
+  Widget _buildListTile({
     required IconData icon,
     required String title,
     required String subtitle,
@@ -436,8 +468,10 @@ class _ProfileTabState extends State<ProfileTab> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final textColorFinal = textColor ?? (isDark ? AppColorsDark.textPrimary : AppColors.textPrimary);
-    final subtitleColorFinal = subtitleColor ?? (isDark ? AppColorsDark.textSecondary : AppColors.textSecondary);
+    final textColorFinal = textColor ??
+        (isDark ? AppColorsDark.textPrimary : AppColors.textPrimary);
+    final subtitleColorFinal = subtitleColor ??
+        (isDark ? AppColorsDark.textSecondary : AppColors.textSecondary);
 
     return ListTile(
       leading: Container(
@@ -448,13 +482,15 @@ class _ProfileTabState extends State<ProfileTab> {
         ),
         child: Icon(icon, color: primaryColor, size: 22),
       ),
-      title: AutoTranslatedText(title, style: AppTextStyles.body1.copyWith(
-        fontWeight: FontWeight.w600,
-        color: textColorFinal,
-      )),
-      subtitle: AutoTranslatedText(subtitle, style: AppTextStyles.caption.copyWith(
-        color: subtitleColorFinal,
-      )),
+      title: AutoTranslatedText(title,
+          style: AppTextStyles.body1.copyWith(
+            fontWeight: FontWeight.w600,
+            color: textColorFinal,
+          )),
+      subtitle: AutoTranslatedText(subtitle,
+          style: AppTextStyles.caption.copyWith(
+            color: subtitleColorFinal,
+          )),
       trailing: Icon(Icons.chevron_right, color: subtitleColorFinal, size: 20),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -492,7 +528,8 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
             ),
             const SizedBox(height: 4),
-            const AutoTranslatedText( // Moved helper text here
+            const AutoTranslatedText(
+              // Moved helper text here
               'Enter a value between 0-100',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
@@ -505,12 +542,14 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(Icons.info_outline,
+                      color: Colors.blue.shade700, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: AutoTranslatedText(
                       'Example: If income is ₹5000 and target is 20%, you should spend max ₹4000',
-                      style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.blue.shade700),
                     ),
                   ),
                 ],
@@ -527,19 +566,39 @@ class _ProfileTabState extends State<ProfileTab> {
             onPressed: () async {
               final target = double.tryParse(controller.text);
               if (target != null && target >= 0 && target <= 100) {
-                await Provider.of<AuthProvider>(context, listen: false)
-                    .updateProfile(savingsTarget: target);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: AutoTranslatedText('Savings target set to ${target.toStringAsFixed(0)}%! 🎯'),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
+                // Store references before async call
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+
+                final success =
+                    await authProvider.updateProfile(savingsTarget: target);
+
+                navigator.pop();
+
+                if (success) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: AutoTranslatedText(
+                          'Savings target set to ${target.toStringAsFixed(0)}%! 🎯'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                } else {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: AutoTranslatedText(
+                          'Failed to update savings target. Please try again.'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: AutoTranslatedText('Please enter a valid percentage (0-100)'),
+                    content: AutoTranslatedText(
+                        'Please enter a valid percentage (0-100)'),
                     backgroundColor: AppColors.error,
                   ),
                 );
@@ -614,14 +673,16 @@ class _ProfileTabState extends State<ProfileTab> {
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const AutoTranslatedText('Logout', style: TextStyle(color: Colors.white)),
+            child: const AutoTranslatedText('Logout',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  void _showThemePickerDialog(BuildContext context, ThemeProvider themeProvider) {
+  void _showThemePickerDialog(
+      BuildContext context, ThemeProvider themeProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
