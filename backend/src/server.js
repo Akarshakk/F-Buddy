@@ -57,6 +57,7 @@ app.use('/api/debts', debtRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/kyc', require('./routes/kyc'));
+app.use('/api/statement', require('./routes/statement'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

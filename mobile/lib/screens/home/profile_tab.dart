@@ -12,6 +12,7 @@ import '../auth/login_screen.dart';
 import '../feature_selection_screen.dart';
 import '../kyc/kyc_screen.dart';
 import '../sms_settings_screen.dart';
+import '../bank_statement_screen.dart';
 import 'add_income_screen.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -322,6 +323,19 @@ class _ProfileTabState extends State<ProfileTab> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => const SmsSettingsScreen()),
+                          );
+                        },
+                        textColor: textPrimaryColor,
+                        subtitleColor: textSecondaryColor,
+                      ),
+                      const Divider(height: 1),
+                      _buildListTile(
+                        icon: Icons.account_balance_wallet,
+                        title: 'Bank Statement OCR',
+                        subtitle: 'Upload statement to extract transactions',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const BankStatementScreen()),
                           );
                         },
                         textColor: textPrimaryColor,

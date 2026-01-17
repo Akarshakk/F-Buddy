@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/sms_service.dart';
 import '../config/theme.dart';
+import 'transaction_history_screen.dart';
 
 class SmsSettingsScreen extends StatefulWidget {
   const SmsSettingsScreen({Key? key}) : super(key: key);
@@ -132,36 +133,74 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Found ${messages.length} SMS Messages'),
+        title: Text('Found ${messages.length} Transaction SMS'),
         content: SizedBox(
           width: double.maxFinite,
           height: 500,
-          child: ListView.builder(
-            itemCount: messages.length,
-            itemBuilder: (context, index) {
-              final msg = messages[index];
-              final preview = msg['body'].length > 100 
-                  ? '${msg['body'].substring(0, 100)}...' 
-                  : msg['body'];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text('${index + 1}'),
-                  ),
-                  title: Text(
-                    msg['sender'],
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    preview,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  isThreeLine: true,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              );
-            },
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Showing only real payment transactions (service messages filtered)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = messages[index];
+                    final preview = msg['body'].length > 100 
+                        ? '${msg['body'].substring(0, 100)}...' 
+                        : msg['body'];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.green.shade100,
+                          child: Icon(
+                            Icons.account_balance_wallet,
+                            color: Colors.green.shade700,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          msg['sender'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        subtitle: Text(
+                          preview,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        isThreeLine: true,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -443,9 +482,9 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                     side: BorderSide(color: Colors.blue.shade200),
                   ),
                   child: ListTile(
-                    leading: Icon(Icons.bug_report, size: 32, color: Colors.blue.shade700),
-                    title: Text('Debug: Fetch ALL SMS', style: TextStyle(color: Colors.blue.shade900)),
-                    subtitle: const Text('Show all SMS with sender numbers (for testing)'),
+                    leading: Icon(Icons.filter_list, size: 32, color: Colors.blue.shade700),
+                    title: Text('Debug: Banking SMS Only', style: TextStyle(color: Colors.blue.shade900)),
+                    subtitle: const Text('Show only banking/payment SMS (filtered)'),
                     trailing: _isScanning
                         ? const SizedBox(
                             width: 24,
@@ -454,6 +493,31 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                           )
                         : Icon(Icons.arrow_forward, color: Colors.blue.shade700),
                     onTap: _isScanning ? null : _fetchAllSms,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Transaction History - NEW FEATURE
+                Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.purple.shade300, width: 2),
+                  ),
+                  child: ListTile(
+                    leading: Icon(Icons.history, size: 32, color: Colors.purple.shade700),
+                    title: Text('Transaction History', style: TextStyle(color: Colors.purple.shade900, fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Categorized by UPI and Bank Transfers'),
+                    trailing: Icon(Icons.arrow_forward, color: Colors.purple.shade700),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TransactionHistoryScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
 

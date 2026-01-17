@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/constants.dart';
@@ -135,6 +136,44 @@ class ApiService {
         'message': 'Failed to parse response',
         'statusCode': response.statusCode,
       };
+    }
+  }
+
+  // Upload file (multipart)
+  static Future<Map<String, dynamic>> uploadFile(
+    String endpoint,
+    File file, {
+    String fieldName = 'file',
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final url = '${ApiConstants.baseUrl}$endpoint';
+      print('[API] UPLOAD $url');
+
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+      
+      // Add auth header
+      if (requiresAuth) {
+        final token = await getToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+      }
+
+      // Add file
+      request.files.add(await http.MultipartFile.fromPath(
+        fieldName,
+        file.path,
+      ));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      print('[API] Upload Response: ${response.statusCode}');
+      return _handleResponse(response);
+    } catch (e) {
+      print('[API] Upload Error: $e');
+      return {'success': false, 'message': 'Upload error: ${e.toString()}'};
     }
   }
 }

@@ -7,59 +7,311 @@ class SmsService {
   static const platform = MethodChannel('com.fbuddy.f_buddy/sms');
   final NotificationService notificationService = NotificationService();
 
-  // Bank and payment app identifiers
+  // Comprehensive bank and payment app identifiers
   static const List<String> bankSenders = [
-    'SBIINB',
-    'HDFCBK',
-    'ICICIB',
-    'AXISBK',
-    'PNBSMS',
-    'KOTAKBK',
-    'PAYTM',
-    'GPAY',
-    'PHONEPE',
-    'AMAZPAY',
-    'BHARPE',
-    'SBIPAY',
-    'YESBNK',
-    'CITIBK',
-    'SCBANK',
-    'HSBC',
-    'IDBIBNK',
-    'INDBNK',
-    'BOIIND',
-    'CANBNK',
-    'UNIONBK',
-    'MAHABK',
-    'PNBSMS',
-    'SBIUPI',
-    'HDFCUPI',
-    'ICICIUPI',
-    'AXISUPI',
-    'PAYTMUPI',
-    'GOOGLEPAY',
-    'WHATSAPP',
-    'AMAZONPAY',
-    'MOBIKWIK',
-    'FREECHARGE',
-    'AIRTEL',
-    'JIO',
-    'VODAFONE',
-    'BSNL',
-    'TEST', // For testing
-    '+91',  // For personal numbers testing
-    'VK-',  // Common bank prefix
-    'VM-',  // Common bank prefix
-    'TX-',  // Transaction prefix
-    'AD-',  // Advertisement/bank prefix
+    // State Bank of India
+    'SBIINB', 'SBIPAY', 'SBIUPI', 'SBICARD', 'SBIYONO', 'SBIBNK',
+    // HDFC Bank
+    'HDFCBK', 'HDFCUPI', 'HDFCBA', 'HDFCCC', 'HDFCSL',
+    // ICICI Bank
+    'ICICIB', 'ICICIUPI', 'ICICIC', 'ICICIP', 'ICICIM',
+    // Axis Bank
+    'AXISBK', 'AXISUPI', 'AXISBA', 'AXISCC', 'AXISMB',
+    // Punjab National Bank
+    'PNBSMS', 'PNBUPI', 'PNBBNK', 'PNBMSG',
+    // Kotak Mahindra Bank
+    'KOTAKBK', 'KOTAKM', 'KOTAK', 'KOTAKUPI',
+    // Union Bank
+    'UNIONBK', 'UNIONB', 'UBIBNK', 'UBIMSG', 'VVSBNK',
+    // Yes Bank
+    'YESBNK', 'YESBAN', 'YESBAK',
+    // Bank of Baroda
+    'BOBBNK', 'BARODA', 'BOB',
+    // UPI Apps
+    'PAYTM', 'PAYTMUPI', 'PAYTMB',
+    'GPAY', 'GOOGLEPAY', 'GOOGLE',
+    'PHONEPE', 'PHONPE', 'PHPE',
+    'AMAZPAY', 'AMAZONPAY', 'AMAZON',
+    'BHARPE', 'BHARAT', 'BHIM',
+    'MOBIKWIK', 'MOBIKW', 'MBK',
+    'FREECHARGE', 'FREECH',
+    'AIRTEL', 'AIRTELPAY', 'AIRPAY',
+    'JIO', 'JIOPAY', 'JIOMONEY',
+    'WHATSAPP', 'WHATSAPPPAY', 'WAPAY',
+    // Payment Gateways
+    'JUSPAY', 'RAZORPAY', 'PAYU', 'CASHFREE', 'INSTAMOJO',
+    // Common Prefixes
+    'VK-', 'VM-', 'TX-', 'AD-', 'JM-', 'JD-', 'JK-', 'JZ-', 'VA-', 'CP-',
+    // Generic Banking Keywords
+    'BANK', 'UPI', 'NEFT', 'RTGS', 'IMPS', 'WALLET',
   ];
 
-  /// Request SMS permissions with detailed status - ALWAYS ASK
+  // ============ ENHANCED REGEX PATTERNS (NO AI) ============
+
+  /// Extract amount from SMS using multiple patterns
+  String _extractAmount(String body) {
+    // Pattern 1: Rs/INR/₹ followed by amount
+    final patterns = [
+      RegExp(r'(?:rs\.?|inr|₹)\s*:?\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)', caseSensitive: false),
+      RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:rs\.?|inr|₹)', caseSensitive: false),
+      RegExp(r'amount[:\s]+(?:rs\.?|inr|₹)?\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)', caseSensitive: false),
+      RegExp(r'(?:debited|credited|paid|received)[:\s]+(?:rs\.?|inr|₹)?\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)', caseSensitive: false),
+    ];
+    
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(body);
+      if (match != null && match.group(1) != null) {
+        return match.group(1)!.replaceAll(',', '');
+      }
+    }
+    return '0';
+  }
+
+  /// Extract account number (last 4 digits) - Enhanced patterns
+  String _extractAccountNumber(String body) {
+    final patterns = [
+      // Standard patterns: A/C XX1234, Account XXXX1234
+      RegExp(r'a/c[:\s]*[xX*]+(\d{4})', caseSensitive: false),
+      RegExp(r'account[:\s]*[xX*]+(\d{4})', caseSensitive: false),
+      RegExp(r'ac[:\s]*[xX*]+(\d{4})', caseSensitive: false),
+      // Masked patterns: XXXX1234, ****1234
+      RegExp(r'[xX*]{4,}(\d{4})'),
+      // Ending patterns: ending 1234, ends with 1234
+      RegExp(r'ending\s*(\d{4})', caseSensitive: false),
+      RegExp(r'ends?\s*(?:with|in)?\s*(\d{4})', caseSensitive: false),
+      // From/To account patterns
+      RegExp(r'(?:from|to)\s*(?:a/c|ac|account)[:\s]*[xX*]*(\d{4})', caseSensitive: false),
+      // Card patterns: card XX1234
+      RegExp(r'card[:\s]*[xX*]+(\d{4})', caseSensitive: false),
+      // Linked patterns: linked a/c 1234
+      RegExp(r'linked\s*(?:a/c|ac|account)[:\s]*[xX*]*(\d{4})', caseSensitive: false),
+      // Bank account number in format: 1234XXXX5678 (extract last 4)
+      RegExp(r'\b\d{4}[xX*]+(\d{4})\b'),
+    ];
+    
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(body);
+      if (match != null && match.group(1) != null) {
+        return match.group(1)!;  // Return just 4 digits for filtering
+      }
+    }
+    return '';
+  }
+
+  /// Extract UPI ID from SMS
+  String _extractUpiId(String body) {
+    final pattern = RegExp(r'([a-zA-Z0-9._-]+@[a-zA-Z]+)', caseSensitive: false);
+    final match = pattern.firstMatch(body);
+    return match?.group(1) ?? '';
+  }
+
+  /// Extract reference/transaction number
+  String _extractRefNumber(String body) {
+    final patterns = [
+      RegExp(r'ref[:\s#]*(\d{6,})', caseSensitive: false),
+      RegExp(r'txn[:\s#]*(\d{6,})', caseSensitive: false),
+      RegExp(r'transaction[:\s#]*(\d{6,})', caseSensitive: false),
+      RegExp(r'reference[:\s#]*(\d{6,})', caseSensitive: false),
+      RegExp(r'utr[:\s#]*(\d{6,})', caseSensitive: false),
+    ];
+    
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(body);
+      if (match != null && match.group(1) != null) {
+        return match.group(1)!;
+      }
+    }
+    return '';
+  }
+
+  /// Extract merchant/recipient name
+  String _extractMerchant(String body) {
+    final patterns = [
+      RegExp(r'(?:to|at|from|for)\s+([A-Za-z][A-Za-z0-9\s]{2,25})(?:\s+on|\s+via|\s+using|\s+ref|\.|\,|\s+upi)', caseSensitive: false),
+      RegExp(r'(?:paid|sent|received)\s+(?:to|from)\s+([A-Za-z][A-Za-z0-9\s]{2,25})', caseSensitive: false),
+      RegExp(r'vpa[:\s]+([a-zA-Z0-9._-]+@[a-zA-Z]+)', caseSensitive: false),
+    ];
+    
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(body);
+      if (match != null && match.group(1) != null) {
+        String merchant = match.group(1)!.trim();
+        // Clean up merchant name
+        merchant = merchant.replaceAll(RegExp(r'\s+'), ' ');
+        if (merchant.length > 2 && merchant.length < 30) {
+          return merchant;
+        }
+      }
+    }
+    return 'Unknown';
+  }
+
+  /// Determine if transaction is debit or credit
+  String _getTransactionType(String body) {
+    final debitPatterns = [
+      RegExp(r'\b(debited|debit|spent|paid|payment|purchase|withdrawn|sent|transferred)\b', caseSensitive: false),
+    ];
+    
+    final creditPatterns = [
+      RegExp(r'\b(credited|credit|received|deposited|refund|cashback)\b', caseSensitive: false),
+    ];
+    
+    for (final pattern in debitPatterns) {
+      if (pattern.hasMatch(body)) return 'debit';
+    }
+    
+    for (final pattern in creditPatterns) {
+      if (pattern.hasMatch(body)) return 'credit';
+    }
+    
+    return 'unknown';
+  }
+
+  /// Determine if it's UPI or Bank transfer
+  String _getPaymentMode(String body, String sender) {
+    final upiPatterns = [
+      RegExp(r'\b(upi|gpay|phonepe|paytm|bhim|googlepay|amazon\s?pay|whatsapp\s?pay)\b', caseSensitive: false),
+      RegExp(r'@[a-zA-Z]+\b'), // UPI ID pattern
+    ];
+    
+    for (final pattern in upiPatterns) {
+      if (pattern.hasMatch(body) || pattern.hasMatch(sender)) {
+        return 'UPI';
+      }
+    }
+    
+    final bankPatterns = [
+      RegExp(r'\b(neft|rtgs|imps|bank\s?transfer|wire\s?transfer)\b', caseSensitive: false),
+    ];
+    
+    for (final pattern in bankPatterns) {
+      if (pattern.hasMatch(body)) return 'Bank Transfer';
+    }
+    
+    return 'Bank';
+  }
+
+  /// Get bank name from sender ID
+  String _getBankName(String sender) {
+    final upperSender = sender.toUpperCase();
+    
+    final bankMap = {
+      'SBI': 'State Bank of India',
+      'HDFC': 'HDFC Bank',
+      'ICICI': 'ICICI Bank',
+      'AXIS': 'Axis Bank',
+      'KOTAK': 'Kotak Bank',
+      'PNB': 'Punjab National Bank',
+      'UNION': 'Union Bank',
+      'BOB': 'Bank of Baroda',
+      'BARODA': 'Bank of Baroda',
+      'YES': 'Yes Bank',
+      'IDFC': 'IDFC First Bank',
+      'PAYTM': 'Paytm',
+      'GPAY': 'Google Pay',
+      'PHONEPE': 'PhonePe',
+      'AMAZON': 'Amazon Pay',
+      'JUSPAY': 'Juspay',
+      'RAZORPAY': 'Razorpay',
+      'BHIM': 'BHIM UPI',
+      'MOBIKWIK': 'MobiKwik',
+      'AIRTEL': 'Airtel Payments',
+      'JIO': 'Jio',
+      'VVSBNK': 'VVS Bank',
+    };
+    
+    for (final entry in bankMap.entries) {
+      if (upperSender.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+    
+    return sender;
+  }
+
+  // ============ CORE METHODS ============
+
+  /// Check if SMS is from bank/payment app
+  bool _isPaymentSms(String sender) {
+    if (sender.isEmpty) return false;
+    final upperSender = sender.toUpperCase();
+    
+    for (final bank in bankSenders) {
+      if (upperSender.contains(bank.toUpperCase())) return true;
+    }
+    
+    // Format: XX-XXXXXX (e.g., JM-UNIONB)
+    if (RegExp(r'^[A-Z]{2}-[A-Z]{5,}').hasMatch(upperSender)) return true;
+    
+    // 6+ uppercase letters
+    if (RegExp(r'^[A-Z]{6,}$').hasMatch(upperSender)) return true;
+    
+    return false;
+  }
+
+  /// Check if SMS is a real transaction (not service message)
+  bool _isRealTransaction(String body) {
+    if (body.isEmpty) return false;
+    
+    // Must have transaction keyword
+    final hasTransactionKeyword = RegExp(
+      r'\b(debited|credited|spent|received|paid|txn|transaction|deposited|withdrawn|transfer|payment|sent|refund)\b',
+      caseSensitive: false,
+    ).hasMatch(body);
+    
+    // Must have amount
+    final hasAmount = RegExp(
+      r'(rs\.?|inr|₹)\s?:?\s?\d+',
+      caseSensitive: false,
+    ).hasMatch(body);
+    
+    // Exclude service messages
+    final isServiceMessage = RegExp(
+      r'\b(otp|verification|verify|welcome|activate|validity|expire|offer|plan|data\s?usage|download|click\s?here|call\s?us|support)\b',
+      caseSensitive: false,
+    ).hasMatch(body) && !hasTransactionKeyword;
+    
+    return hasTransactionKeyword && hasAmount && !isServiceMessage;
+  }
+
+  /// Parse SMS and extract all transaction details using REGEX only
+  Map<String, dynamic> _parseTransaction(String body, String sender, String dateStr) {
+    final amount = _extractAmount(body);
+    final accountNumber = _extractAccountNumber(body);
+    final upiId = _extractUpiId(body);
+    final refNumber = _extractRefNumber(body);
+    final merchant = _extractMerchant(body);
+    final transactionType = _getTransactionType(body);
+    final paymentMode = _getPaymentMode(body, sender);
+    final bankName = _getBankName(sender);
+    
+    // Parse date
+    final timestamp = int.tryParse(dateStr) ?? 0;
+    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final formattedDate = '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
+    final formattedTime = '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    
+    return {
+      'amount': amount,
+      'accountNumber': accountNumber,
+      'upiId': upiId,
+      'refNumber': refNumber,
+      'merchant': merchant,
+      'type': transactionType,
+      'paymentMode': paymentMode,
+      'bankName': bankName,
+      'sender': sender,
+      'date': formattedDate,
+      'time': formattedTime,
+      'timestamp': dateStr,
+      'body': body,
+    };
+  }
+
+  /// Request SMS permissions
   Future<bool> requestPermissions() async {
     try {
       print('[SMS Service] Requesting SMS permission...');
-      
-      // Always request permission (don't check if already granted)
       var status = await Permission.sms.request();
       print('[SMS Service] Permission result: $status');
       
@@ -67,258 +319,143 @@ class SmsService {
         print('[SMS Service] ✓ Permission granted!');
         return true;
       } else if (status.isPermanentlyDenied) {
-        print('[SMS Service] ⚠ Permission permanently denied. Opening app settings...');
+        print('[SMS Service] ⚠ Permission permanently denied.');
         await openAppSettings();
         return false;
-      } else {
-        print('[SMS Service] ✗ Permission denied by user');
-        return false;
       }
+      return false;
     } catch (e) {
-      print('[SMS Service] Error requesting permission: $e');
+      print('[SMS Service] Error: $e');
       return false;
     }
   }
 
-  /// Poll for recent SMS (last 20 seconds) via Native Channel
+  /// Poll for recent SMS
   Future<void> pollRecentSms() async {
     try {
       if (!await Permission.sms.isGranted) return;
-
-      // Invoke native method
       final List<dynamic>? results = await platform.invokeMethod('getRecentSms', {'seconds': 20});
-      
       if (results == null || results.isEmpty) return;
 
       for (var msgObj in results) {
-        // Convert to Map
         final msg = Map<String, dynamic>.from(msgObj);
         final sender = msg['address']?.toString() ?? '';
+        final body = msg['body']?.toString() ?? '';
         
-        if (_isPaymentSms(sender)) {
-           // We found a payment SMS!
-           print('[SMS Service] 🔔 Polling found new SMS from: $sender');
-           await _processSms(msg);
+        if (_isPaymentSms(sender) && _isRealTransaction(body)) {
+          print('[SMS Service] 🔔 New transaction from: $sender');
+          await _processSms(msg);
         }
       }
     } catch (e) {
-        print('[SMS Service] Polling error: $e');
+      print('[SMS Service] Polling error: $e');
     }
   }
 
-  /// Check if SMS is from bank/payment app or is a test message
-  bool _isPaymentSms(String sender) {
-    final upperSender = sender.toUpperCase();
-    if (upperSender.contains('TEST')) return true;
-    return bankSenders.any((bank) => upperSender.contains(bank));
-  }
-
-  /// Process and parse SMS
   Future<void> _processSms(Map<String, dynamic> msg) async {
     try {
       final sender = msg['address']?.toString() ?? '';
       final body = msg['body']?.toString() ?? '';
-      // Native ID is string
       final smsId = msg['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString();
 
-      // Send to backend for parsing
-      final response = await ApiService.post(
-        '/sms/parse',
-        body: {
-          'smsText': body,
-          'sender': sender,
-          'smsId': smsId,
-        },
-      );
+      final response = await ApiService.post('/sms/parse', body: {
+        'smsText': body,
+        'sender': sender,
+        'smsId': smsId,
+      });
 
-      if (response['success'] == true) {
-        if (response['isDuplicate'] == true) {
-          return;
-        }
-
+      if (response['success'] == true && response['isDuplicate'] != true) {
         final transaction = response['transaction'];
-        final needsReview = response['needsReview'] ?? false;
+        print('[SMS Service] Transaction: ${transaction['merchant']}');
         
-        print('[SMS Service] New Transaction Found: ${transaction['merchant']}');
-
-        if (needsReview) {
-          // Show notification for review
-          await _showReviewNotification(transaction, smsId);
+        if (response['needsReview'] == true) {
+          await notificationService.showTransactionDetected(
+            amount: (transaction['amount'] ?? 0).toDouble(),
+            merchant: transaction['merchant'] ?? 'Unknown',
+            type: transaction['type'] ?? 'expense',
+            autoSaved: false,
+          );
         } else {
-          // Auto-save high confidence transactions
-          await _autoSaveTransaction(transaction, smsId);
+          await ApiService.post('/sms/save', body: {'transaction': transaction, 'smsId': smsId});
+          await notificationService.showTransactionDetected(
+            amount: (transaction['amount'] ?? 0).toDouble(),
+            merchant: transaction['merchant'] ?? 'Unknown',
+            type: transaction['type'] ?? 'expense',
+            autoSaved: true,
+          );
         }
       }
     } catch (e) {
-      print('[SMS Service] Error processing SMS: $e');
+      print('[SMS Service] Error: $e');
     }
   }
 
-  Future<void> _autoSaveTransaction(Map<String, dynamic> transaction, String smsId) async {
-    try {
-      print('[SMS Service] 💾 Auto-saving transaction (high confidence)...');
-      
-      final response = await ApiService.post(
-        '/sms/save',
-        body: {
-          'transaction': transaction,
-          'smsId': smsId,
-        },
-      );
-
-      if (response['success'] == true) {
-        print('[SMS Service] ✅ Transaction auto-saved: ₹${transaction['amount']}');
-        await notificationService.showTransactionDetected(
-          amount: (transaction['amount'] ?? 0).toDouble(),
-          merchant: transaction['merchant'] ?? 'Unknown',
-          type: transaction['type'] ?? 'expense',
-          autoSaved: true,
-        );
-      }
-    } catch (e) {
-      print('[SMS Service] ❌ Error auto-saving: $e');
-    }
-  }
-
-  Future<void> _showReviewNotification(Map<String, dynamic> transaction, String smsId) async {
-    print('[SMS Service] 📝 Review needed for: ₹${transaction['amount']}');
-    await notificationService.showTransactionDetected(
-      amount: (transaction['amount'] ?? 0).toDouble(),
-      merchant: transaction['merchant'] ?? 'Unknown',
-      type: transaction['type'] ?? 'expense',
-      autoSaved: false,
-    );
-  }
-
-  /// Fetch ALL SMS messages with sender numbers for debugging
+  /// Fetch ALL transaction SMS with REGEX parsing
   Future<List<Map<String, dynamic>>> fetchAllSms({int daysBack = 30}) async {
     try {
       final hasPermission = await requestPermissions();
-      if (!hasPermission) {
-        print('[SMS Service] ⚠ SMS permission not granted. Cannot fetch messages.');
-        throw Exception('SMS permissions not granted. Please enable SMS permission in Settings → Apps → F-Buddy → Permissions');
-      }
+      if (!hasPermission) throw Exception('SMS permission not granted');
 
-      print('[SMS Service] 📱 Fetching ALL SMS from last $daysBack days...');
-      
-      // Calculate seconds
+      print('[SMS Service] 📱 Fetching SMS from last $daysBack days...');
       final seconds = daysBack * 24 * 60 * 60;
-      
       final List<dynamic>? results = await platform.invokeMethod('getRecentSms', {'seconds': seconds});
       
-      print('[SMS Service] ✅ Total SMS found: ${results?.length ?? 0}');
+      print('[SMS Service] ✅ Total SMS: ${results?.length ?? 0}');
+      if (results == null || results.isEmpty) return [];
+
+      final transactions = <Map<String, dynamic>>[];
       
-      if (results == null || results.isEmpty) {
-        print('[SMS Service] ⚠ No SMS found in inbox');
-        return [];
-      }
-
-      // Convert all messages to list with sender info
-      final allMessages = results.map((m) {
+      for (var m in results) {
         final msg = Map<String, dynamic>.from(m);
-        return {
-          'sender': msg['address']?.toString() ?? 'Unknown',
-          'body': msg['body']?.toString() ?? '',
-          'date': msg['date']?.toString() ?? '',
-          'id': msg['id']?.toString() ?? '',
-        };
-      }).toList();
-
-      // Print first 20 messages for debugging
-      print('[SMS Service] 📋 First 20 SMS messages:');
-      for (var i = 0; i < (allMessages.length > 20 ? 20 : allMessages.length); i++) {
-        final msg = allMessages[i];
-        final body = msg['body'] ?? '';
-        final preview = body.length > 60 ? '${body.substring(0, 60)}...' : body;
-        print('  ${i + 1}. From: ${msg['sender']}');
-        print('     Message: $preview');
-        print('     Date: ${msg['date']}');
-        print('');
+        final sender = msg['address']?.toString() ?? '';
+        final body = msg['body']?.toString() ?? '';
+        final date = msg['date']?.toString() ?? '';
+        
+        if (_isPaymentSms(sender) && _isRealTransaction(body)) {
+          final parsed = _parseTransaction(body, sender, date);
+          transactions.add(parsed);
+        }
       }
 
-      return allMessages;
+      // Sort by timestamp (newest first)
+      transactions.sort((a, b) => (b['timestamp'] as String).compareTo(a['timestamp'] as String));
+      
+      print('[SMS Service] 🏦 Transactions found: ${transactions.length}');
+      return transactions;
     } catch (e) {
-      print('[SMS Service] ❌ Error fetching SMS: $e');
+      print('[SMS Service] ❌ Error: $e');
       return [];
     }
   }
 
-  /// Scan existing SMS for transactions
-  Future<List<Map<String, dynamic>>> scanExistingSms({int daysBack = 7}) async {
+  /// Fetch categorized transactions (UPI vs Bank) with account numbers
+  Future<Map<String, dynamic>> fetchCategorizedTransactions({int daysBack = 30}) async {
     try {
-      final hasPermission = await requestPermissions();
-      if (!hasPermission) {
-        print('[SMS Service] ⚠ SMS permission not granted. Cannot scan messages.');
-        throw Exception('SMS permissions not granted. Please enable SMS permission in Settings → Apps → F-Buddy → Permissions');
-      }
-
-      print('[SMS Service] Scanning inbox via Native for last $daysBack days...');
+      final allTransactions = await fetchAllSms(daysBack: daysBack);
       
-      // Calculate seconds
-      final seconds = daysBack * 24 * 60 * 60;
+      final upi = allTransactions.where((t) => t['paymentMode'] == 'UPI').toList();
+      final bank = allTransactions.where((t) => t['paymentMode'] != 'UPI').toList();
       
-      final List<dynamic>? results = await platform.invokeMethod('getRecentSms', {'seconds': seconds});
-      
-      print('[SMS Service] Total SMS found: ${results?.length ?? 0}');
-      
-      if (results == null || results.isEmpty) {
-        print('[SMS Service] No SMS found in inbox');
-        return [];
-      }
-
-      // Log first few senders for debugging
-      if (results.isNotEmpty) {
-        print('[SMS Service] Sample senders:');
-        for (var i = 0; i < (results.length > 5 ? 5 : results.length); i++) {
-          final msg = Map<String, dynamic>.from(results[i]);
-          print('  - ${msg['address']}: ${msg['body']?.toString().substring(0, 50)}...');
+      // Extract unique account numbers for filtering
+      final Set<String> accountNumbers = {};
+      for (final txn in allTransactions) {
+        final accNo = txn['accountNumber']?.toString() ?? '';
+        if (accNo.isNotEmpty && accNo.length == 4) {
+          accountNumbers.add(accNo);
         }
       }
-
-      final paymentMessages = results.map((m) => Map<String, dynamic>.from(m)).where((msg) {
-        final sender = msg['address']?.toString() ?? '';
-        final isPayment = _isPaymentSms(sender);
-        if (isPayment) {
-          print('[SMS Service] ✓ Payment SMS from: $sender');
-        }
-        return isPayment;
-      }).toList();
-
-      print('[SMS Service] Found ${paymentMessages.length} payment SMS out of ${results.length} total');
-
-      if (paymentMessages.isEmpty) {
-        print('[SMS Service] No payment SMS found. Bank senders list: ${bankSenders.join(", ")}');
-        return [];
-      }
-
-      // Parse in bulk
-      final smsArray = paymentMessages.map((msg) {
-        return {
-          'text': msg['body']?.toString() ?? '',
-          'sender': msg['address']?.toString() ?? '',
-          'id': msg['id']?.toString() ?? '',
-          'timestamp': msg['date']?.toString() ?? '', 
-        };
-      }).toList();
-
-      // Send to backend for bulk parsing
-      final response = await ApiService.post(
-        '/sms/parse-bulk',
-        body: {'smsArray': smsArray},
-      );
-
-      if (response['success'] == true) {
-        final transactions = List<Map<String, dynamic>>.from(
-          response['transactions'] ?? []
-        );
-        print('[SMS Service] Parsed ${transactions.length} transactions');
-        return transactions;
-      }
-
-      return [];
+      
+      print('[SMS Service] 📊 UPI: ${upi.length}, Bank: ${bank.length}, Accounts: ${accountNumbers.length}');
+      
+      return {
+        'upi': upi,
+        'bankTransfers': bank,
+        'total': allTransactions.length,
+        'accountNumbers': accountNumbers.toList()..sort(),
+      };
     } catch (e) {
-      print('[SMS Service] Error scanning SMS: $e');
-      return [];
+      print('[SMS Service] ❌ Error: $e');
+      return {'upi': [], 'bankTransfers': [], 'total': 0, 'accountNumbers': []};
     }
   }
 
@@ -338,7 +475,9 @@ class SmsService {
     }
   }
 
-  Future<bool> hasPermissions() async {
-    return await Permission.sms.isGranted;
+  Future<bool> hasPermissions() async => await Permission.sms.isGranted;
+
+  Future<List<Map<String, dynamic>>> scanExistingSms({int daysBack = 7}) async {
+    return await fetchAllSms(daysBack: daysBack);
   }
 }
