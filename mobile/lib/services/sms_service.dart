@@ -5,7 +5,7 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 
 class SmsService {
-  static const platform = MethodChannel('com.fbuddy.f_buddy/sms');
+  static const platform = MethodChannel('com.finzo.app/sms');
   final NotificationService notificationService = NotificationService();
 
   // Comprehensive bank and payment app identifiers

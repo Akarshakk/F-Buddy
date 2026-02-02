@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Starting F-Buddy RAG Service
+echo Starting Finzo RAG Service
 echo ========================================
 echo.
 

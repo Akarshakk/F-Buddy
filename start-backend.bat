@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Starting F-Buddy Backend Server
+echo Starting Finzo Backend Server
 echo ========================================
 echo.
 

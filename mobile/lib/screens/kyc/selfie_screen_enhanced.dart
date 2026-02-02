@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/kyc_service.dart';
 import '../../config/theme.dart';
 
-/// CRUDENCE Face Verification Screen - UI ENHANCED
+/// FINZO Face Verification Screen - UI ENHANCED
 /// ✅ Clear instructions: "Only your own face is allowed"
 /// ✅ Visual framing guide for face capture
 /// ✅ Strong error messages

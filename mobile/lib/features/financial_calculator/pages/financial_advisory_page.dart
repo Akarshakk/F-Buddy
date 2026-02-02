@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:credence/l10n/app_localizations.dart';
-import 'package:credence/widgets/auto_translated_text.dart';
+import 'package:finzo/l10n/app_localizations.dart';
+import 'package:finzo/widgets/auto_translated_text.dart';
 
 /// Financial Advisory page with Q&A, income inputs, and personalized allocation
 class FinancialAdvisoryPage extends StatefulWidget {

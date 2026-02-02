@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 32),
                         // Heading
                         const AutoTranslatedText(
-                          'Welcome to Credence',
+                          'Welcome to Finzo',
                           style: AppTextStyles.heading2,
                           textAlign: TextAlign.center,
                         ),

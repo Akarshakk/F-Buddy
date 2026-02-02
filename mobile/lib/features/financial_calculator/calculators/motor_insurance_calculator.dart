@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:credence/l10n/app_localizations.dart';
-import 'package:credence/widgets/auto_translated_text.dart';
+import 'package:finzo/l10n/app_localizations.dart';
+import 'package:finzo/widgets/auto_translated_text.dart';
 
 /// Motor Insurance Premium Calculator
 class MotorInsuranceCalculator extends StatefulWidget {

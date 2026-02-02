@@ -14,7 +14,7 @@ class AppLocalizations {
 
   static const _localizedValues = <String, Map<String, String>>{
     'en': {
-      'app_title': 'Credence',
+      'app_title': 'Finzo',
       'yes': 'Yes',
       'no': 'No',
       'enter_financial_details': 'Please enter all financial details',

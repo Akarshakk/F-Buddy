@@ -85,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen> {
               
               // App Name
               const Text(
-                'Credence',
+                'Finzo',
                 style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.bold,

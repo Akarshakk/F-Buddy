@@ -1,4 +1,4 @@
-# F-Buddy - Student Finance Management App
+# Finzo - Student Finance Management App
 
 **A comprehensive financial management platform designed for college students.**
 
@@ -10,7 +10,7 @@
 
 ## 🎯 Overview
 
-F-Buddy is a full-stack mobile and web application that helps students:
+Finzo is a full-stack mobile and web application that helps students:
 - 💰 Track personal expenses and income
 - 👥 Split bills with friends (Splitwise-style)
 - 🧮 Use financial calculators
@@ -185,7 +185,7 @@ Or create a new account - OTP will be sent to email (also logged in console).
 ```env
 PORT=5001
 JWT_SECRET=your_secret_key
-MONGODB_URI=mongodb://localhost:27017/fbuddy
+MONGODB_URI=mongodb://localhost:27017/finzo
 SMTP_EMAIL=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
 ```
@@ -193,7 +193,7 @@ SMTP_PASSWORD=your_app_password
 ### RAG Service (.env)
 ```env
 PINECONE_API_KEY=your_pinecone_key
-PINECONE_INDEX_NAME=fbuddy-rag
+PINECONE_INDEX_NAME=finzo-rag
 GEMINI_API_KEY=your_gemini_key
 ```
 
@@ -351,7 +351,7 @@ For issues, questions, or suggestions:
 
 ## 👨‍💻 Authors
 
-**F-Buddy Team**
+**Finzo Team**
 - Full-stack development
 - AI integration
 - Mobile optimization

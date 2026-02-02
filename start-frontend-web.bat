@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Starting F-Buddy Flutter Web App
+echo Starting Finzo Flutter Web App
 echo ========================================
 echo.
 

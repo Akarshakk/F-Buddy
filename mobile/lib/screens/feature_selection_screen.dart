@@ -57,7 +57,7 @@ class FeatureSelectionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               AutoTranslatedText(
-                'Welcome to Credence',
+                'Welcome to Finzo',
                 style: AppTextStyles.heading1.copyWith(color: textPrimaryColor),
                 textAlign: TextAlign.center,
               ),

@@ -2,7 +2,7 @@
 set ADB="C:\Users\DHRUV\AppData\Local\Sdk\Sdk\platform-tools\adb.exe"
 
 echo ===================================================
-echo   F-BUDDY: AUTO INSTALLER & LAUNCHER
+echo   FINZO: AUTO INSTALLER & LAUNCHER
 echo ===================================================
 echo.
 

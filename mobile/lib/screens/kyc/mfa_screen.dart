@@ -89,7 +89,7 @@ class _MfaScreenState extends State<MfaScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Verification Complete! Welcome to Credence!'),
+            content: Text('✓ Verification Complete! Welcome to Finzo!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           )

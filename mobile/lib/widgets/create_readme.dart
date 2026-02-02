@@ -5,9 +5,9 @@ void main() {
   
   final readme = File('README.md');
   readme.writeAsStringSync('''
-# Credence Widgets
+# Finzo Widgets
 
-This directory contains reusable Flutter widgets used across the Credence app.
+This directory contains reusable Flutter widgets used across the Finzo app.
 
 ## Widgets
 
@@ -27,7 +27,7 @@ AI-powered financial advisory chatbot widget that appears in the Personal Financ
 
 **Usage:**
 ```dart
-import 'package:credence/widgets/rag_chat_widget.dart';
+import 'package:finzo/widgets/rag_chat_widget.dart';
 
 // Add to any screen
 Stack(

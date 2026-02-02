@@ -1,4 +1,4 @@
-package com.fbuddy.f_buddy
+package com.finzo.app
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -7,7 +7,7 @@ import android.net.Uri
 import java.util.ArrayList
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.fbuddy.f_buddy/sms"
+    private val CHANNEL = "com.finzo.app/sms"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

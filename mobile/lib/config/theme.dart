@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 // ============================================================================
-// CREDENCE MINIMAL FINTECH THEME
+// FINZO MINIMAL FINTECH THEME
 // Slate/Zinc neutrals + Emerald/Rose accents for a clean, professional look
 // ============================================================================
 

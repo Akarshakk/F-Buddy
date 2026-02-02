@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.fbuddy.f_buddy"
+    namespace = "com.finzo.app"
     compileSdk = 35
 
     compileOptions {
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.fbuddy.f_buddy"
+        applicationId = "com.finzo.app"
         minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = 1

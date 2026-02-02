@@ -5,7 +5,7 @@ import '../../config/theme.dart';
 import '../../services/rag_service.dart';
 import '../../services/translation_service.dart';
 import '../../providers/language_provider.dart';
-import 'package:credence/l10n/app_localizations.dart';
+import 'package:finzo/l10n/app_localizations.dart';
 
 /// Floating chat widget for RAG-based financial advisory
 class RagChatWidget extends StatefulWidget {

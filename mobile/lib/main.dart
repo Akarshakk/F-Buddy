@@ -13,7 +13,7 @@ import 'providers/debt_provider.dart';
 import 'providers/splitwise_provider.dart';
 import 'providers/sms_provider.dart';
 import 'providers/language_provider.dart';
-import 'package:credence/l10n/app_localizations.dart';
+import 'package:finzo/l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home/debt_list_screen.dart';
 import 'screens/feature_selection_screen.dart';

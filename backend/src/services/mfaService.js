@@ -63,9 +63,9 @@ exports.sendOTP = async (userId, email) => {
 
     if (transporter) {
         const mailOptions = {
-            from: `"F-Buddy Security" <${process.env.SMTP_EMAIL}>`,
+            from: `"Finzo Security" <${process.env.SMTP_EMAIL}>`,
             to: email,
-            subject: 'Your Verification Code - F-Buddy',
+            subject: 'Your Verification Code - Finzo',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #333;">Identity Verification</h2>
@@ -76,7 +76,7 @@ exports.sendOTP = async (userId, email) => {
                     <p style="color: #666;">This code will expire in <strong>10 minutes</strong>.</p>
                     <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
                     <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="color: #999; font-size: 11px;">F-Buddy - Your Finance Companion</p>
+                    <p style="color: #999; font-size: 11px;">Finzo - Your Finance Companion</p>
                 </div>
             `
         };

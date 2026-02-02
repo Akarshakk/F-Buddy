@@ -1,4 +1,4 @@
-# Comprehensive UI Theme Consistency Script for Credence
+# Comprehensive UI Theme Consistency Script for Finzo
 # This script updates all Dart files to use theme-aware colors
 
 $libPath = "lib"

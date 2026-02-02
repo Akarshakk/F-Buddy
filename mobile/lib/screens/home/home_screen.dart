@@ -94,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'Back to Menu',
         ),
         title: Text(
-          'Credence',
+          'Finzo',
           style: AppTextStyles.heading2.copyWith(color: primaryColor),
         ),
         centerTitle: false,
