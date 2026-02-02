@@ -1,6 +1,6 @@
 # Finzo - One Stop Finance Management App
 
-**A comprehensive financial management platform designed for college students.**
+**A comprehensive financial management platform designed to answer all queries related to Finance.**
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue)
@@ -10,7 +10,7 @@
 
 ## 🎯 Overview
 
-Finzo is a full-stack mobile and web application that helps students:
+Finzo is a full-stack mobile and web application that helps:
 - 💰 Track personal expenses and income
 - 👥 Split bills with friends (Splitwise-style)
 - 🧮 Use financial calculators
