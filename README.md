@@ -1,4 +1,4 @@
-# Finzo - Student Finance Management App
+# Finzo - One Stop Finance Management App
 
 **A comprehensive financial management platform designed for college students.**
 
