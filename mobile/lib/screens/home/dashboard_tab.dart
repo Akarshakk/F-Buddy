@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../config/app_theme.dart';
 import '../../models/category.dart';
+import '../../models/expense.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
@@ -25,11 +28,48 @@ class DashboardTab extends StatefulWidget {
   State<DashboardTab> createState() => _DashboardTabState();
 }
 
-class _DashboardTabState extends State<DashboardTab> {
+class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMixin {
   int _touchedIndex = -1;
   DateTime _selectedMonth = DateTime.now();
-  int _selectedWeekOfMonth =
-      0; // 0 = current week, 1-5 = weeks of selected month
+  int _selectedWeekOfMonth = 0;
+  
+  late AnimationController _headerAnimController;
+  late AnimationController _cardsAnimController;
+  late Animation<double> _headerFade;
+  late Animation<Offset> _headerSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _headerAnimController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _cardsAnimController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    
+    _headerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _headerAnimController, curve: Curves.easeOut),
+    );
+    _headerSlide = Tween<Offset>(begin: const Offset(0, -0.1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _headerAnimController, curve: Curves.easeOutCubic),
+    );
+    
+    _headerAnimController.forward();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) _cardsAnimController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _headerAnimController.dispose();
+    _cardsAnimController.dispose();
+    super.dispose();
+  }
 
   // Get weeks of a month
   List<Map<String, dynamic>> _getWeeksOfMonth(DateTime month) {
@@ -101,65 +141,91 @@ class _DashboardTabState extends State<DashboardTab> {
           color: FinzoTheme.brandAccent(context),
           onRefresh: _refreshData,
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             padding: const EdgeInsets.all(FinzoSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                // Animated Header
+                FadeTransition(
+                  opacity: _headerFade,
+                  child: SlideTransition(
+                    position: _headerSlide,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Hello, ${user?.name.split(' ').first ?? 'User'} 👋',
-                          style: FinzoTypography.headlineMedium(color: FinzoTheme.textPrimary(context)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${context.l10n.t('hello')}, ${user?.name.split(' ').first ?? 'User'} 👋',
+                              style: FinzoTypography.headlineMedium(color: FinzoTheme.textPrimary(context)).copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('EEEE, d MMMM').format(DateTime.now()),
+                              style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          DateFormat('EEEE, d MMMM').format(DateTime.now()),
-                          style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            widget.onNavigateToProfile?.call();
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: FinzoTheme.brandAccent(context).withOpacity(0.3),
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: FinzoTheme.brandAccent(context).withOpacity(0.2),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: user?.profilePicture != null &&
+                                    user!.profilePicture!.isNotEmpty
+                                ? CircleAvatar(
+                                    radius: 26,
+                                    backgroundImage: MemoryImage(
+                                      base64Decode(
+                                          user.profilePicture!.split(',').last),
+                                    ),
+                                  )
+                                : CircleAvatar(
+                                    radius: 26,
+                                    backgroundColor: FinzoTheme.brandAccent(context),
+                                    child: Text(
+                                      (user?.name.isNotEmpty ?? false)
+                                          ? user!.name[0].toUpperCase()
+                                          : 'U',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                          ),
                         ),
                       ],
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        // Navigate to profile tab
-                        widget.onNavigateToProfile?.call();
-                      },
-                      child: user?.profilePicture != null &&
-                              user!.profilePicture!.isNotEmpty
-                          ? CircleAvatar(
-                              radius: 24,
-                              backgroundImage: MemoryImage(
-                                base64Decode(
-                                    user.profilePicture!.split(',').last),
-                              ),
-                            )
-                          : CircleAvatar(
-                              radius: 24,
-                              backgroundColor: FinzoTheme.brandAccent(context),
-                              child: Text(
-                                (user?.name.isNotEmpty ?? false)
-                                    ? user!.name[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: FinzoSpacing.lg),
 
-                // Summary Cards
-                Consumer2<AnalyticsProvider, IncomeProvider>(
+                // Summary Cards with staggered animation
+                _buildAnimatedCard(
+                  index: 0,
+                  child: Consumer2<AnalyticsProvider, IncomeProvider>(
                   builder: (context, analytics, income, _) {
                     final dashboard = analytics.dashboardData;
                     return Column(
@@ -188,7 +254,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Monthly Balance',
+                                    context.l10n.t('monthly_balance'),
                                     style: FinzoTypography.bodyMedium().copyWith(
                                       color: Colors.white70,
                                     ),
@@ -207,7 +273,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                     icon: const Icon(Icons.add,
                                         color: Colors.white, size: 18),
                                     label: Text(
-                                      'Add Income',
+                                      context.l10n.t('add_income'),
                                       style: FinzoTypography.labelSmall().copyWith(
                                         color: Colors.white,
                                       ),
@@ -228,7 +294,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                 children: [
                                   Expanded(
                                     child: _buildBalanceItem(
-                                      'Income',
+                                      context.l10n.t('income'),
                                       dashboard?.totalIncome ??
                                           income.totalIncome,
                                       Icons.arrow_downward,
@@ -242,7 +308,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                   ),
                                   Expanded(
                                     child: _buildBalanceItem(
-                                      'Expenses',
+                                      context.l10n.t('expenses'),
                                       dashboard?.totalExpense ?? 0,
                                       Icons.arrow_upward,
                                       FinzoColors.error,
@@ -281,27 +347,60 @@ class _DashboardTabState extends State<DashboardTab> {
                     );
                   },
                 ),
+                ),
                 const SizedBox(height: FinzoSpacing.lg),
 
-                // Category Pie Chart
-                _buildPieChartSection(),
+                // Category Pie Chart - animated
+                _buildAnimatedCard(
+                  index: 1,
+                  child: _buildPieChartSection(),
+                ),
                 const SizedBox(height: FinzoSpacing.lg),
 
-                _buildGroupExpensesSection(),
+                _buildAnimatedCard(
+                  index: 2,
+                  child: _buildGroupExpensesSection(),
+                ),
                 const SizedBox(height: FinzoSpacing.lg),
 
-                // 7-Day Balance Chart
-                _buildBalanceChartSection(),
+                // 7-Day Balance Chart - animated
+                _buildAnimatedCard(
+                  index: 3,
+                  child: _buildBalanceChartSection(),
+                ),
                 const SizedBox(height: FinzoSpacing.lg),
 
-                // Latest Expenses
-                _buildLatestExpensesSection(),
+                // Latest Expenses - animated
+                _buildAnimatedCard(
+                  index: 4,
+                  child: _buildLatestExpensesSection(),
+                ),
                 const SizedBox(height: 80), // Space for FAB
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  // Helper for staggered card animations
+  Widget _buildAnimatedCard({required int index, required Widget child}) {
+    return AnimatedBuilder(
+      animation: _cardsAnimController,
+      builder: (context, _) {
+        final delay = index * 0.15;
+        final progress = (_cardsAnimController.value - delay).clamp(0.0, 1.0 - delay) / (1.0 - delay);
+        final curvedProgress = Curves.easeOutCubic.transform(progress.clamp(0.0, 1.0));
+        
+        return Opacity(
+          opacity: curvedProgress,
+          child: Transform.translate(
+            offset: Offset(0, 30 * (1 - curvedProgress)),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -352,15 +451,24 @@ class _DashboardTabState extends State<DashboardTab> {
             ),
             child: Column(
               children: [
-                Icon(Icons.pie_chart_outline,
-                    size: 48, color: FinzoTheme.textTertiary(context)),
-                const SizedBox(height: FinzoSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: FinzoTheme.brandAccent(context).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.pie_chart_outline,
+                      size: 40, color: FinzoTheme.brandAccent(context)),
+                ),
+                const SizedBox(height: FinzoSpacing.md),
                 Text(
                   'No expenses yet',
-                  style: FinzoTypography.bodyMedium().copyWith(
-                    color: FinzoTheme.textSecondary(context),
+                  style: FinzoTypography.titleMedium().copyWith(
+                    color: FinzoTheme.textPrimary(context),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   'Add your first expense to see the breakdown',
                   style: FinzoTypography.bodySmall().copyWith(
@@ -372,6 +480,47 @@ class _DashboardTabState extends State<DashboardTab> {
           );
         }
 
+        // Calculate total and recalculate percentages to ensure they add up to 100%
+        final total = categoryData.fold<double>(0, (sum, item) => sum + item.amount);
+        
+        // Calculate accurate percentages
+        List<double> calculateAccuratePercentages(List<CategoryData> data, double total) {
+          if (total == 0) return List.filled(data.length, 0.0);
+          
+          // Calculate raw percentages
+          List<double> rawPercentages = data.map((item) => (item.amount / total) * 100).toList();
+          
+          // Round to 2 decimal places and track the difference
+          List<double> roundedPercentages = rawPercentages.map((p) => double.parse(p.toStringAsFixed(2))).toList();
+          double sum = roundedPercentages.fold(0.0, (a, b) => a + b);
+          double diff = 100.0 - sum;
+          
+          // Adjust the largest value to make sum exactly 100
+          if (diff.abs() > 0.001 && roundedPercentages.isNotEmpty) {
+            int maxIndex = 0;
+            for (int i = 1; i < roundedPercentages.length; i++) {
+              if (roundedPercentages[i] > roundedPercentages[maxIndex]) {
+                maxIndex = i;
+              }
+            }
+            roundedPercentages[maxIndex] = double.parse((roundedPercentages[maxIndex] + diff).toStringAsFixed(2));
+          }
+          
+          return roundedPercentages;
+        }
+        
+        final accuratePercentages = calculateAccuratePercentages(categoryData, total);
+        
+        final selectedData = _touchedIndex >= 0 && _touchedIndex < categoryData.length 
+            ? categoryData[_touchedIndex] 
+            : null;
+        final selectedPercentage = _touchedIndex >= 0 && _touchedIndex < accuratePercentages.length
+            ? accuratePercentages[_touchedIndex]
+            : 0.0;
+        final selectedCategory = selectedData != null 
+            ? Category.getByName(selectedData.category) 
+            : null;
+
         return Container(
           padding: const EdgeInsets.all(FinzoSpacing.md),
           decoration: BoxDecoration(
@@ -382,111 +531,243 @@ class _DashboardTabState extends State<DashboardTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Expense Categories', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
-              const SizedBox(height: FinzoSpacing.xs),
-              Text(
-                'Monthly breakdown by category',
-                style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
-              ),
-              const SizedBox(height: FinzoSpacing.md),
-              SizedBox(
-                height: 200,
-                child: PieChart(
-                  PieChartData(
-                    pieTouchData: PieTouchData(
-                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                        setState(() {
-                          if (!event.isInterestedForInteractions ||
-                              pieTouchResponse == null ||
-                              pieTouchResponse.touchedSection == null) {
-                            _touchedIndex = -1;
-                            return;
-                          }
-                          _touchedIndex = pieTouchResponse
-                              .touchedSection!.touchedSectionIndex;
-                        });
-                      },
-                    ),
-                    borderData: FlBorderData(show: false),
-                    sectionsSpace: 2,
-                    centerSpaceRadius: 40,
-                    sections: categoryData.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final data = entry.value;
-                      final isTouched = index == _touchedIndex;
-                      final category = Category.getByName(data.category);
-
-                      return PieChartSectionData(
-                        color: category.color,
-                        value: data.amount,
-                        title: isTouched ? '${data.percentage}%' : '',
-                        radius: isTouched ? 60 : 50,
-                        titleStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      );
-                    }).toList(),
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Expense Categories',
+                        style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tap on chart to see details',
+                        style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-              const SizedBox(height: FinzoSpacing.md),
-              Wrap(
-                spacing: FinzoSpacing.sm,
-                runSpacing: FinzoSpacing.sm,
-                children: categoryData.map((data) {
-                  final category = Category.getByName(data.category);
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: FinzoSpacing.sm, vertical: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: category.color.withOpacity(0.1),
+                      gradient: LinearGradient(
+                        colors: [
+                          FinzoTheme.brandAccent(context),
+                          FinzoTheme.brandAccent(context).withOpacity(0.8),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(FinzoRadius.full),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: category.color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Row(
-                          children: [
-                            Icon(category.icon,
-                                size: 14, color: category.color),
-                            const SizedBox(width: 4),
-                            Text(
-                              category.displayName,
-                              style: FinzoTypography.labelSmall(
-                                color: FinzoTheme.textPrimary(context),
-                              ).copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '₹${NumberFormat.compact().format(data.amount)}',
-                          style: FinzoTypography.labelSmall().copyWith(
-                            color: category.color,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: FinzoTheme.brandAccent(context).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                  );
-                }).toList(),
+                    child: Text(
+                      '₹${NumberFormat.compact().format(total)}',
+                      style: FinzoTypography.labelMedium().copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: FinzoSpacing.lg),
+              
+              // Enhanced Pie Chart with center info
+              SizedBox(
+                height: 280,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Pie Chart with padding to prevent badge overflow
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: PieChart(
+                        PieChartData(
+                          pieTouchData: PieTouchData(
+                            enabled: true,
+                            touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                              if (!event.isInterestedForInteractions ||
+                                  pieTouchResponse == null ||
+                                  pieTouchResponse.touchedSection == null) {
+                                setState(() => _touchedIndex = -1);
+                                return;
+                              }
+                              
+                              final touchedIndex = pieTouchResponse
+                                  .touchedSection!.touchedSectionIndex;
+                              
+                              setState(() => _touchedIndex = touchedIndex);
+                              
+                              // Show popup on tap (not on hover/drag)
+                              if (event is FlTapUpEvent && touchedIndex >= 0 && touchedIndex < categoryData.length) {
+                                HapticFeedback.mediumImpact();
+                                final selectedCategory = categoryData[touchedIndex];
+                                _showCategoryExpensesPopup(
+                                  context,
+                                  selectedCategory.category,
+                                  Category.getByName(selectedCategory.category),
+                                );
+                              }
+                            },
+                          ),
+                          borderData: FlBorderData(show: false),
+                          sectionsSpace: 4, // More space between sections
+                          centerSpaceRadius: 55,
+                          sections: categoryData.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final data = entry.value;
+                            final isTouched = index == _touchedIndex;
+                            final category = Category.getByName(data.category);
+                            final accuratePercent = accuratePercentages[index];
+                            
+                            // Ensure minimum radius for small sections to be tappable
+                            final baseRadius = 50.0;
+                            final touchedRadius = 62.0;
+
+                            return PieChartSectionData(
+                              color: category.color,
+                              value: data.amount,
+                              title: '',
+                              radius: isTouched ? touchedRadius : baseRadius,
+                              badgeWidget: isTouched ? _buildBadge(category, accuratePercent) : null,
+                              badgePositionPercentageOffset: 0.9,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    
+                    // Center Content - shows selected category or total
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: selectedData != null
+                          ? Column(
+                              key: ValueKey(_touchedIndex),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: selectedCategory!.color.withOpacity(0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    selectedCategory.icon,
+                                    color: selectedCategory.color,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${selectedPercentage.toStringAsFixed(selectedPercentage.truncateToDouble() == selectedPercentage ? 0 : 2)}%',
+                                  style: FinzoTypography.headlineSmall().copyWith(
+                                    color: selectedCategory.color,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                Text(
+                                  selectedCategory.displayName,
+                                  style: FinzoTypography.labelSmall().copyWith(
+                                    color: FinzoTheme.textSecondary(context),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              key: const ValueKey('total'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${categoryData.length}',
+                                  style: FinzoTypography.headlineMedium().copyWith(
+                                    color: FinzoTheme.textPrimary(context),
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                Text(
+                                  'Categories',
+                                  style: FinzoTypography.labelSmall().copyWith(
+                                    color: FinzoTheme.textSecondary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         );
+      },
+    );
+  }
+
+  // Badge widget for pie chart sections
+  Widget _buildBadge(Category category, double percentage) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: category.color,
+        borderRadius: BorderRadius.circular(FinzoRadius.full),
+        boxShadow: [
+          BoxShadow(
+            color: category.color.withOpacity(0.4),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        '${percentage.toStringAsFixed(0)}%',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  // Show 3D animated popup with category expenses
+  void _showCategoryExpensesPopup(BuildContext context, String categoryName, Category category) {
+    final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
+    
+    // Filter expenses by category
+    final categoryExpenses = expenseProvider.expenses
+        .where((e) => e.category.toLowerCase() == categoryName.toLowerCase())
+        .toList();
+    
+    // Also check latest expenses if main list is empty
+    final allExpenses = categoryExpenses.isNotEmpty 
+        ? categoryExpenses 
+        : expenseProvider.latestExpenses
+            .where((e) => e.category.toLowerCase() == categoryName.toLowerCase())
+            .toList();
+    
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Category Expenses',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return _CategoryExpensesPopup(
+          category: category,
+          categoryName: categoryName,
+          expenses: allExpenses,
+          animation: animation,
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return child;
       },
     );
   }
@@ -1340,6 +1621,448 @@ class _DashboardTabState extends State<DashboardTab> {
           ),
         );
       },
+    );
+  }
+}
+
+// 3D Animated Category Expenses Popup Widget
+class _CategoryExpensesPopup extends StatefulWidget {
+  final Category category;
+  final String categoryName;
+  final List<Expense> expenses;
+  final Animation<double> animation;
+
+  const _CategoryExpensesPopup({
+    required this.category,
+    required this.categoryName,
+    required this.expenses,
+    required this.animation,
+  });
+
+  @override
+  State<_CategoryExpensesPopup> createState() => _CategoryExpensesPopupState();
+}
+
+class _CategoryExpensesPopupState extends State<_CategoryExpensesPopup>
+    with TickerProviderStateMixin {
+  late AnimationController _flipController;
+  late AnimationController _itemsController;
+  late Animation<double> _flipAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _flipController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _itemsController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _flipAnimation = Tween<double>(begin: -math.pi / 2, end: 0).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeOutBack),
+    );
+    
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeOutBack),
+    );
+    
+    _rotateAnimation = Tween<double>(begin: 0.1, end: 0.0).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeOut),
+    );
+    
+    _flipController.forward();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _itemsController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _flipController.dispose();
+    _itemsController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final total = widget.expenses.fold<double>(0, (sum, e) => sum + e.amount);
+    
+    return AnimatedBuilder(
+      animation: Listenable.merge([_flipController, widget.animation]),
+      builder: (context, child) {
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001) // perspective
+            ..rotateX(_flipAnimation.value)
+            ..rotateZ(_rotateAnimation.value)
+            ..scale(_scaleAnimation.value),
+          child: Center(
+            child: Container(
+              width: size.width * 0.9,
+              constraints: BoxConstraints(
+                maxHeight: size.height * 0.7,
+              ),
+              margin: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: FinzoTheme.surface(context),
+                borderRadius: BorderRadius.circular(FinzoRadius.xl),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.category.color.withOpacity(0.3),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                    offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(FinzoRadius.xl),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header with 3D effect
+                      _buildHeader(context, total),
+                      
+                      // Expenses list with staggered animation
+                      Flexible(
+                        child: widget.expenses.isEmpty
+                            ? _buildEmptyState(context)
+                            : _buildExpensesList(context),
+                      ),
+                      
+                      // Close button
+                      _buildCloseButton(context),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, double total) {
+    return Container(
+      padding: const EdgeInsets.all(FinzoSpacing.lg),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            widget.category.color,
+            widget.category.color.withOpacity(0.8),
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          // Animated icon with glow
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.elasticOut,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.3),
+                        blurRadius: 20 * value,
+                        spreadRadius: 5 * value,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    widget.category.icon,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: FinzoSpacing.md),
+          
+          // Category name with animation
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - value)),
+                  child: Text(
+                    widget.category.displayName,
+                    style: FinzoTypography.headlineMedium().copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: FinzoSpacing.sm),
+          
+          // Total and count
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildStatChip(
+                '₹${NumberFormat('#,##,###').format(total)}',
+                'Total Spent',
+              ),
+              const SizedBox(width: FinzoSpacing.md),
+              _buildStatChip(
+                '${widget.expenses.length}',
+                'Expenses',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatChip(String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(FinzoRadius.full),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: FinzoTypography.titleMedium().copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: FinzoTypography.labelSmall().copyWith(
+              color: Colors.white70,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(FinzoSpacing.xl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 64,
+            color: FinzoTheme.textTertiary(context),
+          ),
+          const SizedBox(height: FinzoSpacing.md),
+          Text(
+            'No expenses found',
+            style: FinzoTypography.titleMedium().copyWith(
+              color: FinzoTheme.textSecondary(context),
+            ),
+          ),
+          const SizedBox(height: FinzoSpacing.sm),
+          Text(
+            'Add expenses in this category to see them here',
+            style: FinzoTypography.bodySmall().copyWith(
+              color: FinzoTheme.textTertiary(context),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpensesList(BuildContext context) {
+    return ListView.builder(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+      itemCount: widget.expenses.length,
+      itemBuilder: (context, index) {
+        final expense = widget.expenses[index];
+        
+        return AnimatedBuilder(
+          animation: _itemsController,
+          builder: (context, child) {
+            final delay = (index * 0.1).clamp(0.0, 0.8);
+            final rawProgress = _itemsController.value <= delay 
+                ? 0.0 
+                : ((_itemsController.value - delay) / (1.0 - delay));
+            final progress = rawProgress.clamp(0.0, 1.0);
+            final curvedProgress = Curves.easeOutCubic.transform(progress);
+            // Clamp opacity to valid range (0.0 to 1.0)
+            final opacity = curvedProgress.clamp(0.0, 1.0);
+            
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateX((1 - curvedProgress) * -math.pi / 4)
+                ..translate(0.0, 30 * (1 - curvedProgress)),
+              child: Opacity(
+                opacity: opacity,
+                child: _buildExpenseItem(context, expense, index),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildExpenseItem(BuildContext context, Expense expense, int index) {
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: FinzoSpacing.md,
+        vertical: FinzoSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: FinzoTheme.background(context),
+        borderRadius: BorderRadius.circular(FinzoRadius.md),
+        border: Border.all(
+          color: widget.category.color.withOpacity(0.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: widget.category.color.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: FinzoSpacing.md,
+          vertical: FinzoSpacing.xs,
+        ),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                widget.category.color.withOpacity(0.2),
+                widget.category.color.withOpacity(0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(
+              '${index + 1}',
+              style: FinzoTypography.titleMedium().copyWith(
+                color: widget.category.color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        title: Text(
+          expense.description.isNotEmpty 
+              ? expense.description 
+              : expense.merchant.isNotEmpty 
+                  ? expense.merchant 
+                  : 'Expense',
+          style: FinzoTypography.bodyMedium().copyWith(
+            fontWeight: FontWeight.w600,
+            color: FinzoTheme.textPrimary(context),
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          DateFormat('MMM d, yyyy').format(expense.date),
+          style: FinzoTypography.labelSmall().copyWith(
+            color: FinzoTheme.textSecondary(context),
+          ),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '₹${NumberFormat('#,##,###').format(expense.amount)}',
+              style: FinzoTypography.titleSmall().copyWith(
+                color: widget.category.color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (expense.merchant.isNotEmpty && expense.description.isNotEmpty)
+              Text(
+                expense.merchant,
+                style: FinzoTypography.labelSmall().copyWith(
+                  color: FinzoTheme.textTertiary(context),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloseButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(FinzoSpacing.md),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              side: BorderSide(
+                color: widget.category.color.withOpacity(0.3),
+              ),
+            ),
+          ),
+          child: Text(
+            'Close',
+            style: FinzoTypography.labelLarge().copyWith(
+              color: widget.category.color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

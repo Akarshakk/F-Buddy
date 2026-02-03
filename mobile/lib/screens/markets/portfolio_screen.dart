@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/paper_portfolio.dart';
 import '../../models/stock.dart';
 import '../../services/markets_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'stock_detail_screen.dart';
 
 class PortfolioScreen extends StatefulWidget {
@@ -125,12 +126,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Portfolio'),
+        title: Text(context.l10n.t('portfolio')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            tooltip: 'Refresh',
+            tooltip: context.l10n.t('retry'),
           ),
           PopupMenuButton(
             itemBuilder: (context) => [
@@ -162,7 +163,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                 children: [
                   const Icon(Icons.account_balance_wallet, size: 18),
                   const SizedBox(width: 8),
-                  Text('Holdings (${_portfolio?.holdings.length ?? 0})'),
+                  Text('${context.l10n.t('holdings')} (${_portfolio?.holdings.length ?? 0})'),
                 ],
               ),
             ),
@@ -172,7 +173,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                 children: [
                   const Icon(Icons.bookmark, size: 18),
                   const SizedBox(width: 8),
-                  Text('Watchlist (${_watchlist?.count ?? 0})'),
+                  Text('${context.l10n.t('watchlist')} (${_watchlist?.count ?? 0})'),
                 ],
               ),
             ),
@@ -180,7 +181,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+          ? Center(child: CircularProgressIndicator(color: Colors.orange))
           : _error != null
               ? Center(
                   child: Column(
@@ -188,11 +189,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                     children: [
                       Icon(Icons.error_outline, size: 64, color: colorScheme.error),
                       const SizedBox(height: 16),
-                      Text('Error: $_error'),
+                      Text('${context.l10n.t('error')}: $_error'),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadData,
-                        child: const Text('Retry'),
+                        child: Text(context.l10n.t('retry')),
                       ),
                     ],
                   ),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'splitwise_groups_tab.dart';
 import 'splitwise_friends_tab.dart';
 import 'splitwise_activity_tab.dart';
@@ -16,8 +18,13 @@ class SplitwiseHomeScreen extends StatefulWidget {
   State<SplitwiseHomeScreen> createState() => _SplitwiseHomeScreenState();
 }
 
-class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
+class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  
+  late AnimationController _fabController;
+  late AnimationController _navController;
+  late Animation<double> _fabScale;
+  late Animation<double> _navSlide;
 
   final List<Widget> _tabs = [
     const SplitwiseGroupsTab(),
@@ -29,6 +36,31 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // FAB animation
+    _fabController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fabScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fabController, curve: Curves.elasticOut),
+    );
+    
+    // Nav animation
+    _navController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _navSlide = Tween<double>(begin: 100.0, end: 0.0).animate(
+      CurvedAnimation(parent: _navController, curve: Curves.easeOutCubic),
+    );
+    
+    // Start animations
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _fabController.forward();
+      _navController.forward();
+    });
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final splitwiseProvider =
           Provider.of<SplitWiseProvider>(context, listen: false);
@@ -37,125 +69,266 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
   }
 
   @override
+  void dispose() {
+    _fabController.dispose();
+    _navController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Purple theme for SmartSplit
+    const splitAccent = Color(0xFF8B5CF6);
+    
     return Scaffold(
       backgroundColor: FinzoTheme.background(context),
+      extendBody: true,
       appBar: AppBar(
         backgroundColor: FinzoTheme.background(context),
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: FinzoTheme.textPrimary(context)),
-          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
-          tooltip: 'Back to Menu',
-        ),
-        title: Text(
-          'SmartSplit',
-          style: FinzoTypography.headlineLarge(
-            color: FinzoTheme.textPrimary(context),
-          ).copyWith(
-            fontWeight: FontWeight.w700,
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: FinzoTheme.textPrimary(context), size: 16),
           ),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
+          tooltip: context.l10n.t('back_to_menu'),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(FinzoRadius.sm),
+                boxShadow: [
+                  BoxShadow(
+                    color: splitAccent.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.groups_rounded, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              context.l10n.t('smart_split'),
+              style: FinzoTypography.headlineLarge(
+                color: FinzoTheme.textPrimary(context),
+              ).copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
         ),
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: Icon(
-              FinzoTheme.isDark(context) ? Icons.light_mode : Icons.dark_mode,
-              color: FinzoTheme.textPrimary(context),
-            ),
+          _buildAppBarAction(
+            icon: FinzoTheme.isDark(context) ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
             onPressed: () {
-              final themeProvider =
-                  Provider.of<ThemeProvider>(context, listen: false);
-              themeProvider.toggleTheme();
+              HapticFeedback.lightImpact();
+              Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
             },
-            tooltip: 'Toggle Theme',
+            tooltip: context.l10n.t('toggle_theme'),
           ),
-          IconButton(
-            icon: Icon(Icons.person_add_outlined, color: FinzoTheme.textPrimary(context)),
+          _buildAppBarAction(
+            icon: Icons.person_add_rounded,
             onPressed: _showJoinGroupDialog,
-            tooltip: 'Join Group',
+            tooltip: context.l10n.t('join_group'),
           ),
-          IconButton(
-            icon: Icon(Icons.account_balance_wallet_outlined, color: FinzoTheme.textPrimary(context)),
-            tooltip: 'Switch to Personal Finance',
+          _buildAppBarAction(
+            icon: Icons.account_balance_wallet_rounded,
             onPressed: () {
               Navigator.pushReplacementNamed(context, '/personal-finance');
             },
+            tooltip: 'Switch to Personal Finance',
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _tabs,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: FinzoTheme.surface(context),
-          border: Border(
-            top: BorderSide(
-              color: FinzoTheme.divider(context),
-              width: 0.5,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.02, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
             ),
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.sm),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.groups_outlined, Icons.groups, 'Groups'),
-                _buildNavItem(1, Icons.person_outline, Icons.person, 'Friends'),
-                _buildNavItem(2, Icons.history_outlined, Icons.history, 'Activity'),
-                _buildNavItem(3, Icons.settings_outlined, Icons.settings, 'Settings'),
-              ],
-            ),
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: FinzoTheme.brandAccent(context),
-        elevation: 4,
-        onPressed: () {
-          if (_currentIndex == 0) {
-            _showCreateGroupDialog();
-          }
+          );
         },
-        child: const Icon(
-          Icons.add_rounded,
-          color: Colors.white,
-          size: 28,
+        child: KeyedSubtree(
+          key: ValueKey<int>(_currentIndex),
+          child: _tabs[_currentIndex],
+        ),
+      ),
+      bottomNavigationBar: AnimatedBuilder(
+        animation: _navSlide,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _navSlide.value),
+            child: Container(
+              decoration: BoxDecoration(
+                color: FinzoTheme.surface(context),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: FinzoSpacing.md,
+                    vertical: FinzoSpacing.md,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(0, Icons.groups_outlined, Icons.groups_rounded, context.l10n.t('groups'), splitAccent),
+                      _buildNavItem(1, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('friends'), splitAccent),
+                      const SizedBox(width: 50), // Space for FAB
+                      _buildNavItem(2, Icons.history_outlined, Icons.history_rounded, context.l10n.t('activity'), splitAccent),
+                      _buildNavItem(3, Icons.settings_outlined, Icons.settings_rounded, context.l10n.t('settings'), splitAccent),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      floatingActionButton: AnimatedBuilder(
+        animation: _fabScale,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _fabScale.value,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: splitAccent.withOpacity(0.4),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    if (_currentIndex == 0) {
+                      _showCreateGroupDialog();
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+
+  Widget _buildAppBarAction({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(FinzoRadius.sm),
+          child: Tooltip(
+            message: tooltip,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Icon(icon, color: FinzoTheme.textSecondary(context), size: 22),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label, Color accentColor) {
     final isSelected = _currentIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _currentIndex = index);
+      },
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md, vertical: FinzoSpacing.sm),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? FinzoSpacing.sm : FinzoSpacing.xs,
+          vertical: FinzoSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? accentColor.withOpacity(0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected 
-                  ? FinzoTheme.textPrimary(context) 
+              color: isSelected
+                  ? accentColor
                   : FinzoTheme.textSecondary(context),
-              size: 24,
+              size: 22,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: FinzoTypography.labelSmall().copyWith(
-                color: isSelected 
-                    ? FinzoTheme.textPrimary(context) 
+                color: isSelected
+                    ? accentColor
                     : FinzoTheme.textSecondary(context),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                fontSize: 10,
               ),
             ),
           ],

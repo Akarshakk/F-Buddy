@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/splitwise_provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'group_details_screen.dart';
 
 class SplitwiseGroupsTab extends StatelessWidget {
@@ -66,14 +67,14 @@ class SplitwiseGroupsTab extends StatelessWidget {
           ),
           const SizedBox(height: FinzoSpacing.lg),
           Text(
-            'No Groups Yet',
+            context.l10n.t('no_groups'),
             style: FinzoTypography.titleLarge(
               color: FinzoTheme.textPrimary(context),
             ),
           ),
           const SizedBox(height: FinzoSpacing.sm),
           Text(
-            'Create a group to start splitting expenses',
+            context.l10n.t('create_group'),
             style: FinzoTypography.bodyMedium(
               color: FinzoTheme.textSecondary(context),
             ),

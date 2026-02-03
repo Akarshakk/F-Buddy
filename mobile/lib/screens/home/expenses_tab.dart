@@ -5,6 +5,7 @@ import '../../config/app_theme.dart';
 import '../../providers/expense_provider.dart';
 import '../../models/expense.dart';
 import '../../models/category.dart';
+import '../../l10n/app_localizations.dart';
 import '../widgets/expense_card.dart';
 
 class ExpensesTab extends StatefulWidget {
@@ -54,7 +55,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
     return Scaffold(
       backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        title: Text('Expenses', style: FinzoTypography.headlineMedium()),
+        title: Text(context.l10n.t('expenses'), style: FinzoTypography.headlineMedium()),
         backgroundColor: FinzoTheme.background(context),
         elevation: 0,
         scrolledUnderElevation: 0,

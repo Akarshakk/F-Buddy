@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class TradeHistoryScreen extends StatefulWidget {
   const TradeHistoryScreen({super.key});
@@ -53,7 +54,7 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trade History'),
+        title: Text(context.l10n.t('trade_history')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

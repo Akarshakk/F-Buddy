@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/app_theme.dart';
 import '../../widgets/rag_chat_widget.dart';
-import '../../providers/language_provider.dart';
 import 'package:finzo/l10n/app_localizations.dart';
 import 'calculators/inflation_calculator.dart';
 import 'calculators/investment_return_calculator.dart';
@@ -32,9 +32,12 @@ class FinanceManagerScreen extends StatefulWidget {
   State<FinanceManagerScreen> createState() => _FinanceManagerScreenState();
 }
 
-class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
+class _FinanceManagerScreenState extends State<FinanceManagerScreen> with TickerProviderStateMixin {
   String _selectedCategory = 'advisory';
   String _selectedItem = 'advisory';
+  
+  late AnimationController _fadeController;
+  late Animation<double> _fadeIn;
 
   // Navigation structure
   final List<_NavCategory> _navCategories = [
@@ -86,6 +89,25 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
       ],
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
 
   Widget _getContentWidget() {
     switch (_selectedItem) {
@@ -139,145 +161,170 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : const Color(0xFFF5F5F5);
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final languageProvider = context.watch<LanguageProvider>();
+    final bgColor = FinzoTheme.background(context);
+    final surfaceColor = FinzoTheme.surface(context);
     final l10n = context.l10n;
+    
+    // Teal/Cyan theme for Finance Manager
+    const managerAccent = Color(0xFF0EA5E9);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: surfaceColor,
-        elevation: 1,
+        backgroundColor: bgColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: primaryColor),
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: FinzoTheme.textPrimary(context), size: 16),
+          ),
           onPressed: _goBack,
           tooltip: context.l10n.t('back_to_menu'),
         ),
-        title: Text(
-          l10n.t('finance_manager'),
-          style: AppTextStyles.heading2.copyWith(color: primaryColor),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(FinzoRadius.sm),
+                boxShadow: [
+                  BoxShadow(
+                    color: managerAccent.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.analytics_rounded, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              l10n.t('finance_manager'),
+              style: FinzoTypography.headlineLarge(color: FinzoTheme.textPrimary(context)).copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
         ),
         centerTitle: false,
-        actions: [
-          PopupMenuButton<AppLanguage>(
-            tooltip: context.l10n.t('language'),
-            initialValue: languageProvider.language,
-            icon: Row(
-              children: [
-                const Icon(Icons.translate),
-                const SizedBox(width: 4),
-                Text(
-                  languageProvider.displayName,
-                  style: TextStyle(
-                      color: primaryColor, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            onSelected: (lang) {
-              languageProvider.setLanguage(lang);
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: AppLanguage.english, child: Text('English')),
-              PopupMenuItem(
-                  value: AppLanguage.hindi, child: Text('हिंदी (Hindi)')),
-              PopupMenuItem(
-                  value: AppLanguage.marathi, child: Text('मराठी (Marathi)')),
-            ],
-          ),
-        ],
       ),
       body: Stack(
         children: [
-          Column(
-            children: [
-              // Top Navigation Bar with Tabs
-              Container(
-                color: surfaceColor,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: _navCategories.map((category) {
-                      final isSelected = _selectedCategory == category.id;
-                      final title = l10n.t(category.titleKey);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: category.items.isEmpty
-                            ? _buildSimpleTab(category, title, isSelected,
-                                primaryColor, isDark)
-                            : _buildDropdownTab(category, isSelected,
-                                primaryColor, isDark, surfaceColor),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              // Content Area
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 700),
-                      child: _getContentWidget(),
+          FadeTransition(
+            opacity: _fadeIn,
+            child: Column(
+              children: [
+                // Premium Navigation Bar
+                Container(
+                  color: surfaceColor,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: _navCategories.map((category) {
+                        final isSelected = _selectedCategory == category.id;
+                        final title = l10n.t(category.titleKey);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: category.items.isEmpty
+                              ? _buildPremiumSimpleTab(category, title, isSelected, managerAccent)
+                              : _buildPremiumDropdownTab(category, isSelected, managerAccent, surfaceColor),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ),
-              ),
-            ],
+                Container(
+                  height: 1,
+                  color: FinzoTheme.divider(context),
+                ),
+                // Content Area with animation
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.easeOutCubic,
+                    child: SingleChildScrollView(
+                      key: ValueKey<String>(_selectedItem),
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 700),
+                          child: _getContentWidget(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          // RAG Chat Widget - Floating in bottom right corner
+          // RAG Chat Widget
           const RagChatWidget(),
         ],
       ),
     );
   }
 
-  Widget _buildSimpleTab(_NavCategory category, String title, bool isSelected,
-      Color primaryColor, bool isDark) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedCategory = category.id;
-          _selectedItem = category.id;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? primaryColor : Colors.transparent,
-              width: 3,
+  Widget _buildPremiumSimpleTab(_NavCategory category, String title, bool isSelected, Color accentColor) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() {
+            _selectedCategory = category.id;
+            _selectedItem = category.id;
+          });
+        },
+        borderRadius: BorderRadius.circular(FinzoRadius.md),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? accentColor.withOpacity(0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(FinzoRadius.md),
+            border: Border.all(
+              color: isSelected ? accentColor : Colors.transparent,
+              width: 1.5,
             ),
           ),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected
-                ? primaryColor
-                : (isDark ? Colors.white70 : Colors.black87),
+          child: Text(
+            title,
+            style: FinzoTypography.labelMedium().copyWith(
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? accentColor : FinzoTheme.textSecondary(context),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDropdownTab(_NavCategory category, bool isSelected,
-      Color primaryColor, bool isDark, Color surfaceColor) {
+  Widget _buildPremiumDropdownTab(_NavCategory category, bool isSelected, Color accentColor, Color surfaceColor) {
     final l10n = context.l10n;
     return PopupMenuButton<String>(
       tooltip: l10n.t(category.titleKey),
       offset: const Offset(0, 50),
       color: surfaceColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(FinzoRadius.md),
+      ),
+      elevation: 8,
       onSelected: (itemId) {
+        HapticFeedback.selectionClick();
         setState(() {
           _selectedCategory = category.id;
           _selectedItem = itemId;
@@ -291,23 +338,23 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               item.titleText ?? l10n.t(item.titleKey),
-              style: TextStyle(
-                fontWeight:
-                    isItemSelected ? FontWeight.bold : FontWeight.normal,
-                color: isItemSelected ? primaryColor : null,
+              style: FinzoTypography.bodyMedium().copyWith(
+                fontWeight: isItemSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isItemSelected ? accentColor : FinzoTheme.textPrimary(context),
               ),
             ),
           ),
         );
       }).toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? primaryColor : Colors.transparent,
-              width: 3,
-            ),
+          color: isSelected ? accentColor.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(FinzoRadius.md),
+          border: Border.all(
+            color: isSelected ? accentColor : Colors.transparent,
+            width: 1.5,
           ),
         ),
         child: Row(
@@ -315,21 +362,16 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
           children: [
             Text(
               l10n.t(category.titleKey),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? primaryColor
-                    : (isDark ? Colors.white70 : Colors.black87),
+              style: FinzoTypography.labelMedium().copyWith(
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? accentColor : FinzoTheme.textSecondary(context),
               ),
             ),
             const SizedBox(width: 4),
             Icon(
-              Icons.arrow_drop_down,
+              Icons.keyboard_arrow_down_rounded,
               size: 18,
-              color: isSelected
-                  ? primaryColor
-                  : (isDark ? Colors.white70 : Colors.black54),
+              color: isSelected ? accentColor : FinzoTheme.textSecondary(context),
             ),
           ],
         ),
@@ -353,5 +395,3 @@ class _NavItem {
 
   _NavItem({required this.id, required this.titleKey, this.titleText});
 }
-
-

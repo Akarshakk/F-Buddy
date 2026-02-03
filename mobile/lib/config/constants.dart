@@ -23,13 +23,8 @@ class ApiConstants {
   // 🔧 CHANGE THIS BASED ON YOUR PLATFORM:
   // For Web/Emulator: 'localhost'
   // For Physical Device: Your computer's IP (e.g., '10.176.182.25')
-<<<<<<< Updated upstream
-  static const String _serverIp = 'localhost'; // Use localhost for web
-  static const String _serverPort = '5001';
-=======
   static const String _serverIp = 'localhost'; // Use 'localhost' for web, your IP for physical device
   static const String _serverPort = '5001'; // Backend runs on port 5001 (from .env)
->>>>>>> Stashed changes
 
   // Automatically detect platform and use correct URL
   static String get baseUrl {

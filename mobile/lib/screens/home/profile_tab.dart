@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/analytics_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/login_screen.dart';
 import '../kyc/kyc_screen.dart';
 import '../sms_settings_screen.dart';
@@ -160,7 +161,7 @@ class _ProfileTabState extends State<ProfileTab> {
     return Scaffold(
       backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        title: Text('Profile', style: FinzoTypography.headlineMedium()),
+        title: Text(context.l10n.t('profile'), style: FinzoTypography.headlineMedium()),
         backgroundColor: FinzoTheme.background(context),
         elevation: 0,
         scrolledUnderElevation: 0,

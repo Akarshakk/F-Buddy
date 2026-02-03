@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../config/theme.dart';
+import 'package:flutter/services.dart';
+import '../../config/theme.dart' hide AppTextStyles;
+import '../../config/app_theme.dart';
 import '../../models/stock.dart';
 import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
 import '../../widgets/auto_translated_text.dart';
+import '../../l10n/app_localizations.dart';
 import 'stock_detail_screen.dart';
 import 'portfolio_screen.dart';
 import 'trade_history_screen.dart';
@@ -15,7 +18,7 @@ class MarketsLabHomeScreen extends StatefulWidget {
   State<MarketsLabHomeScreen> createState() => _MarketsLabHomeScreenState();
 }
 
-class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> {
+class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
@@ -26,12 +29,32 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   
   // Filter state
-  String _selectedFilter = 'gainers'; // 'gainers', 'losers', 'marketcap'
-  String _selectedMarketCap = 'large'; // 'large', 'mid', 'small'
+  String _selectedFilter = 'gainers';
+  String _selectedMarketCap = 'large';
+  
+  // Animations
+  late AnimationController _entranceController;
+  late Animation<double> _fadeIn;
+  late Animation<Offset> _slideUp;
 
   @override
   void initState() {
     super.initState();
+    
+    // Setup animations
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOut),
+    );
+    _slideUp = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+    
+    _entranceController.forward();
+    
     // Use addPostFrameCallback to ensure widget is fully mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
@@ -41,6 +64,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _entranceController.dispose();
     super.dispose();
   }
 
@@ -81,168 +105,318 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : AppColors.background;
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final textPrimary = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final textSecondary = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+    final isDark = FinzoTheme.isDark(context);
+    final bgColor = FinzoTheme.background(context);
+    final surfaceColor = FinzoTheme.surface(context);
+    final primaryColor = FinzoTheme.brandAccent(context);
+    final textPrimary = FinzoTheme.textPrimary(context);
+    final textSecondary = FinzoTheme.textSecondary(context);
+    
+    // Orange theme for Markets Lab
+    const marketAccent = Color(0xFFE87A2E);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: surfaceColor,
+        backgroundColor: bgColor,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 16),
+          ),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
+          tooltip: context.l10n.t('back_to_menu'),
+        ),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFE87A2E), Color(0xFFFF9F5A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(FinzoRadius.sm),
+                boxShadow: [
+                  BoxShadow(
+                    color: marketAccent.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.candlestick_chart, color: Colors.orange, size: 24),
+              child: const Icon(Icons.candlestick_chart, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Markets Lab',
-                  style: AppTextStyles.heading3.copyWith(color: textPrimary),
+                  context.l10n.t('markets_lab'),
+                  style: FinzoTypography.titleLarge(color: textPrimary).copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 Text(
-                  'Paper Trading',
-                  style: AppTextStyles.caption.copyWith(color: Colors.orange),
+                  context.l10n.t('paper_trading'),
+                  style: FinzoTypography.labelSmall().copyWith(
+                    color: marketAccent,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.account_balance_wallet, color: primaryColor),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PortfolioScreen()),
-            ).then((_) => _loadData()),
+          _buildAppBarAction(
+            icon: Icons.account_balance_wallet_rounded,
+            color: marketAccent,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) => const PortfolioScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(1, 0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                      child: child,
+                    );
+                  },
+                ),
+              ).then((_) => _loadData());
+            },
             tooltip: 'Portfolio',
           ),
-          IconButton(
-            icon: Icon(Icons.history, color: primaryColor),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TradeHistoryScreen()),
-            ),
+          _buildAppBarAction(
+            icon: Icons.history_rounded,
+            color: textSecondary,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) => const TradeHistoryScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(1, 0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                      child: child,
+                    );
+                  },
+                ),
+              );
+            },
             tooltip: 'Trade History',
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: Colors.orange),
-                  SizedBox(height: 16),
-                  Text('Loading market data...', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
-          : _hasError
+      body: FadeTransition(
+        opacity: _fadeIn,
+        child: SlideTransition(
+          position: _slideUp,
+          child: _isLoading
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      const Text('Failed to load market data'),
-                      const SizedBox(height: 8),
-                      Text(_errorMessage, style: TextStyle(color: textSecondary, fontSize: 12)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadData,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                        child: const Text('Retry'),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                          boxShadow: FinzoShadows.medium,
+                        ),
+                        child: const CircularProgressIndicator(
+                          color: Color(0xFFE87A2E),
+                          strokeWidth: 3,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Loading market data...',
+                        style: FinzoTypography.bodyMedium(color: textSecondary),
                       ),
                     ],
                   ),
                 )
-              : RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Virtual Money Banner
-                    _buildVirtualMoneyBanner(isDark, primaryColor),
-                    
-                    // Portfolio Summary Card
-                    if (_portfolio != null) _buildPortfolioCard(isDark, surfaceColor, textPrimary, textSecondary),
-                    
-                    // Market Indices
-                    if (_marketOverview != null) _buildIndicesSection(isDark, surfaceColor, textPrimary, textSecondary),
-                    
-                    // Search Bar
-                    _buildSearchBar(isDark, surfaceColor, textPrimary, textSecondary),
-                    
-                    // Filter Buttons (Gainers, Losers, Market Cap)
-                    if (_searchQuery.isEmpty)
-                      _buildFilterButtons(isDark, surfaceColor, textPrimary, textSecondary),
-                    
-                    // Filtered Stocks List
-                    _buildFilteredStocksSection(isDark, surfaceColor, textPrimary, textSecondary),
-                    
-                    const SizedBox(height: 100),
-                  ],
-                ),
-              ),
+              : _hasError
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: FinzoTheme.error(context).withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.error_outline_rounded, size: 48, color: FinzoTheme.error(context)),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Failed to load market data',
+                            style: FinzoTypography.titleMedium(color: textPrimary),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _errorMessage,
+                            style: FinzoTypography.bodySmall(color: textSecondary),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFE87A2E), Color(0xFFFF9F5A)],
+                              ),
+                              borderRadius: BorderRadius.circular(FinzoRadius.md),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: marketAccent.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              onPressed: _loadData,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                              ),
+                              child: const Text(
+                                'Retry',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadData,
+                      color: marketAccent,
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Virtual Money Banner
+                            _buildVirtualMoneyBanner(isDark, primaryColor),
+                            
+                            // Portfolio Summary Card
+                            if (_portfolio != null) _buildPortfolioCard(isDark, surfaceColor, textPrimary, textSecondary),
+                            
+                            // Market Indices
+                            if (_marketOverview != null) _buildIndicesSection(isDark, surfaceColor, textPrimary, textSecondary),
+                            
+                            // Search Bar
+                            _buildSearchBar(isDark, surfaceColor, textPrimary, textSecondary),
+                            
+                            // Filter Buttons
+                            if (_searchQuery.isEmpty)
+                              _buildFilterButtons(isDark, surfaceColor, textPrimary, textSecondary),
+                            
+                            // Filtered Stocks List
+                            _buildFilteredStocksSection(isDark, surfaceColor, textPrimary, textSecondary),
+                            
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      ),
+                    ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBarAction({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(FinzoRadius.sm),
+          child: Tooltip(
+            message: tooltip,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Icon(icon, color: color, size: 22),
             ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildVirtualMoneyBanner(bool isDark, Color primaryColor) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.orange.shade400, Colors.deepOrange.shade400],
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE87A2E), Color(0xFFFF9F5A), Color(0xFFFFB366)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE87A2E).withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
             ),
-            child: const Icon(Icons.school, color: Colors.white, size: 28),
+            child: const Icon(Icons.school_rounded, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '📚 Learning Mode',
-                  style: TextStyle(
+                  style: FinzoTypography.titleMedium().copyWith(
                     color: Colors.white,
-                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   'Practice trading with ₹10 Lakh virtual money. No real money involved!',
-                  style: TextStyle(
+                  style: FinzoTypography.bodySmall().copyWith(
                     color: Colors.white.withOpacity(0.9),
-                    fontSize: 12,
                   ),
                 ),
               ],

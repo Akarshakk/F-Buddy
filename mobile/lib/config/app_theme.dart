@@ -2,98 +2,130 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ============================================================================
-// FINZO INSTAGRAM-INSPIRED THEME
-// Modern, clean, high-contrast design with excellent readability
+// FINZO PREMIUM THEME - Inspired by Spotify, Instagram & Modern Finance Apps
+// Sophisticated, warm, premium feel with smooth transitions
 // ============================================================================
 
 /// App-wide color constants for Light Theme
 class FinzoColors {
-  // Brand Colors
-  static const Color brandPrimary = Color(0xFF000000);
-  static const Color brandAccent = Color(0xFF0095F6); // Instagram blue
-  static const Color brandGradientStart = Color(0xFF405DE6);
-  static const Color brandGradientEnd = Color(0xFFC13584);
+  // Brand Colors - Warm, premium gold/copper tones
+  static const Color brandPrimary = Color(0xFF1A1A2E);  // Deep navy
+  static const Color brandAccent = Color(0xFFD4A574);   // Warm copper/gold
+  static const Color brandGradientStart = Color(0xFF16213E);
+  static const Color brandGradientEnd = Color(0xFF0F3460);
   
-  // Background Colors
-  static const Color background = Color(0xFFFFFFFF);
-  static const Color backgroundSecondary = Color(0xFFFAFAFA);
+  // Background Colors - Warm off-whites
+  static const Color background = Color(0xFFFAF9F7);   // Warm white
+  static const Color backgroundSecondary = Color(0xFFF5F3EF);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF5F5F5);
+  static const Color surfaceVariant = Color(0xFFF0EDE8);
   
-  // Text Colors - High contrast for readability
-  static const Color textPrimary = Color(0xFF262626);
-  static const Color textSecondary = Color(0xFF8E8E8E);
-  static const Color textTertiary = Color(0xFFC7C7C7);
+  // Text Colors - Warm grays
+  static const Color textPrimary = Color(0xFF1A1A2E);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textTertiary = Color(0xFF9CA3AF);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
-  static const Color textOnAccent = Color(0xFFFFFFFF);
+  static const Color textOnAccent = Color(0xFF1A1A2E);
   
-  // Border & Divider
-  static const Color border = Color(0xFFDBDBDB);
-  static const Color divider = Color(0xFFEFEFEF);
+  // Border & Divider - Subtle warm tones
+  static const Color border = Color(0xFFE5E2DC);
+  static const Color divider = Color(0xFFF0EDE8);
   
-  // Status Colors
-  static const Color success = Color(0xFF58C322);
-  static const Color warning = Color(0xFFFCAF45);
-  static const Color error = Color(0xFFED4956);
-  static const Color info = Color(0xFF0095F6);
+  // Status Colors - Muted, sophisticated
+  static const Color success = Color(0xFF059669);  // Emerald
+  static const Color warning = Color(0xFFD97706);  // Amber
+  static const Color error = Color(0xFFDC2626);    // Red
+  static const Color info = Color(0xFF0284C7);     // Sky blue
   
   // Financial Colors
-  static const Color income = Color(0xFF58C322);
-  static const Color expense = Color(0xFFED4956);
-  static const Color neutral = Color(0xFF8E8E8E);
+  static const Color income = Color(0xFF059669);
+  static const Color expense = Color(0xFFDC2626);
+  static const Color neutral = Color(0xFF6B7280);
   
-  // Interactive
-  static const Color link = Color(0xFF00376B);
-  static const Color buttonPrimary = Color(0xFF0095F6);
-  static const Color buttonSecondary = Color(0xFFEFEFEF);
+  // Interactive - Premium gold accent
+  static const Color link = Color(0xFF0F3460);
+  static const Color buttonPrimary = Color(0xFF1A1A2E);
+  static const Color buttonSecondary = Color(0xFFF0EDE8);
   
-  // Secondary brand color (purple gradient end)
-  static const Color brandSecondary = Color(0xFFC13584);
+  // Secondary brand color
+  static const Color brandSecondary = Color(0xFFD4A574);
+  
+  // Premium gradients
+  static const List<Color> premiumGradient = [
+    Color(0xFF1A1A2E),
+    Color(0xFF16213E),
+  ];
+  
+  static const List<Color> goldGradient = [
+    Color(0xFFD4A574),
+    Color(0xFFB8956E),
+  ];
+  
+  static const List<Color> warmGradient = [
+    Color(0xFFF5F3EF),
+    Color(0xFFE8E4DD),
+  ];
 }
 
-/// App-wide color constants for Dark Theme
+/// App-wide color constants for Dark Theme - Spotify-inspired
 class FinzoColorsDark {
   // Brand Colors
-  static const Color brandPrimary = Color(0xFFFFFFFF);
-  static const Color brandAccent = Color(0xFF0095F6);
-  static const Color brandGradientStart = Color(0xFF405DE6);
-  static const Color brandGradientEnd = Color(0xFFC13584);
+  static const Color brandPrimary = Color(0xFFF5F3EF);
+  static const Color brandAccent = Color(0xFFD4A574);   // Warm copper/gold
+  static const Color brandGradientStart = Color(0xFF1A1A2E);
+  static const Color brandGradientEnd = Color(0xFF16213E);
   
-  // Background Colors - True black for OLED
-  static const Color background = Color(0xFF000000);
-  static const Color backgroundSecondary = Color(0xFF121212);
-  static const Color surface = Color(0xFF1C1C1E);
-  static const Color surfaceVariant = Color(0xFF2C2C2E);
+  // Background Colors - Deep, warm blacks (Spotify-style)
+  static const Color background = Color(0xFF0D0D0D);   // Near black
+  static const Color backgroundSecondary = Color(0xFF161616);
+  static const Color surface = Color(0xFF1E1E1E);
+  static const Color surfaceVariant = Color(0xFF282828);
   
-  // Text Colors - High contrast for dark mode
-  static const Color textPrimary = Color(0xFFF5F5F5);
-  static const Color textSecondary = Color(0xFFA8A8A8);
-  static const Color textTertiary = Color(0xFF6E6E6E);
-  static const Color textOnPrimary = Color(0xFF000000);
-  static const Color textOnAccent = Color(0xFFFFFFFF);
+  // Text Colors - Warm whites
+  static const Color textPrimary = Color(0xFFF5F3EF);
+  static const Color textSecondary = Color(0xFFA3A3A3);
+  static const Color textTertiary = Color(0xFF6B6B6B);
+  static const Color textOnPrimary = Color(0xFF0D0D0D);
+  static const Color textOnAccent = Color(0xFF1A1A2E);
   
   // Border & Divider
-  static const Color border = Color(0xFF363636);
+  static const Color border = Color(0xFF333333);
   static const Color divider = Color(0xFF262626);
   
-  // Status Colors - Brighter for dark mode
-  static const Color success = Color(0xFF6BCB77);
-  static const Color warning = Color(0xFFFFD93D);
-  static const Color error = Color(0xFFFF6B6B);
-  static const Color info = Color(0xFF4DABF7);
+  // Status Colors - Vibrant but not harsh
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFFBBF24);
+  static const Color error = Color(0xFFEF4444);
+  static const Color info = Color(0xFF38BDF8);
   
   // Financial Colors
-  static const Color income = Color(0xFF6BCB77);
-  static const Color expense = Color(0xFFFF6B6B);
-  static const Color neutral = Color(0xFFA8A8A8);
+  static const Color income = Color(0xFF10B981);
+  static const Color expense = Color(0xFFEF4444);
+  static const Color neutral = Color(0xFFA3A3A3);
   
   // Interactive
-  static const Color link = Color(0xFF58A6FF);
-  static const Color buttonPrimary = Color(0xFF0095F6);
-  static const Color buttonSecondary = Color(0xFF363636);
+  static const Color link = Color(0xFFD4A574);
+  static const Color buttonPrimary = Color(0xFFD4A574);
+  static const Color buttonSecondary = Color(0xFF282828);
   
-  // Secondary brand color (purple gradient end)
-  static const Color brandSecondary = Color(0xFFC13584);
+  // Secondary brand color
+  static const Color brandSecondary = Color(0xFFD4A574);
+  
+  // Premium gradients
+  static const List<Color> premiumGradient = [
+    Color(0xFF1A1A2E),
+    Color(0xFF0D0D0D),
+  ];
+  
+  static const List<Color> goldGradient = [
+    Color(0xFFD4A574),
+    Color(0xFFB8956E),
+  ];
+  
+  static const List<Color> cardGradient = [
+    Color(0xFF1E1E1E),
+    Color(0xFF161616),
+  ];
 }
 
 /// Dynamic color helper that respects current theme
