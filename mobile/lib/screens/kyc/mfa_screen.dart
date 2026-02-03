@@ -6,7 +6,7 @@ class MfaScreen extends StatefulWidget {
   final VoidCallback onSuccess;
   final bool isActive; // Only request OTP when this screen is active
 
-  const MfaScreen({Key? key, required this.onSuccess, this.isActive = false}) : super(key: key);
+  const MfaScreen({super.key, required this.onSuccess, this.isActive = false});
 
   @override
   _MfaScreenState createState() => _MfaScreenState();
@@ -51,7 +51,7 @@ class _MfaScreenState extends State<MfaScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('✓ OTP sent to your email. Check backend console for OTP code!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 5),
@@ -74,7 +74,7 @@ class _MfaScreenState extends State<MfaScreen> {
   Future<void> _verifyOtp() async {
     if (_otpController.text.isEmpty || _otpController.text.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please enter a 6-digit OTP'),
           backgroundColor: Colors.orange,
         )
@@ -89,7 +89,7 @@ class _MfaScreenState extends State<MfaScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('✓ Verification Complete! Welcome to Finzo!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
@@ -97,7 +97,7 @@ class _MfaScreenState extends State<MfaScreen> {
         );
         
         // Wait a moment for user to see success message
-        await Future.delayed(Duration(seconds: 1));
+        await Future.delayed(const Duration(seconds: 1));
         
         // Call success callback
         widget.onSuccess();
@@ -106,7 +106,7 @@ class _MfaScreenState extends State<MfaScreen> {
       setState(() => _isVerifying = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Invalid OTP. Please check and try again.'),
             backgroundColor: Colors.red,
           )
@@ -125,25 +125,25 @@ class _MfaScreenState extends State<MfaScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.mark_email_read, size: 80, color: FinzoTheme.brandPrimary(context)),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Text(
             'Secure your Account',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: FinzoTheme.textPrimary(context)),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             'We sent a 6-digit code to your email. Please enter it below.',
             textAlign: TextAlign.center,
             style: TextStyle(color: FinzoTheme.textSecondary(context)),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: FinzoTheme.brandPrimary(context).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
@@ -151,7 +151,7 @@ class _MfaScreenState extends State<MfaScreen> {
             child: Row(
               children: [
                 Icon(Icons.info_outline, color: FinzoTheme.brandPrimary(context), size: 20),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Check backend console for OTP code',
@@ -161,7 +161,7 @@ class _MfaScreenState extends State<MfaScreen> {
               ],
             ),
           ),
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           TextField(
             controller: _otpController,
             keyboardType: TextInputType.number,
@@ -190,13 +190,13 @@ class _MfaScreenState extends State<MfaScreen> {
               }
             },
           ),
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: (_otpSent && !_isVerifying && _otpController.text.length == 6) ? _verifyOtp : null,
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.symmetric(vertical: 15),
                 backgroundColor: FinzoTheme.brandPrimary(context),
                 disabledBackgroundColor: FinzoTheme.divider(context),
                 shape: RoundedRectangleBorder(
@@ -204,7 +204,7 @@ class _MfaScreenState extends State<MfaScreen> {
                 ),
               ),
               child: _isVerifying 
-                ? Row(
+                ? const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SizedBox(
@@ -219,10 +219,10 @@ class _MfaScreenState extends State<MfaScreen> {
                       Text('Verifying...', style: TextStyle(fontSize: 16, color: Colors.white)),
                     ],
                   )
-                : Text('Verify & Finish', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                : const Text('Verify & Finish', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextButton(
              onPressed: (_isLoading || _isVerifying) ? null : _requestOtp,
              child: Text(

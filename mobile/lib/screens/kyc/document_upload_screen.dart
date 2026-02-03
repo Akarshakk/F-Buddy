@@ -7,7 +7,7 @@ import '../../services/kyc_service.dart';
 class DocumentUploadScreen extends StatefulWidget {
   final VoidCallback onSuccess;
 
-  const DocumentUploadScreen({Key? key, required this.onSuccess}) : super(key: key);
+  const DocumentUploadScreen({super.key, required this.onSuccess});
 
   @override
   _DocumentUploadScreenState createState() => _DocumentUploadScreenState();
@@ -42,7 +42,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
       if (isValid) {
          widget.onSuccess();
       } else {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Document invalid. Please try again.')));
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Document invalid. Please try again.')));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
@@ -54,21 +54,21 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
+          const Text(
             'Upload ID Document',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 10),
-          Text('Select document type and upload a clear photo.'),
-          SizedBox(height: 20),
+          const SizedBox(height: 10),
+          const Text('Select document type and upload a clear photo.'),
+          const SizedBox(height: 20),
           DropdownButtonFormField<String>(
-            value: _selectedType,
-            decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Document Type'),
-            items: [
+            initialValue: _selectedType,
+            decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Document Type'),
+            items: const [
               DropdownMenuItem(value: 'pan', child: Text('PAN Card')),
               DropdownMenuItem(value: 'aadhaar', child: Text('Aadhaar Card')),
               DropdownMenuItem(value: 'passport', child: Text('Passport')),
@@ -76,7 +76,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
             ],
             onChanged: (val) => setState(() => _selectedType = val!),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           GestureDetector(
             onTap: () => _showPicker(context),
             child: Container(
@@ -93,7 +93,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                         ? Image.network(_image!.path, fit: BoxFit.cover)
                         : Image.file(File(_image!.path), fit: BoxFit.cover),
                     )
-                  : Column(
+                  : const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.camera_alt, size: 50, color: Colors.grey),
@@ -102,16 +102,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                     ),
             ),
           ),
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           ElevatedButton(
             onPressed: (_image != null && !_isUploading) ? _uploadDocument : null,
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 15),
+              padding: const EdgeInsets.symmetric(vertical: 15),
               backgroundColor: Colors.blue,
             ),
             child: _isUploading
-                ? CircularProgressIndicator(color: Colors.white)
-                : Text('Verify Document', style: TextStyle(fontSize: 16)),
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text('Verify Document', style: TextStyle(fontSize: 16)),
           ),
         ],
       ),
@@ -126,16 +126,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
           child: Wrap(
             children: <Widget>[
               ListTile(
-                leading: Icon(Icons.photo_library),
-                title: Text('Photo Library'),
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Library'),
                 onTap: () {
                   _pickImage(ImageSource.gallery);
                   Navigator.of(context).pop();
                 },
               ),
               ListTile(
-                leading: Icon(Icons.photo_camera),
-                title: Text('Camera'),
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
                 onTap: () {
                   _pickImage(ImageSource.camera);
                   Navigator.of(context).pop();

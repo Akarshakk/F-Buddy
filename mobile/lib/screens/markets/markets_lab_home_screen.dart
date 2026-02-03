@@ -6,6 +6,7 @@ import '../../models/stock.dart';
 import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
 import '../../widgets/auto_translated_text.dart';
+import '../../widgets/animated_button.dart';
 import '../../l10n/app_localizations.dart';
 import 'stock_detail_screen.dart';
 import 'portfolio_screen.dart';
@@ -354,18 +355,15 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(FinzoRadius.sm),
-          child: Tooltip(
-            message: tooltip,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: Icon(icon, color: color, size: 22),
-            ),
-          ),
+      child: Tooltip(
+        message: tooltip,
+        child: AnimatedIconButton(
+          onPressed: onPressed,
+          icon: icon,
+          color: color,
+          size: 22,
+          enableHaptics: true,
+          padding: const EdgeInsets.all(8),
         ),
       ),
     );
@@ -428,11 +426,12 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
   }
 
   Widget _buildPortfolioCard(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
+    return AnimatedButton(
+      onPressed: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const PortfolioScreen()),
       ).then((_) => _loadData()),
+      enableHaptics: true,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(20),
@@ -533,12 +532,24 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
             ),
           ),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: AppTextStyles.caption.copyWith(color: textSecondary)),
-              Text(value, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold, color: color)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTextStyles.caption.copyWith(color: textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                Text(
+                  value,
+                  style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold, color: color),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -565,8 +576,9 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                 final idx = _marketOverview!.indices[index];
                 return Container(
                   width: 160,
+                  height: 100,
                   margin: EdgeInsets.only(right: index < _marketOverview!.indices.length - 1 ? 12 : 0),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     borderRadius: BorderRadius.circular(12),
@@ -577,27 +589,43 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        idx.name,
-                        style: AppTextStyles.caption.copyWith(color: textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        idx.formattedValue,
-                        style: AppTextStyles.body1.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: textPrimary,
+                      Flexible(
+                        child: Text(
+                          idx.name,
+                          style: AppTextStyles.caption.copyWith(color: textSecondary),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          softWrap: false,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${idx.formattedChange} (${idx.formattedChangePercent})',
-                        style: TextStyle(
-                          color: idx.isPositive ? Colors.green : Colors.red,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(height: 3),
+                      Flexible(
+                        child: Text(
+                          idx.formattedValue,
+                          style: AppTextStyles.body1.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Flexible(
+                        child: Text(
+                          '${idx.formattedChange} (${idx.formattedChangePercent})',
+                          style: TextStyle(
+                            color: idx.isPositive ? Colors.green : Colors.red,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          softWrap: false,
                         ),
                       ),
                     ],
@@ -744,8 +772,9 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
+    return AnimatedButton(
+      onPressed: onTap,
+      enableHaptics: true,
       child: Container(
         height: 44,
         decoration: BoxDecoration(
@@ -876,7 +905,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: accentColor?.withOpacity(0.1),
+                  color: accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -925,8 +954,9 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
   Widget _buildStockListItem(Stock stock, Color surfaceColor, Color textPrimary, Color textSecondary, Color? accentColor) {
     final displayColor = accentColor ?? (stock.isPositive ? Colors.green : Colors.red);
     
-    return GestureDetector(
-      onTap: () => _navigateToStockDetail(stock),
+    return AnimatedButton(
+      onPressed: () => _navigateToStockDetail(stock),
+      enableHaptics: true,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(16),
@@ -967,11 +997,14 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                       fontWeight: FontWeight.bold,
                       color: textPrimary,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   Text(
                     stock.name,
                     style: AppTextStyles.caption.copyWith(color: textSecondary),
                     overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ],
               ),
@@ -985,6 +1018,8 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                     fontWeight: FontWeight.bold,
                     color: textPrimary,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

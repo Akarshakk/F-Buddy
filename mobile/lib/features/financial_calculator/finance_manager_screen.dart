@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../../config/app_theme.dart';
 import '../../widgets/rag_chat_widget.dart';

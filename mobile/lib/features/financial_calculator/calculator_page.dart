@@ -127,7 +127,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     labelText: 'Select Calculator',
                     border: OutlineInputBorder(),
                   ),
-                  value: calculatorType.isEmpty ? null : calculatorType,
+                  initialValue: calculatorType.isEmpty ? null : calculatorType,
                   items: const [
                     DropdownMenuItem(
                       value: 'inflation',

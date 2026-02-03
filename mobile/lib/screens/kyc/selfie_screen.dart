@@ -7,7 +7,7 @@ import '../../services/kyc_service.dart';
 class SelfieScreen extends StatefulWidget {
   final VoidCallback onSuccess;
 
-  const SelfieScreen({Key? key, required this.onSuccess}) : super(key: key);
+  const SelfieScreen({super.key, required this.onSuccess});
 
   @override
   _SelfieScreenState createState() => _SelfieScreenState();
@@ -44,7 +44,7 @@ class _SelfieScreenState extends State<SelfieScreen> {
       if (result['success'] == true) {
         // Face matched successfully
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Face verified successfully! ✓'),
             backgroundColor: Colors.green,
           )
@@ -57,7 +57,7 @@ class _SelfieScreenState extends State<SelfieScreen> {
           SnackBar(
             content: Text(result['message'] ?? 'Face verification failed. Please try again.'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           )
         );
         
@@ -65,7 +65,7 @@ class _SelfieScreenState extends State<SelfieScreen> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Row(
+            title: const Row(
               children: [
                 Icon(Icons.error, color: Colors.red),
                 SizedBox(width: 8),
@@ -76,23 +76,23 @@ class _SelfieScreenState extends State<SelfieScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('The face in your selfie does not match the document photo.'),
-                SizedBox(height: 12),
+                const Text('The face in your selfie does not match the document photo.'),
+                const SizedBox(height: 12),
                 Text('Match Score: ${matchScore.toStringAsFixed(1)}% (Required: 80%)',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
-                SizedBox(height: 12),
-                Text('Tips:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('• Ensure good lighting'),
-                Text('• Remove glasses or caps'),
-                Text('• Face the camera directly'),
-                Text('• Use the same person\'s photo'),
+                const SizedBox(height: 12),
+                const Text('Tips:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('• Ensure good lighting'),
+                const Text('• Remove glasses or caps'),
+                const Text('• Face the camera directly'),
+                const Text('• Use the same person\'s photo'),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Try Again'),
+                child: const Text('Try Again'),
               ),
             ],
           ),
@@ -118,23 +118,23 @@ class _SelfieScreenState extends State<SelfieScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
+          const Text(
             'Take a Selfie',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             'Ensure your face is clearly visible and well-lit. Avoid glasses or caps.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[600]),
           ),
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           GestureDetector(
             onTap: _pickImage,
             child: CircleAvatar(
@@ -146,25 +146,25 @@ class _SelfieScreenState extends State<SelfieScreen> {
                      : FileImage(File(_image!.path)) as ImageProvider)
                  : null,
               child: _image == null
-                  ? Icon(Icons.camera_front, size: 60, color: Colors.grey)
+                  ? const Icon(Icons.camera_front, size: 60, color: Colors.grey)
                   : null,
             ),
           ),
-          SizedBox(height: 40),
+          const SizedBox(height: 40),
           ElevatedButton(
             onPressed: (_image != null && !_isUploading) ? _uploadSelfie : null,
             style: ElevatedButton.styleFrom(
-               padding: EdgeInsets.symmetric(vertical: 15),
+               padding: const EdgeInsets.symmetric(vertical: 15),
                backgroundColor: Colors.blue,
             ),
             child: _isUploading
-                ? CircularProgressIndicator(color: Colors.white)
-                : Text('Verify Face', style: TextStyle(fontSize: 16)),
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text('Verify Face', style: TextStyle(fontSize: 16)),
           ),
            if (_image == null)
             TextButton(
               onPressed: _pickImage,
-              child: Text('Open Camera'),
+              child: const Text('Open Camera'),
             ),
         ],
       ),

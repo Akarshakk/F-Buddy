@@ -342,7 +342,7 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.notifications_active_rounded, color: FinzoColors.info),
+                      const Icon(Icons.notifications_active_rounded, color: FinzoColors.info),
                       const SizedBox(width: FinzoSpacing.md),
                       Expanded(
                         child: Text(

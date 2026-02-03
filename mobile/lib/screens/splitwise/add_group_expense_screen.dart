@@ -129,7 +129,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: selectedPayerId,
+                    initialValue: selectedPayerId,
                     isExpanded: true,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
@@ -164,7 +164,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: selectedCategory,
+                    initialValue: selectedCategory,
                     isExpanded: true,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
@@ -400,7 +400,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                         ),
                       ),
                     );
-                  }).toList(),
+                  }),
 
                   const SizedBox(height: 24),
 

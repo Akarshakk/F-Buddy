@@ -248,11 +248,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Row(
+                      content: const Row(
                         children: [
                           Icon(Icons.verified_rounded, color: Colors.white, size: 20),
-                          const SizedBox(width: 8),
-                          const Text('Your account is verified!'),
+                          SizedBox(width: 8),
+                          Text('Your account is verified!'),
                         ],
                       ),
                       backgroundColor: FinzoTheme.success(context),

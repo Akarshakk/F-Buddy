@@ -7,14 +7,14 @@ import '../config/app_theme.dart';
 import '../services/api_service.dart';
 
 class BankStatementScreen extends StatefulWidget {
-  const BankStatementScreen({Key? key}) : super(key: key);
+  const BankStatementScreen({super.key});
 
   @override
   State<BankStatementScreen> createState() => _BankStatementScreenState();
 }
 
 class _BankStatementScreenState extends State<BankStatementScreen> {
-  bool _isLoading = false;
+  final bool _isLoading = false;
   bool _isProcessing = false;
   List<Map<String, dynamic>> _transactions = [];
   Map<String, dynamic>? _summary;
@@ -403,7 +403,7 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
           child: filtered.isEmpty
               ? Center(
                   child: Text(
-                    'No ${_filterType} transactions',
+                    'No $_filterType transactions',
                     style: TextStyle(color: FinzoTheme.textSecondary(context)),
                   ),
                 )

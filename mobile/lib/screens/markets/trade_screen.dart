@@ -361,7 +361,7 @@ class _TradeScreenState extends State<TradeScreen> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   _errorMessage!,
-                  style: TextStyle(color: Colors.red, fontSize: 12),
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ),
             const SizedBox(height: 16),

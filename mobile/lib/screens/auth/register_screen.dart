@@ -375,7 +375,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   }) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],

@@ -7,6 +7,8 @@ import 'selfie_screen.dart';
 import 'mfa_screen.dart';
 
 class KycScreen extends StatefulWidget {
+  const KycScreen({super.key});
+
   @override
   _KycScreenState createState() => _KycScreenState();
 }
@@ -36,7 +38,7 @@ class _KycScreenState extends State<KycScreen> {
       
       if (_status == 'VERIFIED') {
         // Already verified, navigate to feature selection
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             Navigator.of(context).pushReplacementNamed('/home');
           }
@@ -55,10 +57,10 @@ class _KycScreenState extends State<KycScreen> {
       
       // Show error message but don't block the UI
       if (mounted) {
-        Future.delayed(Duration(milliseconds: 300), () {
+        Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text('Could not load KYC status. Starting fresh.'),
                 duration: Duration(seconds: 2),
               )
@@ -87,14 +89,14 @@ class _KycScreenState extends State<KycScreen> {
           onWillPop: () async => false,
           child: AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Column(
+            title: const Column(
               children: [
                 Icon(Icons.check_circle, color: Colors.green, size: 60),
                 SizedBox(height: 16),
                 Text('Verification Complete!', textAlign: TextAlign.center),
               ],
             ),
-            content: Text(
+            content: const Text(
               'Your account has been successfully verified. Welcome to Finzo!',
               textAlign: TextAlign.center,
             ),
@@ -109,12 +111,12 @@ class _KycScreenState extends State<KycScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text('Get Started', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: const Text('Get Started', style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
             ],
@@ -127,12 +129,12 @@ class _KycScreenState extends State<KycScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Account Setup'),
+        title: const Text('Account Setup'),
         elevation: 0,
         actions: [
           TextButton(
@@ -168,25 +170,25 @@ class _KycScreenState extends State<KycScreen> {
                    child: Column(
                      mainAxisAlignment: MainAxisAlignment.center,
                      children: [
-                       Icon(Icons.check_circle, color: Colors.green, size: 100),
-                       SizedBox(height: 20),
-                       Text(
+                       const Icon(Icons.check_circle, color: Colors.green, size: 100),
+                       const SizedBox(height: 20),
+                       const Text(
                          'Verification Complete!',
                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                        ),
-                       SizedBox(height: 40),
+                       const SizedBox(height: 40),
                        ElevatedButton(
                          onPressed: () {
                            Navigator.of(context).pushReplacementNamed('/home');
                          },
                          style: ElevatedButton.styleFrom(
                            backgroundColor: Colors.blue,
-                           padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                            shape: RoundedRectangleBorder(
                              borderRadius: BorderRadius.circular(12),
                            ),
                          ),
-                         child: Text(
+                         child: const Text(
                            'Go to Home',
                            style: TextStyle(color: Colors.white, fontSize: 16),
                          ),
@@ -204,7 +206,7 @@ class _KycScreenState extends State<KycScreen> {
 
   Widget _buildProgressStepper() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
       color: FinzoTheme.surface(context),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -236,7 +238,7 @@ class _KycScreenState extends State<KycScreen> {
             size: 20,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(

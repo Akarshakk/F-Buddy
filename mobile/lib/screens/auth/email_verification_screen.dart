@@ -249,7 +249,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
               // Verify Button
               Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
@@ -312,7 +312,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.info_outline_rounded,
                       color: FinzoColors.info,
                       size: 20,

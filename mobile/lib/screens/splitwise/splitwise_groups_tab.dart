@@ -121,7 +121,7 @@ class SplitwiseGroupsTab extends StatelessWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
@@ -240,7 +240,7 @@ class SplitwiseGroupsTab extends StatelessWidget {
         PopupMenuItem(
           child: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, 
+              const Icon(Icons.delete_outline_rounded, 
                    color: FinzoColors.error, size: 20),
               const SizedBox(width: FinzoSpacing.sm),
               Text(
