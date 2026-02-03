@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import '../feature_selection_screen.dart';
 import '../kyc/kyc_screen.dart';
 import 'email_verification_screen.dart';
 import 'register_screen.dart';
-import '../../widgets/auto_translated_text.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,14 +13,35 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _animationController.forward();
+  }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -47,9 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
            MaterialPageRoute(builder: (_) => KycScreen()),
         );
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const FeatureSelectionScreen()),
-        );
+        Navigator.of(context).pushReplacementNamed('/home');
       }
     } else {
       // Check if the error is about email verification
@@ -66,8 +83,14 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMsg.isNotEmpty ? errorMsg : 'Login failed'),
-            backgroundColor: AppColors.error,
+            content: Text(
+              errorMsg.isNotEmpty ? errorMsg : 'Login failed',
+              style: FinzoTypography.bodyMedium(color: Colors.white),
+            ),
+            backgroundColor: FinzoColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.sm)),
+            margin: const EdgeInsets.all(FinzoSpacing.md),
           ),
         );
       }
@@ -77,97 +100,89 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: FinzoTheme.background(context),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.lg, vertical: FinzoSpacing.xl),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight - 64),
                 child: IntrinsicHeight(
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 20),
-                        // Logo
-                        Center(
-                          child: Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [AppColors.primary, AppColors.primaryLight],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.25),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.account_balance_wallet,
-                                size: 40,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        // Heading
-                        const AutoTranslatedText(
-                          'Welcome to Finzo',
-                          style: AppTextStyles.heading2,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        const AutoTranslatedText(
-                          'Manage your finances effortlessly',
-                          style: AppTextStyles.body2,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 48),
-                        
-                        // Email field
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const AutoTranslatedText('Email', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
-                            const SizedBox(height: 8),
-                            TextFormField(
+                            const SizedBox(height: FinzoSpacing.xl),
+                            // Logo
+                            Center(
+                              child: Container(
+                                width: 88,
+                                height: 88,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      FinzoColors.brandPrimary,
+                                      FinzoColors.brandSecondary,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(FinzoRadius.xl),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: FinzoColors.brandPrimary.withOpacity(0.3),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 12),
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.account_balance_wallet_rounded,
+                                    size: 44,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: FinzoSpacing.xl),
+                            // Heading
+                            Text(
+                              'Welcome Back',
+                              style: FinzoTypography.displaySmall(
+                                color: FinzoTheme.textPrimary(context),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: FinzoSpacing.sm),
+                            Text(
+                              'Sign in to continue managing your finances',
+                              style: FinzoTypography.bodyLarge(
+                                color: FinzoTheme.textSecondary(context),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: FinzoSpacing.xxl),
+                            
+                            // Email field
+                            _buildTextField(
+                              context: context,
+                              label: 'Email',
                               controller: _emailController,
+                              hint: 'your@email.com',
+                              icon: Icons.mail_outline_rounded,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              style: const TextStyle(color: Colors.black87, fontSize: 15),
-                              decoration: InputDecoration(
-                                hintText: 'your@email.com',
-                                prefixIcon: const Icon(Icons.mail_outlined, size: 20, color: Colors.black54),
-                                filled: true,
-                                fillColor: const Color(0xFFFDFCFB),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Colors.black87, width: 2),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your email';
@@ -178,50 +193,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return null;
                               },
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        // Password field
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const AutoTranslatedText('Password', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
-                            const SizedBox(height: 8),
-                            TextFormField(
+                            const SizedBox(height: FinzoSpacing.lg),
+                            
+                            // Password field
+                            _buildTextField(
+                              context: context,
+                              label: 'Password',
                               controller: _passwordController,
+                              hint: 'Enter your password',
+                              icon: Icons.lock_outline_rounded,
                               obscureText: _obscurePassword,
                               textInputAction: TextInputAction.done,
                               onFieldSubmitted: (_) => _login(),
-                              style: const TextStyle(color: Colors.black87, fontSize: 15),
-                              decoration: InputDecoration(
-                                hintText: 'Enter your password',
-                                prefixIcon: const Icon(Icons.lock_outlined, size: 20, color: Colors.black54),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                    size: 20,
-                                    color: Colors.black54,
-                                  ),
-                                  onPressed: () {
-                                    setState(() => _obscurePassword = !_obscurePassword);
-                                  },
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword 
+                                      ? Icons.visibility_off_outlined 
+                                      : Icons.visibility_outlined,
+                                  size: 20,
+                                  color: FinzoTheme.textSecondary(context),
                                 ),
-                                filled: true,
-                                fillColor: const Color(0xFFFDFCFB),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Colors.black87, width: 2),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                onPressed: () {
+                                  setState(() => _obscurePassword = !_obscurePassword);
+                                },
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -230,69 +224,78 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return null;
                               },
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        // Login button
-                        Consumer<AuthProvider>(
-                          builder: (context, auth, _) {
-                            return ElevatedButton(
-                              onPressed: auth.status == AuthStatus.loading ? null : _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: auth.status == AuthStatus.loading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const AutoTranslatedText(
-                                      'Sign In',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
-                                    ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        // Register link
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const AutoTranslatedText(
-                              "Don't have an account? ",
-                              style: AppTextStyles.body2,
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                            const SizedBox(height: FinzoSpacing.xl),
+                            
+                            // Login button
+                            Consumer<AuthProvider>(
+                              builder: (context, auth, _) {
+                                return _buildPrimaryButton(
+                                  context: context,
+                                  onPressed: auth.status == AuthStatus.loading ? null : _login,
+                                  isLoading: auth.status == AuthStatus.loading,
+                                  label: 'Sign In',
                                 );
                               },
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                              child: const AutoTranslatedText(
-                                'Sign Up',
-                                style: TextStyle(
-                                  color: AppColors.secondary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
                             ),
+                            const SizedBox(height: FinzoSpacing.lg),
+                            
+                            // Divider with text
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Divider(
+                                    color: FinzoTheme.divider(context),
+                                    thickness: 1,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md),
+                                  child: Text(
+                                    'or',
+                                    style: FinzoTypography.bodySmall(
+                                      color: FinzoTheme.textSecondary(context),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Divider(
+                                    color: FinzoTheme.divider(context),
+                                    thickness: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: FinzoSpacing.lg),
+                            
+                            // Register link
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Don't have an account? ",
+                                  style: FinzoTypography.bodyMedium(
+                                    color: FinzoTheme.textSecondary(context),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                    );
+                                  },
+                                  child: Text(
+                                    'Sign Up',
+                                    style: FinzoTypography.labelLarge(
+                                      color: FinzoTheme.brandAccent(context),
+                                    ).copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: FinzoSpacing.xl),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -300,6 +303,127 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required BuildContext context,
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    TextInputAction? textInputAction,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    void Function(String)? onFieldSubmitted,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: FinzoTypography.labelMedium(
+            color: FinzoTheme.textPrimary(context),
+          ).copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: FinzoSpacing.sm),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          obscureText: obscureText,
+          onFieldSubmitted: onFieldSubmitted,
+          style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
+            prefixIcon: Icon(icon, size: 20, color: FinzoTheme.textSecondary(context)),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: FinzoTheme.surfaceVariant(context),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: BorderSide(color: FinzoTheme.divider(context)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: BorderSide(color: FinzoTheme.divider(context)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: const BorderSide(color: FinzoColors.error),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: const BorderSide(color: FinzoColors.error, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: FinzoSpacing.md,
+              vertical: FinzoSpacing.md,
+            ),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrimaryButton({
+    required BuildContext context,
+    required VoidCallback? onPressed,
+    required String label,
+    bool isLoading = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            FinzoColors.brandPrimary,
+            FinzoColors.brandSecondary,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(FinzoRadius.md),
+        boxShadow: [
+          BoxShadow(
+            color: FinzoColors.brandPrimary.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FinzoRadius.md),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(
+                label,
+                style: FinzoTypography.labelLarge(color: Colors.white),
+              ),
       ),
     );
   }

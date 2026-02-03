@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -10,13 +10,6 @@ class SplitwiseActivityTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : const Color.fromARGB(255, 228, 228, 228);
-    final textSecondaryColor = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-    final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-
     return Consumer2<SplitWiseProvider, AuthProvider>(
       builder: (context, splitwiseProvider, authProvider, _) {
         final groups = splitwiseProvider.groups;
@@ -60,58 +53,24 @@ class SplitwiseActivityTab extends StatelessWidget {
 
         if (activities.isEmpty) {
           return Scaffold(
-            backgroundColor: bgColor,
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.history_outlined,
-                    size: 64,
-                    color: textSecondaryColor,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No Activity Yet',
-                    style: AppTextStyles.heading3.copyWith(color: textPrimaryColor),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your activity will appear here',
-                    style: AppTextStyles.body2.copyWith(color: textSecondaryColor),
-                  ),
-                ],
-              ),
-            ),
+            backgroundColor: FinzoTheme.background(context),
+            body: _buildEmptyState(context),
           );
         }
 
         return Scaffold(
-          backgroundColor: bgColor,
+          backgroundColor: FinzoTheme.background(context),
           body: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: activities.length > 20 ? 20 : activities.length, // Show latest 20
+            padding: const EdgeInsets.all(FinzoSpacing.md),
+            itemCount: activities.length > 20 ? 20 : activities.length,
             itemBuilder: (context, index) {
               final activity = activities[index];
               final type = activity['type'] as String;
 
               if (type == 'expense') {
-                return _buildExpenseCard(
-                  context,
-                  activity,
-                  surfaceColor,
-                  textPrimaryColor,
-                  textSecondaryColor,
-                  primaryColor,
-                );
+                return _buildExpenseCard(context, activity);
               } else {
-                return _buildSettlementCard(
-                  context,
-                  activity,
-                  surfaceColor,
-                  textPrimaryColor,
-                  textSecondaryColor,
-                );
+                return _buildSettlementCard(context, activity);
               }
             },
           ),
@@ -120,80 +79,43 @@ class SplitwiseActivityTab extends StatelessWidget {
     );
   }
 
-  Widget _buildExpenseCard(
-    BuildContext context,
-    Map<String, dynamic> activity,
-    Color surfaceColor,
-    Color textPrimaryColor,
-    Color textSecondaryColor,
-    Color primaryColor,
-  ) {
-    final date = activity['date'] as DateTime;
-    final formattedDate = DateFormat('MMM d, h:mm a').format(date);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withOpacity(0.1)),
-      ),
-      child: Row(
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
-              color: activity['isYou'] 
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  FinzoColors.brandPrimary.withOpacity(0.1),
+                  FinzoColors.brandSecondary.withOpacity(0.1),
+                ],
+              ),
+              shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.receipt,
-              color: activity['isYou'] ? Colors.green : Colors.blue,
-              size: 20,
+              Icons.history_rounded,
+              size: 48,
+              color: FinzoTheme.brandAccent(context),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity['description'] as String,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: textPrimaryColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${activity['paidBy']} paid in ${activity['groupName']}',
-                  style: TextStyle(
-                    color: textSecondaryColor,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  formattedDate,
-                  style: TextStyle(
-                    color: textSecondaryColor,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: FinzoSpacing.lg),
           Text(
-            '₹${(activity['amount'] as double).toStringAsFixed(0)}',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: activity['isYou'] ? Colors.green : primaryColor,
-              fontSize: 16,
+            'No Activity Yet',
+            style: FinzoTypography.titleLarge(
+              color: FinzoTheme.textPrimary(context),
+            ),
+          ),
+          const SizedBox(height: FinzoSpacing.sm),
+          Text(
+            'Your activity will appear here',
+            style: FinzoTypography.bodyMedium(
+              color: FinzoTheme.textSecondary(context),
             ),
           ),
         ],
@@ -201,75 +123,164 @@ class SplitwiseActivityTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSettlementCard(
-    BuildContext context,
-    Map<String, dynamic> activity,
-    Color surfaceColor,
-    Color textPrimaryColor,
-    Color textSecondaryColor,
-  ) {
+  Widget _buildExpenseCard(BuildContext context, Map<String, dynamic> activity) {
+    final date = activity['date'] as DateTime;
+    final formattedDate = DateFormat('MMM d, h:mm a').format(date);
+    final isYou = activity['isYou'] as bool;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: FinzoSpacing.md),
+      decoration: BoxDecoration(
+        color: FinzoTheme.surface(context),
+        borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        boxShadow: FinzoShadows.small,
+        border: Border.all(color: FinzoTheme.divider(context)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(FinzoSpacing.md),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isYou 
+                    ? FinzoColors.success.withOpacity(0.1)
+                    : FinzoColors.info.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
+              ),
+              child: Icon(
+                Icons.receipt_long_rounded,
+                color: isYou ? FinzoColors.success : FinzoColors.info,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: FinzoSpacing.md),
+            // Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity['description'] as String,
+                    style: FinzoTypography.titleSmall(
+                      color: FinzoTheme.textPrimary(context),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${activity['paidBy']} paid in ${activity['groupName']}',
+                    style: FinzoTypography.bodySmall(
+                      color: FinzoTheme.textSecondary(context),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    formattedDate,
+                    style: FinzoTypography.labelSmall(
+                      color: FinzoTheme.textSecondary(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Amount
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: FinzoSpacing.sm,
+                vertical: FinzoSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: isYou 
+                    ? FinzoColors.success.withOpacity(0.1)
+                    : FinzoTheme.surfaceVariant(context),
+                borderRadius: BorderRadius.circular(FinzoRadius.sm),
+              ),
+              child: Text(
+                '₹${(activity['amount'] as double).toStringAsFixed(0)}',
+                style: FinzoTypography.titleSmall(
+                  color: isYou ? FinzoColors.success : FinzoTheme.textPrimary(context),
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettlementCard(BuildContext context, Map<String, dynamic> activity) {
     final balance = activity['balance'] as double;
     final isOwed = balance >= 0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: FinzoSpacing.md),
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(12),
+        color: FinzoTheme.surface(context),
+        borderRadius: BorderRadius.circular(FinzoRadius.lg),
         border: Border.all(
-          color: isOwed ? Colors.green.withOpacity(0.3) : Colors.orange.withOpacity(0.3),
+          color: isOwed 
+              ? FinzoColors.success.withOpacity(0.4)
+              : FinzoColors.warning.withOpacity(0.4),
           width: 2,
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isOwed ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.all(FinzoSpacing.md),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isOwed 
+                    ? FinzoColors.success.withOpacity(0.1)
+                    : FinzoColors.warning.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
+              ),
+              child: Icon(
+                isOwed 
+                    ? Icons.notifications_active_rounded
+                    : Icons.notification_important_rounded,
+                color: isOwed ? FinzoColors.success : FinzoColors.warning,
+                size: 22,
+              ),
             ),
-            child: Icon(
-              isOwed ? Icons.notifications_active : Icons.notification_important,
-              color: isOwed ? Colors.green : Colors.orange,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isOwed ? '💰 Settlement Pending' : '⚠️ Payment Required',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isOwed ? Colors.green : Colors.orange,
+            const SizedBox(width: FinzoSpacing.md),
+            // Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isOwed ? '💰 Settlement Pending' : '⚠️ Payment Required',
+                    style: FinzoTypography.titleSmall(
+                      color: isOwed ? FinzoColors.success : FinzoColors.warning,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isOwed 
-                      ? 'You are owed in ${activity['groupName']}'
-                      : 'You owe in ${activity['groupName']}',
-                  style: TextStyle(
-                    color: textSecondaryColor,
-                    fontSize: 12,
+                  const SizedBox(height: 4),
+                  Text(
+                    'In ${activity['groupName']}',
+                    style: FinzoTypography.bodySmall(
+                      color: FinzoTheme.textSecondary(context),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Text(
-            '₹${balance.abs().toStringAsFixed(0)}',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isOwed ? Colors.green : Colors.orange,
-              fontSize: 16,
+            // Amount
+            Text(
+              '₹${balance.abs().toStringAsFixed(0)}',
+              style: FinzoTypography.titleMedium(
+                color: isOwed ? FinzoColors.success : FinzoColors.warning,
+              ).copyWith(fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

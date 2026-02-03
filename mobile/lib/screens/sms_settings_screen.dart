@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/sms_service.dart';
-import '../config/theme.dart';
+import '../config/app_theme.dart';
 import 'transaction_history_screen.dart';
 
 class SmsSettingsScreen extends StatefulWidget {
@@ -302,12 +302,13 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
+                                children: [
                                   Text(
                                     'SMS Auto-Tracking',
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
+                                      color: FinzoTheme.textPrimary(context),
                                     ),
                                   ),
                                   SizedBox(height: 4),
@@ -315,7 +316,7 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                                     'Automatically track expenses from payment SMS',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey,
+                                      color: FinzoTheme.textSecondary(context),
                                     ),
                                   ),
                                 ],
@@ -413,27 +414,28 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'SMS Transactions',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey,
+                                  color: FinzoTheme.textSecondary(context),
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 '$_smsTransactionCount',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 32,
                                   fontWeight: FontWeight.bold,
+                                  color: FinzoTheme.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
+                              Text(
                                 'Auto-tracked transactions',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey,
+                                  color: FinzoTheme.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -623,17 +625,18 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
+                    color: FinzoTheme.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: FinzoTheme.textSecondary(context),
                   ),
                 ),
               ],

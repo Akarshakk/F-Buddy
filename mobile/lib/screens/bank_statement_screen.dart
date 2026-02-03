@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import '../config/theme.dart';
+import '../config/app_theme.dart';
 import '../services/api_service.dart';
 
 class BankStatementScreen extends StatefulWidget {
@@ -127,19 +127,19 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: FinzoTheme.divider(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Upload Bank Statement',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: FinzoTheme.textPrimary(context)),
               ),
               const SizedBox(height: 8),
               Text(
                 'Choose how to upload your statement',
-                style: TextStyle(color: Colors.grey.shade600),
+                style: TextStyle(color: FinzoTheme.textSecondary(context)),
               ),
               const SizedBox(height: 24),
               ListTile(
@@ -234,14 +234,14 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
         children: [
           const CircularProgressIndicator(),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Processing Statement...',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: FinzoTheme.textPrimary(context)),
           ),
           const SizedBox(height: 8),
           Text(
             'Extracting transactions using OCR',
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: FinzoTheme.textSecondary(context)),
           ),
         ],
       ),
@@ -268,15 +268,15 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Upload Bank Statement',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: FinzoTheme.textPrimary(context)),
             ),
             const SizedBox(height: 12),
             Text(
               'Upload your bank statement (PDF or image) and we\'ll extract all transactions automatically.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+              style: TextStyle(color: FinzoTheme.textSecondary(context), fontSize: 15),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
@@ -404,7 +404,7 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
               ? Center(
                   child: Text(
                     'No ${_filterType} transactions',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: FinzoTheme.textSecondary(context)),
                   ),
                 )
               : ListView.builder(
@@ -479,7 +479,7 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
               ? Colors.red.shade100
               : isCredit
                   ? Colors.green.shade100
-                  : Colors.grey.shade100,
+                  : FinzoTheme.surface(context),
           child: Icon(
             isDebit
                 ? Icons.arrow_upward
@@ -490,7 +490,7 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
                 ? Colors.red.shade700
                 : isCredit
                     ? Colors.green.shade700
-                    : Colors.grey.shade700,
+                    : FinzoTheme.textSecondary(context),
             size: 20,
           ),
         ),
@@ -506,14 +506,14 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
                       ? Colors.red.shade700
                       : isCredit
                           ? Colors.green.shade700
-                          : Colors.black87,
+                          : FinzoTheme.textPrimary(context),
                 ),
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: isDebit ? Colors.red.shade50 : isCredit ? Colors.green.shade50 : Colors.grey.shade100,
+                color: isDebit ? Colors.red.shade50 : isCredit ? Colors.green.shade50 : FinzoTheme.surface(context),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -521,7 +521,7 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: isDebit ? Colors.red.shade700 : isCredit ? Colors.green.shade700 : Colors.grey.shade700,
+                  color: isDebit ? Colors.red.shade700 : isCredit ? Colors.green.shade700 : FinzoTheme.textSecondary(context),
                 ),
               ),
             ),
@@ -540,19 +540,19 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 11, color: Colors.grey.shade600),
+                Icon(Icons.calendar_today, size: 11, color: FinzoTheme.textSecondary(context)),
                 const SizedBox(width: 4),
                 Text(
                   txn['date'] ?? '',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: FinzoTheme.textSecondary(context)),
                 ),
                 const SizedBox(width: 10),
-                Icon(getModeIcon(), size: 12, color: Colors.blue.shade600),
+                Icon(getModeIcon(), size: 12, color: FinzoTheme.brandPrimary(context)),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     paymentMode,
-                    style: TextStyle(fontSize: 11, color: Colors.blue.shade700, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 11, color: FinzoTheme.brandPrimary(context), fontWeight: FontWeight.w500),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -564,7 +564,7 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: FinzoTheme.surface(context),
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(12),
                 bottomRight: Radius.circular(12),
@@ -587,21 +587,21 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
                 if (txn['balance'] != null)
                   _buildDetailRow('Balance', '₹${_formatAmount(txn['balance'])}'),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Raw Text:',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: FinzoTheme.textSecondary(context)),
                 ),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: FinzoTheme.background(context),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: FinzoTheme.divider(context)),
                   ),
                   child: Text(
                     txn['rawText'] ?? '',
-                    style: const TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                    style: TextStyle(fontSize: 10, fontFamily: 'monospace', color: FinzoTheme.textPrimary(context)),
                   ),
                 ),
               ],
@@ -622,13 +622,13 @@ class _BankStatementScreenState extends State<BankStatementScreen> {
             width: 100,
             child: Text(
               label,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: FinzoTheme.textSecondary(context)),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: FinzoTheme.textPrimary(context)),
             ),
           ),
         ],

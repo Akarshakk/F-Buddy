@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
@@ -9,8 +9,6 @@ import '../../providers/debt_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/debt_reminder_service.dart';
 import '../kyc/kyc_screen.dart';
-import '../splitwise/splitwise_home_screen.dart';
-import '../feature_selection_screen.dart';
 import 'dashboard_tab.dart';
 import 'expenses_tab.dart';
 import 'add_expense_screen.dart';
@@ -63,15 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : AppColors.background;
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final secondaryColor =
-        isDark ? AppColorsDark.secondary : AppColors.secondary;
-    final textSecondaryColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
     // Create tabs with callback for navigation
     final tabs = [
       DashboardTab(
@@ -82,26 +71,29 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        backgroundColor: surfaceColor,
+        backgroundColor: FinzoTheme.background(context),
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: primaryColor),
-          onPressed: () => Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const FeatureSelectionScreen()),
-          ),
+          icon: Icon(Icons.arrow_back, color: FinzoTheme.textPrimary(context)),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
           tooltip: 'Back to Menu',
         ),
         title: Text(
           'Finzo',
-          style: AppTextStyles.heading2.copyWith(color: primaryColor),
+          style: FinzoTypography.headlineLarge(color: FinzoTheme.textPrimary(context)).copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.pie_chart),
-            color: Colors.purple, // Distinct color to stand out
+            icon: Icon(
+              Icons.pie_chart_outline,
+              color: FinzoTheme.brandAccent(context),
+            ),
             tooltip: 'Live Finance Tracking',
             onPressed: () {
               Navigator.of(context).push(
@@ -119,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   isVerified
                       ? Icons.verified_user
                       : Icons.verified_user_outlined,
-                  color: isVerified ? Colors.green : Colors.orange,
+                  color: isVerified ? FinzoTheme.success(context) : FinzoTheme.warning(context),
                 ),
                 tooltip: isVerified ? 'KYC Verified' : 'Complete KYC',
                 onPressed: () {
@@ -129,9 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Your account is verified! ✅'),
-                        backgroundColor: Colors.green,
+                      SnackBar(
+                        content: const Text('Your account is verified! ✅'),
+                        backgroundColor: FinzoTheme.success(context),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        ),
                       ),
                     );
                   }
@@ -141,8 +137,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
-              color: primaryColor,
+              FinzoTheme.isDark(context) ? Icons.light_mode : Icons.dark_mode,
+              color: FinzoTheme.textPrimary(context),
             ),
             onPressed: () {
               final themeProvider =
@@ -152,12 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Toggle Theme',
           ),
           IconButton(
-            icon: Icon(Icons.groups, color: primaryColor),
+            icon: Icon(Icons.groups_outlined, color: FinzoTheme.textPrimary(context)),
             tooltip: 'Switch to Group Expenses',
             onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const SplitwiseHomeScreen()),
-              );
+              Navigator.pushReplacementNamed(context, '/group-finance');
             },
           ),
         ],
@@ -166,93 +160,78 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _currentIndex,
         children: tabs,
       ),
-      bottomNavigationBar: BottomAppBar(
-        color: surfaceColor,
-        elevation: 8,
-        padding: EdgeInsets.zero,
-        height: 70,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: FinzoTheme.surface(context),
+          border: Border(
+            top: BorderSide(
+              color: FinzoTheme.divider(context),
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.sm),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
+                _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long, 'Expenses'),
+                _buildNavItem(2, Icons.person_outline, Icons.person, 'Profile'),
+              ],
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: FinzoTheme.brandAccent(context),
+        elevation: 4,
+        onPressed: () {
+          Navigator.of(context)
+              .push(
+                MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
+              )
+              .then((_) => _loadData());
+        },
+        child: const Icon(
+          Icons.add_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.lg, vertical: FinzoSpacing.sm),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              flex: 1,
-              child: _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard,
-                  'Dashboard', primaryColor, textSecondaryColor),
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected 
+                  ? FinzoTheme.textPrimary(context) 
+                  : FinzoTheme.textSecondary(context),
+              size: 26,
             ),
-            Expanded(
-              flex: 1,
-              child: Center(
-                child: _buildNavItem(
-                    1,
-                    Icons.receipt_long_outlined,
-                    Icons.receipt_long,
-                    'Expenses',
-                    primaryColor,
-                    textSecondaryColor),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.center,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 0),
-                  child: _buildNavItem(2, Icons.person_outlined, Icons.person,
-                      'Profile', primaryColor, textSecondaryColor),
-                ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: FinzoTypography.labelSmall().copyWith(
+                color: isSelected 
+                    ? FinzoTheme.textPrimary(context) 
+                    : FinzoTheme.textSecondary(context),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],
         ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 8, right: 16),
-        child: FloatingActionButton(
-          backgroundColor: secondaryColor,
-          elevation: 8,
-          onPressed: () {
-            Navigator.of(context)
-                .push(
-                  MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
-                )
-                .then((_) => _loadData());
-          },
-          child: const Icon(
-            Icons.add_rounded,
-            color: Colors.white,
-            size: 32,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon,
-      String label, Color primaryColor, Color textSecondaryColor) {
-    final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isSelected ? activeIcon : icon,
-            color: isSelected ? primaryColor : textSecondaryColor,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: isSelected ? primaryColor : textSecondaryColor,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -2,19 +2,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/analytics_provider.dart';
 import '../auth/login_screen.dart';
-import '../feature_selection_screen.dart';
 import '../kyc/kyc_screen.dart';
 import '../sms_settings_screen.dart';
 import '../bank_statement_screen.dart';
 import 'add_income_screen.dart';
-import '../../widgets/auto_translated_text.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -30,20 +28,24 @@ class _ProfileTabState extends State<ProfileTab> {
     // Show options dialog
     showModalBottomSheet(
       context: context,
+      backgroundColor: FinzoTheme.surface(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(FinzoRadius.xl)),
+      ),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const AutoTranslatedText('Take a Photo'),
+              leading: Icon(Icons.photo_camera, color: FinzoTheme.brandAccent(context)),
+              title: Text('Take a Photo', style: FinzoTypography.bodyMedium()),
               onTap: () {
                 Navigator.pop(context);
                 _getImage(ImageSource.camera);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const AutoTranslatedText('Choose from Gallery'),
+              leading: Icon(Icons.photo_library, color: FinzoTheme.brandAccent(context)),
+              title: Text('Choose from Gallery', style: FinzoTypography.bodyMedium()),
               onTap: () {
                 Navigator.pop(context);
                 _getImage(ImageSource.gallery);
@@ -54,9 +56,9 @@ class _ProfileTabState extends State<ProfileTab> {
                     ?.profilePicture !=
                 null)
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const AutoTranslatedText('Remove Photo',
-                    style: TextStyle(color: Colors.red)),
+                leading: const Icon(Icons.delete, color: FinzoColors.error),
+                title: Text('Remove Photo',
+                    style: FinzoTypography.bodyMedium().copyWith(color: FinzoColors.error)),
                 onTap: () {
                   Navigator.pop(context);
                   _removeProfilePicture();
@@ -93,16 +95,24 @@ class _ProfileTabState extends State<ProfileTab> {
 
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: AutoTranslatedText('Profile picture updated! 📸'),
-              backgroundColor: AppColors.success,
+            SnackBar(
+              content: const Text('Profile picture updated! 📸'),
+              backgroundColor: FinzoColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
+              ),
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: AutoTranslatedText('Failed to update profile picture'),
-              backgroundColor: AppColors.error,
+            SnackBar(
+              content: const Text('Failed to update profile picture'),
+              backgroundColor: FinzoColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
+              ),
             ),
           );
         }
@@ -111,9 +121,12 @@ class _ProfileTabState extends State<ProfileTab> {
       setState(() => _isUploadingImage = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Error: ${e.toString()}'), // Keeping error technical trace as Text
-          backgroundColor: AppColors.error,
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: FinzoColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FinzoRadius.md),
+          ),
         ),
       );
     }
@@ -129,13 +142,14 @@ class _ProfileTabState extends State<ProfileTab> {
     setState(() => _isUploadingImage = false);
 
     if (success) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      final successColor = isDark ? AppColorsDark.success : AppColors.success;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const AutoTranslatedText('Profile picture removed'),
-          backgroundColor: successColor,
+          content: const Text('Profile picture removed'),
+          backgroundColor: FinzoColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FinzoRadius.md),
+          ),
         ),
       );
     }
@@ -143,49 +157,30 @@ class _ProfileTabState extends State<ProfileTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : AppColors.background;
-    final textPrimaryColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        title: const AutoTranslatedText('Profile'),
-        backgroundColor: bgColor,
+        title: Text('Profile', style: FinzoTypography.headlineMedium()),
+        backgroundColor: FinzoTheme.background(context),
         elevation: 0,
-        titleTextStyle: TextStyle(
-          color: textPrimaryColor,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
+        scrolledUnderElevation: 0,
       ),
       body: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           final user = auth.user;
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          final primaryColor =
-              isDark ? AppColorsDark.primary : AppColors.primary;
-          final secondaryColor =
-              isDark ? AppColorsDark.secondary : AppColors.secondary;
-          final textPrimaryColor =
-              isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-          final textSecondaryColor =
-              isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-          final cardDecoration = isDark
-              ? AppDecorations.cardDecorationDark
-              : AppDecorations.cardDecoration;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(FinzoSpacing.md),
             child: Column(
               children: [
                 // Profile Card
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: cardDecoration.copyWith(
-                    borderRadius: BorderRadius.circular(16),
+                  padding: const EdgeInsets.all(FinzoSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: FinzoTheme.surface(context),
+                    borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                    boxShadow: FinzoShadows.small,
                   ),
                   child: Column(
                     children: [
@@ -197,7 +192,7 @@ class _ProfileTabState extends State<ProfileTab> {
                             child: _isUploadingImage
                                 ? CircleAvatar(
                                     radius: 50,
-                                    backgroundColor: primaryColor,
+                                    backgroundColor: FinzoTheme.brandAccent(context),
                                     child: const CircularProgressIndicator(
                                       color: Colors.white,
                                       strokeWidth: 2,
@@ -215,7 +210,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                       )
                                     : CircleAvatar(
                                         radius: 50,
-                                        backgroundColor: primaryColor,
+                                        backgroundColor: FinzoTheme.brandAccent(context),
                                         child: Text(
                                           (user?.name.isNotEmpty ?? false)
                                               ? user!.name[0].toUpperCase()
@@ -236,7 +231,7 @@ class _ProfileTabState extends State<ProfileTab> {
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: secondaryColor,
+                                  color: FinzoTheme.brandAccent(context),
                                   shape: BoxShape.circle,
                                   border:
                                       Border.all(color: Colors.white, width: 2),
@@ -251,29 +246,29 @@ class _ProfileTabState extends State<ProfileTab> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: FinzoSpacing.md),
                       Text(
                         user?.name ?? 'User',
-                        style: AppTextStyles.heading2.copyWith(
-                          color: textPrimaryColor,
-                        ),
+                        style: FinzoTypography.headlineMedium(),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         user?.email ?? '',
-                        style: AppTextStyles.body2.copyWith(
-                          color: textSecondaryColor,
+                        style: FinzoTypography.bodyMedium().copyWith(
+                          color: FinzoTheme.textSecondary(context),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: FinzoSpacing.lg),
 
                 // Settings Section
                 Container(
-                  decoration: cardDecoration.copyWith(
-                    borderRadius: BorderRadius.circular(12),
+                  decoration: BoxDecoration(
+                    color: FinzoTheme.surface(context),
+                    borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                    boxShadow: FinzoShadows.small,
                   ),
                   child: Column(
                     children: [
@@ -283,10 +278,10 @@ class _ProfileTabState extends State<ProfileTab> {
                         subtitle:
                             '${user?.savingsTarget.toStringAsFixed(0) ?? '0'}% of income',
                         onTap: () => _showEditSavingsTargetDialog(context),
-                        textColor: textPrimaryColor,
-                        subtitleColor: textSecondaryColor,
+                        textColor: FinzoTheme.textPrimary(context),
+                        subtitleColor: FinzoTheme.textSecondary(context),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(
                         icon: Icons.add_circle_outline,
                         title: 'Add Income',
@@ -297,19 +292,19 @@ class _ProfileTabState extends State<ProfileTab> {
                                 builder: (_) => const AddIncomeScreen()),
                           );
                         },
-                        textColor: textPrimaryColor,
-                        subtitleColor: textSecondaryColor,
+                        textColor: FinzoTheme.textPrimary(context),
+                        subtitleColor: FinzoTheme.textSecondary(context),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(
                         icon: Icons.person_outline,
                         title: 'Edit Profile',
                         subtitle: 'Update your name',
                         onTap: () => _showEditNameDialog(context),
-                        textColor: textPrimaryColor,
-                        subtitleColor: textSecondaryColor,
+                        textColor: FinzoTheme.textPrimary(context),
+                        subtitleColor: FinzoTheme.textSecondary(context),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(
                         icon: Icons.verified_user_outlined,
                         title: user?.kycStatus == 'VERIFIED'
@@ -325,20 +320,23 @@ class _ProfileTabState extends State<ProfileTab> {
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: AutoTranslatedText(
-                                    'Your account is already verified! ✅'),
-                                backgroundColor: Colors.green,
+                              SnackBar(
+                                content: const Text('Your account is already verified! ✅'),
+                                backgroundColor: FinzoColors.success,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                                ),
                               ),
                             );
                           }
                         },
-                        textColor: textPrimaryColor,
+                        textColor: FinzoTheme.textPrimary(context),
                         subtitleColor: user?.kycStatus == 'VERIFIED'
-                            ? Colors.green
-                            : textSecondaryColor,
+                            ? FinzoColors.success
+                            : FinzoTheme.textSecondary(context),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(
                         icon: Icons.message,
                         title: 'SMS Auto-Tracking',
@@ -349,10 +347,10 @@ class _ProfileTabState extends State<ProfileTab> {
                                 builder: (_) => const SmsSettingsScreen()),
                           );
                         },
-                        textColor: textPrimaryColor,
-                        subtitleColor: textSecondaryColor,
+                        textColor: FinzoTheme.textPrimary(context),
+                        subtitleColor: FinzoTheme.textSecondary(context),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(
                         icon: Icons.account_balance_wallet,
                         title: 'Bank Statement OCR',
@@ -363,10 +361,10 @@ class _ProfileTabState extends State<ProfileTab> {
                                 builder: (_) => const BankStatementScreen()),
                           );
                         },
-                        textColor: textPrimaryColor,
-                        subtitleColor: textSecondaryColor,
+                        textColor: FinzoTheme.textPrimary(context),
+                        subtitleColor: FinzoTheme.textSecondary(context),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(
                         icon: Icons.switch_account,
                         title: 'Switch to SmartSplit',
@@ -375,33 +373,43 @@ class _ProfileTabState extends State<ProfileTab> {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const AutoTranslatedText('Switch Feature'),
-                              content: const AutoTranslatedText(
-                                  'Switch to Group Expenses (SmartSplit)?'),
+                              backgroundColor: FinzoTheme.surface(context),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                              ),
+                              title: Text('Switch Feature', style: FinzoTypography.titleLarge()),
+                              content: Text(
+                                'Switch to Group Expenses (SmartSplit)?',
+                                style: FinzoTypography.bodyMedium(),
+                              ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
-                                  child: const AutoTranslatedText('Cancel'),
+                                  child: Text(
+                                    'Cancel',
+                                    style: FinzoTypography.labelMedium().copyWith(
+                                      color: FinzoTheme.textSecondary(context),
+                                    ),
+                                  ),
                                 ),
-                                TextButton(
+                                FilledButton(
                                   onPressed: () {
                                     Navigator.pop(context);
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const FeatureSelectionScreen()),
-                                    );
+                                    Navigator.of(context).pushReplacementNamed('/home');
                                   },
-                                  child: const AutoTranslatedText('Switch'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: FinzoTheme.brandAccent(context),
+                                  ),
+                                  child: const Text('Switch'),
                                 ),
                               ],
                             ),
                           );
                         },
-                        textColor: textPrimaryColor,
-                        subtitleColor: textSecondaryColor,
+                        textColor: FinzoTheme.textPrimary(context),
+                        subtitleColor: FinzoTheme.textSecondary(context),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
                       Consumer<ThemeProvider>(
                         builder: (context, themeProvider, _) {
                           String themeName = 'System';
@@ -418,34 +426,33 @@ class _ProfileTabState extends State<ProfileTab> {
                             subtitle: '$themeName theme',
                             onTap: () =>
                                 _showThemePickerDialog(context, themeProvider),
-                            textColor: textPrimaryColor,
-                            subtitleColor: textSecondaryColor,
+                            textColor: FinzoTheme.textPrimary(context),
+                            subtitleColor: FinzoTheme.textSecondary(context),
                           );
                         },
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: FinzoSpacing.lg),
 
                 // Logout Button
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
+                  child: FilledButton.icon(
                     onPressed: () => _logout(context),
                     icon: const Icon(Icons.logout, color: Colors.white),
-                    label: const AutoTranslatedText(
+                    label: const Text(
                       'Logout',
                       style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.w600),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: FinzoColors.error,
+                      padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
                       ),
-                      elevation: 0,
                     ),
                   ),
                 ),
@@ -466,34 +473,27 @@ class _ProfileTabState extends State<ProfileTab> {
     Color? textColor,
     Color? subtitleColor,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final textColorFinal = textColor ??
-        (isDark ? AppColorsDark.textPrimary : AppColors.textPrimary);
-    final subtitleColorFinal = subtitleColor ??
-        (isDark ? AppColorsDark.textSecondary : AppColors.textSecondary);
-
     return ListTile(
       leading: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(FinzoSpacing.sm),
         decoration: BoxDecoration(
-          color: primaryColor.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(10),
+          color: FinzoTheme.brandAccent(context).withOpacity(0.12),
+          borderRadius: BorderRadius.circular(FinzoRadius.md),
         ),
-        child: Icon(icon, color: primaryColor, size: 22),
+        child: Icon(icon, color: FinzoTheme.brandAccent(context), size: 22),
       ),
-      title: AutoTranslatedText(title,
-          style: AppTextStyles.body1.copyWith(
+      title: Text(title,
+          style: FinzoTypography.bodyMedium().copyWith(
             fontWeight: FontWeight.w600,
-            color: textColorFinal,
+            color: textColor ?? FinzoTheme.textPrimary(context),
           )),
-      subtitle: AutoTranslatedText(subtitle,
-          style: AppTextStyles.caption.copyWith(
-            color: subtitleColorFinal,
+      subtitle: Text(subtitle,
+          style: FinzoTypography.bodySmall().copyWith(
+            color: subtitleColor ?? FinzoTheme.textSecondary(context),
           )),
-      trailing: Icon(Icons.chevron_right, color: subtitleColorFinal, size: 20),
+      trailing: Icon(Icons.chevron_right, color: FinzoTheme.textTertiary(context), size: 20),
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md, vertical: FinzoSpacing.sm),
     );
   }
 
@@ -508,48 +508,66 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const AutoTranslatedText('Set Savings Target'),
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        ),
+        title: Text('Set Savings Target', style: FinzoTypography.titleLarge()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AutoTranslatedText(
+            Text(
               'What percentage of your monthly income do you want to save?',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: FinzoTypography.bodySmall().copyWith(
+                color: FinzoTheme.textSecondary(context),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FinzoSpacing.md),
             TextField(
               controller: controller,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                label: AutoTranslatedText('Savings Target'),
+              style: FinzoTypography.bodyMedium(),
+              decoration: InputDecoration(
+                labelText: 'Savings Target',
+                labelStyle: FinzoTypography.bodySmall().copyWith(
+                  color: FinzoTheme.textSecondary(context),
+                ),
                 suffixText: '%',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
+                ),
               ),
             ),
             const SizedBox(height: 4),
-            const AutoTranslatedText(
-              // Moved helper text here
+            Text(
               'Enter a value between 0-100',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: FinzoTypography.labelSmall().copyWith(
+                color: FinzoTheme.textTertiary(context),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: FinzoSpacing.sm),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(FinzoSpacing.sm),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
+                color: FinzoColors.info.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline,
-                      color: Colors.blue.shade700, size: 20),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.info_outline,
+                      color: FinzoColors.info, size: 20),
+                  const SizedBox(width: FinzoSpacing.sm),
                   Expanded(
-                    child: AutoTranslatedText(
+                    child: Text(
                       'Example: If income is ₹5000 and target is 20%, you should spend max ₹4000',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                      style: FinzoTypography.labelSmall().copyWith(
+                        color: FinzoColors.info,
+                      ),
                     ),
                   ),
                 ],
@@ -560,9 +578,14 @@ class _ProfileTabState extends State<ProfileTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const AutoTranslatedText('Cancel'),
+            child: Text(
+              'Cancel',
+              style: FinzoTypography.labelMedium().copyWith(
+                color: FinzoTheme.textSecondary(context),
+              ),
+            ),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               final target = double.tryParse(controller.text);
               if (target != null && target >= 0 && target <= 100) {
@@ -580,31 +603,46 @@ class _ProfileTabState extends State<ProfileTab> {
                 if (success) {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(
-                      content: AutoTranslatedText(
+                      content: Text(
                           'Savings target set to ${target.toStringAsFixed(0)}%! 🎯'),
-                      backgroundColor: AppColors.success,
+                      backgroundColor: FinzoColors.success,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      ),
                     ),
                   );
                 } else {
                   scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: AutoTranslatedText(
+                    SnackBar(
+                      content: const Text(
                           'Failed to update savings target. Please try again.'),
-                      backgroundColor: AppColors.error,
+                      backgroundColor: FinzoColors.error,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      ),
                     ),
                   );
                 }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: AutoTranslatedText(
+                  SnackBar(
+                    content: const Text(
                         'Please enter a valid percentage (0-100)'),
-                    backgroundColor: AppColors.error,
+                    backgroundColor: FinzoColors.error,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                    ),
                   ),
                 );
               }
             },
-            child: const AutoTranslatedText('Save'),
+            style: FilledButton.styleFrom(
+              backgroundColor: FinzoTheme.brandAccent(context),
+            ),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -619,21 +657,40 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const AutoTranslatedText('Edit Name'),
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        ),
+        title: Text('Edit Name', style: FinzoTypography.titleLarge()),
         content: TextField(
           controller: controller,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            label: AutoTranslatedText('Full Name'),
-            border: OutlineInputBorder(),
+          style: FinzoTypography.bodyMedium(),
+          decoration: InputDecoration(
+            labelText: 'Full Name',
+            labelStyle: FinzoTypography.bodySmall().copyWith(
+              color: FinzoTheme.textSecondary(context),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const AutoTranslatedText('Cancel'),
+            child: Text(
+              'Cancel',
+              style: FinzoTypography.labelMedium().copyWith(
+                color: FinzoTheme.textSecondary(context),
+              ),
+            ),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               if (controller.text.isNotEmpty) {
                 await Provider.of<AuthProvider>(context, listen: false)
@@ -641,7 +698,10 @@ class _ProfileTabState extends State<ProfileTab> {
                 Navigator.pop(context);
               }
             },
-            child: const AutoTranslatedText('Save'),
+            style: FilledButton.styleFrom(
+              backgroundColor: FinzoTheme.brandAccent(context),
+            ),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -652,14 +712,23 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const AutoTranslatedText('Logout'),
-        content: const AutoTranslatedText('Are you sure you want to logout?'),
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        ),
+        title: Text('Logout', style: FinzoTypography.titleLarge()),
+        content: Text('Are you sure you want to logout?', style: FinzoTypography.bodyMedium()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const AutoTranslatedText('Cancel'),
+            child: Text(
+              'Cancel',
+              style: FinzoTypography.labelMedium().copyWith(
+                color: FinzoTheme.textSecondary(context),
+              ),
+            ),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               // Clear all providers
               Provider.of<ExpenseProvider>(context, listen: false).clear();
@@ -672,8 +741,8 @@ class _ProfileTabState extends State<ProfileTab> {
                 (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const AutoTranslatedText('Logout',
+            style: FilledButton.styleFrom(backgroundColor: FinzoColors.error),
+            child: const Text('Logout',
                 style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -686,14 +755,19 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const AutoTranslatedText('Choose Theme'),
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        ),
+        title: Text('Choose Theme', style: FinzoTypography.titleLarge()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<ThemeMode>(
-              title: const AutoTranslatedText('Light Theme'),
+              title: Text('Light Theme', style: FinzoTypography.bodyMedium()),
               value: ThemeMode.light,
               groupValue: themeProvider.themeMode,
+              activeColor: FinzoTheme.brandAccent(context),
               onChanged: (ThemeMode? value) {
                 if (value != null) {
                   themeProvider.setThemeMode(value);
@@ -702,9 +776,10 @@ class _ProfileTabState extends State<ProfileTab> {
               },
             ),
             RadioListTile<ThemeMode>(
-              title: const AutoTranslatedText('Dark Theme'),
+              title: Text('Dark Theme', style: FinzoTypography.bodyMedium()),
               value: ThemeMode.dark,
               groupValue: themeProvider.themeMode,
+              activeColor: FinzoTheme.brandAccent(context),
               onChanged: (ThemeMode? value) {
                 if (value != null) {
                   themeProvider.setThemeMode(value);
@@ -713,9 +788,10 @@ class _ProfileTabState extends State<ProfileTab> {
               },
             ),
             RadioListTile<ThemeMode>(
-              title: const AutoTranslatedText('System Default'),
+              title: Text('System Default', style: FinzoTypography.bodyMedium()),
               value: ThemeMode.system,
               groupValue: themeProvider.themeMode,
+              activeColor: FinzoTheme.brandAccent(context),
               onChanged: (ThemeMode? value) {
                 if (value != null) {
                   themeProvider.setThemeMode(value);
@@ -729,5 +805,3 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 }
-
-

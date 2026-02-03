@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/analytics_provider.dart';
 
@@ -33,6 +33,18 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     super.dispose();
   }
 
+  void _showSnackBar(String message, {bool isSuccess = false, bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: FinzoTypography.bodyMedium(color: Colors.white)),
+        backgroundColor: isSuccess ? FinzoColors.success : isError ? FinzoColors.error : FinzoColors.info,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.sm)),
+        margin: const EdgeInsets.all(FinzoSpacing.md),
+      ),
+    );
+  }
+
   Future<void> _addIncome() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -50,47 +62,40 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Refresh analytics data
       await analyticsProvider.fetchDashboardData();
       await analyticsProvider.fetchBalanceChartData();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Income added successfully!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      _showSnackBar('Income added successfully!', isSuccess: true);
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(incomeProvider.errorMessage ?? 'Failed to add income'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showSnackBar(incomeProvider.errorMessage ?? 'Failed to add income', isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : AppColors.background;
-    final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        title: const Text('Add Income'),
-        backgroundColor: bgColor,
+        title: Text(
+          'Add Income',
+          style: FinzoTypography.titleMedium(color: FinzoTheme.textPrimary(context)),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        titleTextStyle: TextStyle(
-          color: textPrimaryColor,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(FinzoSpacing.xs),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(Icons.arrow_back_ios_rounded, color: FinzoTheme.textPrimary(context), size: 18),
+          ),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(FinzoSpacing.md),
         child: Form(
           key: _formKey,
           child: Column(
@@ -98,69 +103,66 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
             children: [
               // Amount Input
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(FinzoSpacing.xl),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.income, AppColors.success],
+                    colors: [FinzoColors.success, Color(0xFF4ECDC4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(FinzoRadius.xl),
+                  boxShadow: [
+                    BoxShadow(
+                      color: FinzoColors.success.withOpacity(0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
-                    const Text(
+                    Text(
                       'Enter Income Amount',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                      style: FinzoTypography.bodyMedium(color: Colors.white70),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: FinzoSpacing.sm),
                     TextFormField(
                       controller: _amountController,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: const InputDecoration(
+                      style: FinzoTypography.displayLarge(color: Colors.white),
+                      decoration: InputDecoration(
                         prefixText: '₹ ',
-                        prefixStyle: TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        prefixStyle: FinzoTypography.displayLarge(color: Colors.white),
                         border: InputBorder.none,
                         hintText: '0',
-                        hintStyle: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 40,
-                        ),
+                        hintStyle: FinzoTypography.displayLarge(color: Colors.white38),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter an amount';
-                        }
-                        if (double.tryParse(value) == null || double.parse(value) <= 0) {
-                          return 'Please enter a valid amount';
-                        }
+                        if (value == null || value.isEmpty) return 'Please enter an amount';
+                        if (double.tryParse(value) == null || double.parse(value) <= 0) return 'Please enter a valid amount';
                         return null;
                       },
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: FinzoSpacing.xl),
 
               // Source Selection
-              const Text('Income Source', style: AppTextStyles.heading3),
-              const SizedBox(height: 12),
+              Text(
+                'Income Source',
+                style: FinzoTypography.titleSmall(color: FinzoTheme.textPrimary(context)),
+              ),
+              const SizedBox(height: FinzoSpacing.md),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   childAspectRatio: 1.1,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                  crossAxisSpacing: FinzoSpacing.sm,
+                  mainAxisSpacing: FinzoSpacing.sm,
                 ),
                 itemCount: _sources.length,
                 itemBuilder: (context, index) {
@@ -168,48 +170,36 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                   final isSelected = _selectedSource == source['id'];
 
                   return GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedSource = source['id']);
-                    },
-                    child: Container(
+                    onTap: () => setState(() => _selectedSource = source['id']),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.income.withOpacity(0.2)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                            ? FinzoColors.success.withOpacity(0.15)
+                            : FinzoTheme.surface(context),
+                        borderRadius: BorderRadius.circular(FinzoRadius.lg),
                         border: Border.all(
-                          color: isSelected ? AppColors.income : Colors.grey.shade200,
-                          width: 2,
+                          color: isSelected ? FinzoColors.success : FinzoTheme.divider(context),
+                          width: isSelected ? 2 : 1,
                         ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.income.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : null,
+                        boxShadow: isSelected ? [
+                          BoxShadow(
+                            color: FinzoColors.success.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ] : null,
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            source['icon'],
-                            style: const TextStyle(fontSize: 32),
-                          ),
+                          Text(source['icon'], style: const TextStyle(fontSize: 32)),
                           const SizedBox(height: 4),
                           Text(
                             source['name'],
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: isSelected
-                                  ? AppColors.income
-                                  : AppColors.textSecondary,
-                            ),
+                            style: FinzoTypography.labelSmall(
+                              color: isSelected ? FinzoColors.success : FinzoTheme.textSecondary(context),
+                            ).copyWith(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -218,37 +208,56 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: FinzoSpacing.xl),
 
               // Description
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: AppDecorations.cardDecoration,
+                padding: const EdgeInsets.all(FinzoSpacing.md),
+                decoration: BoxDecoration(
+                  color: FinzoTheme.surface(context),
+                  borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                  border: Border.all(color: FinzoTheme.divider(context)),
+                ),
                 child: TextFormField(
                   controller: _descriptionController,
                   maxLines: 2,
-                  decoration: const InputDecoration(
+                  style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
+                  decoration: InputDecoration(
                     hintText: 'Add a note (optional)',
+                    hintStyle: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
                     border: InputBorder.none,
-                    prefixIcon: Icon(Icons.note_outlined),
+                    prefixIcon: Icon(Icons.note_outlined, color: FinzoTheme.textSecondary(context)),
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: FinzoSpacing.xl),
 
               // Add Button
               Consumer<IncomeProvider>(
                 builder: (context, provider, _) {
-                  return SizedBox(
+                  return Container(
                     width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [FinzoColors.success, Color(0xFF4ECDC4)],
+                      ),
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      boxShadow: [
+                        BoxShadow(
+                          color: FinzoColors.success.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
                     child: ElevatedButton(
                       onPressed: provider.isLoading ? null : _addIncome,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.income,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(FinzoRadius.md),
                         ),
                       ),
                       child: provider.isLoading
@@ -257,22 +266,15 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Add Income',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          : Text('Add Income', style: FinzoTypography.labelLarge(color: Colors.white)),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: FinzoSpacing.xl),
             ],
           ),
         ),

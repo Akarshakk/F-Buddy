@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../config/theme.dart';
-import '../../screens/feature_selection_screen.dart';
+import '../../config/app_theme.dart';
 import '../../widgets/rag_chat_widget.dart';
 import '../../providers/language_provider.dart';
 import 'package:finzo/l10n/app_localizations.dart';
@@ -135,9 +134,7 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> {
   }
 
   void _goBack() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const FeatureSelectionScreen()),
-    );
+    Navigator.of(context).pushReplacementNamed('/home');
   }
 
   @override

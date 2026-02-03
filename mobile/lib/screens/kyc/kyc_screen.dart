@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/kyc_service.dart';
-import '../feature_selection_screen.dart';
+import '../../config/app_theme.dart';
 import 'document_upload_screen.dart';
 import 'selfie_screen.dart';
 import 'mfa_screen.dart';
@@ -38,11 +38,7 @@ class _KycScreenState extends State<KycScreen> {
         // Already verified, navigate to feature selection
         Future.delayed(Duration(milliseconds: 500), () {
           if (mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const FeatureSelectionScreen(),
-              ),
-            );
+            Navigator.of(context).pushReplacementNamed('/home');
           }
         });
       }
@@ -109,11 +105,7 @@ class _KycScreenState extends State<KycScreen> {
                   onPressed: () {
                     Navigator.of(dialogContext).pop(); // Close dialog
                     // Navigate to feature selection screen
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const FeatureSelectionScreen(),
-                      ),
-                    );
+                    Navigator.of(context).pushReplacementNamed('/home');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -146,16 +138,12 @@ class _KycScreenState extends State<KycScreen> {
           TextButton(
             onPressed: () {
               // Skip KYC and go to feature selection
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => const FeatureSelectionScreen(),
-                ),
-              );
+              Navigator.of(context).pushReplacementNamed('/home');
             },
             child: Text(
               'Skip',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: FinzoTheme.textSecondary(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -189,11 +177,7 @@ class _KycScreenState extends State<KycScreen> {
                        SizedBox(height: 40),
                        ElevatedButton(
                          onPressed: () {
-                           Navigator.of(context).pushReplacement(
-                             MaterialPageRoute(
-                               builder: (context) => const FeatureSelectionScreen(),
-                             ),
-                           );
+                           Navigator.of(context).pushReplacementNamed('/home');
                          },
                          style: ElevatedButton.styleFrom(
                            backgroundColor: Colors.blue,
@@ -221,7 +205,7 @@ class _KycScreenState extends State<KycScreen> {
   Widget _buildProgressStepper() {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-      color: Colors.grey[100],
+      color: FinzoTheme.surface(context),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -245,7 +229,7 @@ class _KycScreenState extends State<KycScreen> {
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: isActive ? Colors.blue : Colors.grey[300],
+          backgroundColor: isActive ? FinzoTheme.brandPrimary(context) : FinzoTheme.divider(context),
           child: Icon(
             isCompleted ? Icons.check : icon,
             color: Colors.white,
@@ -256,7 +240,7 @@ class _KycScreenState extends State<KycScreen> {
         Text(
           label,
           style: TextStyle(
-            color: isActive ? Colors.blue : Colors.grey,
+            color: isActive ? FinzoTheme.brandPrimary(context) : FinzoTheme.textSecondary(context),
             fontSize: 12,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
@@ -269,10 +253,8 @@ class _KycScreenState extends State<KycScreen> {
     return Expanded(
       child: Container(
         height: 2,
-        color: _currentStep > stepIndex ? Colors.blue : Colors.grey[300],
+        color: _currentStep > stepIndex ? FinzoTheme.brandPrimary(context) : FinzoTheme.divider(context),
       ),
     );
   }
 }
-
-

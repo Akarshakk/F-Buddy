@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../models/group.dart';
 import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';

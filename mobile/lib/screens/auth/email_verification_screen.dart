@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/constants.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../services/api_service.dart';
-import '../feature_selection_screen.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
@@ -13,25 +12,37 @@ class EmailVerificationScreen extends StatefulWidget {
   State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
 }
 
-class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
+class _EmailVerificationScreenState extends State<EmailVerificationScreen> 
+    with SingleTickerProviderStateMixin {
   final _otpController = TextEditingController();
   bool _isLoading = false;
   bool _isResending = false;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
+    _animationController.forward();
+  }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _otpController.dispose();
     super.dispose();
   }
 
   Future<void> _verifyEmail() async {
     if (_otpController.text.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the 6-digit OTP'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      _showSnackBar('Please enter the 6-digit OTP', isError: false);
       return;
     }
 
@@ -48,43 +59,23 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       );
 
       if (response['success'] == true && response['data'] != null) {
-        // Save token - user is now registered and logged in
         final token = response['data']['token'];
         if (token != null) {
           await ApiService.saveToken(token);
         }
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created successfully! 🎉'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          // Navigate to feature selection (skip KYC for now as it's optional)
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const FeatureSelectionScreen()),
-            (route) => false,
-          );
+          _showSnackBar('Account created successfully! 🎉', isSuccess: true);
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response['message'] ?? 'Invalid OTP'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          _showSnackBar(response['message'] ?? 'Invalid OTP', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar('Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -102,147 +93,235 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response['message'] ?? 'OTP sent!'),
-            backgroundColor: response['success'] == true ? Colors.green : Colors.red,
-          ),
+        _showSnackBar(
+          response['message'] ?? 'OTP sent!',
+          isSuccess: response['success'] == true,
+          isError: response['success'] != true,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar('Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isResending = false);
     }
   }
 
+  void _showSnackBar(String message, {bool isSuccess = false, bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: FinzoTypography.bodyMedium(color: Colors.white)),
+        backgroundColor: isSuccess 
+            ? FinzoColors.success 
+            : isError 
+                ? FinzoColors.error 
+                : FinzoColors.warning,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.sm)),
+        margin: const EdgeInsets.all(FinzoSpacing.md),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        title: const Text('Verify Email'),
-        backgroundColor: AppColors.background,
+        title: Text(
+          'Verify Email',
+          style: FinzoTypography.titleMedium(color: FinzoTheme.textPrimary(context)),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(FinzoSpacing.xs),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_rounded,
+              color: FinzoTheme.textPrimary(context),
+              size: 18,
+            ),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(FinzoSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
-              Icon(Icons.mark_email_read, size: 80, color: AppColors.primary),
-              const SizedBox(height: 24),
+              const SizedBox(height: FinzoSpacing.xxl),
+              // Animated Icon
+              ScaleTransition(
+                scale: _scaleAnimation,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        FinzoColors.brandPrimary.withOpacity(0.1),
+                        FinzoColors.brandSecondary.withOpacity(0.1),
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.mark_email_read_rounded,
+                    size: 50,
+                    color: FinzoTheme.brandAccent(context),
+                  ),
+                ),
+              ),
+              const SizedBox(height: FinzoSpacing.xl),
               Text(
                 'Verify Your Email',
-                style: AppTextStyles.heading2,
+                style: FinzoTypography.displaySmall(
+                  color: FinzoTheme.textPrimary(context),
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FinzoSpacing.sm),
               Text(
                 'We sent a 6-digit verification code to',
-                style: AppTextStyles.body2,
+                style: FinzoTypography.bodyLarge(
+                  color: FinzoTheme.textSecondary(context),
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: FinzoSpacing.xs),
               Text(
                 widget.email,
-                style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
+                style: FinzoTypography.titleMedium(
+                  color: FinzoTheme.textPrimary(context),
+                ).copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _otpController,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 12,
+              const SizedBox(height: FinzoSpacing.xl),
+              
+              // OTP Input
+              Container(
+                decoration: BoxDecoration(
+                  color: FinzoTheme.surfaceVariant(context),
+                  borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                  border: Border.all(color: FinzoTheme.divider(context)),
                 ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  hintText: '000000',
-                  hintStyle: TextStyle(color: Colors.grey[300]),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                child: TextField(
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  textAlign: TextAlign.center,
+                  style: FinzoTypography.displaySmall(
+                    color: FinzoTheme.textPrimary(context),
+                  ).copyWith(letterSpacing: 16, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    hintText: '000000',
+                    hintStyle: FinzoTypography.displaySmall(
+                      color: FinzoTheme.textSecondary(context).withOpacity(0.3),
+                    ).copyWith(letterSpacing: 16),
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: FinzoSpacing.lg,
+                      vertical: FinzoSpacing.lg,
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primary, width: 2),
-                  ),
+                  onChanged: (value) {
+                    if (value.length == 6) {
+                      _verifyEmail();
+                    }
+                  },
                 ),
-                onChanged: (value) {
-                  if (value.length == 6) {
-                    _verifyEmail();
-                  }
-                },
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _verifyEmail,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: FinzoSpacing.xl),
+              
+              // Verify Button
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
                   ),
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  boxShadow: [
+                    BoxShadow(
+                      color: FinzoColors.brandPrimary.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _verifyEmail,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Verify Email',
+                          style: FinzoTypography.labelLarge(color: Colors.white),
                         ),
-                      )
-                    : const Text(
-                        'Verify Email',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
+              
+              // Resend Button
               TextButton(
                 onPressed: _isResending ? null : _resendOtp,
-                child: _isResending
-                    ? const Text('Sending...')
-                    : const Text(
-                        'Resend Code',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
+                child: Text(
+                  _isResending ? 'Sending...' : 'Resend Code',
+                  style: FinzoTypography.labelMedium(
+                    color: FinzoTheme.brandAccent(context),
+                  ).copyWith(fontWeight: FontWeight.w600),
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: FinzoSpacing.lg),
+              
+              // Info Box
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(FinzoSpacing.md),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
+                  color: FinzoColors.info.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  border: Border.all(color: FinzoColors.info.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: FinzoColors.info,
+                      size: 20,
+                    ),
+                    const SizedBox(width: FinzoSpacing.sm),
                     Expanded(
                       child: Text(
                         'Check your email inbox and spam folder for the OTP',
-                        style: TextStyle(color: Colors.blue[900], fontSize: 12),
+                        style: FinzoTypography.bodySmall(color: FinzoColors.info),
                       ),
                     ),
                   ],

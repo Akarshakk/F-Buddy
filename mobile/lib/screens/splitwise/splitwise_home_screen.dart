@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
-import '../home/home_screen.dart';
-import '../feature_selection_screen.dart';
 import 'splitwise_groups_tab.dart';
 import 'splitwise_friends_tab.dart';
 import 'splitwise_activity_tab.dart';
 import 'splitwise_settings_tab.dart';
-import '../../widgets/auto_translated_text.dart';
 
 class SplitwiseHomeScreen extends StatefulWidget {
   const SplitwiseHomeScreen({super.key});
@@ -41,41 +38,31 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark
-        ? AppColorsDark.background
-        : const Color.fromARGB(255, 228, 228, 228);
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final secondaryColor =
-        isDark ? AppColorsDark.secondary : AppColors.secondary;
-    final textPrimaryColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final textSecondaryColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        backgroundColor: surfaceColor,
+        backgroundColor: FinzoTheme.background(context),
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: primaryColor),
-          onPressed: () => Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const FeatureSelectionScreen()),
-          ),
+          icon: Icon(Icons.arrow_back, color: FinzoTheme.textPrimary(context)),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
           tooltip: 'Back to Menu',
         ),
         title: Text(
           'SmartSplit',
-          style: AppTextStyles.heading2.copyWith(color: textPrimaryColor),
+          style: FinzoTypography.headlineLarge(
+            color: FinzoTheme.textPrimary(context),
+          ).copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         centerTitle: false,
         actions: [
           IconButton(
             icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
-              color: primaryColor,
+              FinzoTheme.isDark(context) ? Icons.light_mode : Icons.dark_mode,
+              color: FinzoTheme.textPrimary(context),
             ),
             onPressed: () {
               final themeProvider =
@@ -85,17 +72,15 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
             tooltip: 'Toggle Theme',
           ),
           IconButton(
-            icon: Icon(Icons.person_add, color: primaryColor),
+            icon: Icon(Icons.person_add_outlined, color: FinzoTheme.textPrimary(context)),
             onPressed: _showJoinGroupDialog,
             tooltip: 'Join Group',
           ),
           IconButton(
-            icon: Icon(Icons.wallet, color: primaryColor),
+            icon: Icon(Icons.account_balance_wallet_outlined, color: FinzoTheme.textPrimary(context)),
             tooltip: 'Switch to Personal Finance',
             onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
-              );
+              Navigator.pushReplacementNamed(context, '/personal-finance');
             },
           ),
         ],
@@ -104,129 +89,77 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
         index: _currentIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: BottomAppBar(
-        color: surfaceColor,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        height: 70,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: FinzoTheme.surface(context),
+          border: Border(
+            top: BorderSide(
+              color: FinzoTheme.divider(context),
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.sm),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.groups_outlined, Icons.groups, 'Groups'),
+                _buildNavItem(1, Icons.person_outline, Icons.person, 'Friends'),
+                _buildNavItem(2, Icons.history_outlined, Icons.history, 'Activity'),
+                _buildNavItem(3, Icons.settings_outlined, Icons.settings, 'Settings'),
+              ],
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: FinzoTheme.brandAccent(context),
+        elevation: 4,
+        onPressed: () {
+          if (_currentIndex == 0) {
+            _showCreateGroupDialog();
+          }
+        },
+        child: const Icon(
+          Icons.add_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md, vertical: FinzoSpacing.sm),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.center,
-                child: _buildNavItem(
-                  0,
-                  Icons.groups_outlined,
-                  Icons.groups,
-                  'Groups',
-                  primaryColor,
-                  textSecondaryColor,
-                ),
-              ),
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected 
+                  ? FinzoTheme.textPrimary(context) 
+                  : FinzoTheme.textSecondary(context),
+              size: 24,
             ),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.center,
-                child: _buildNavItem(
-                  1,
-                  Icons.person_outline,
-                  Icons.person,
-                  'Friends',
-                  primaryColor,
-                  textSecondaryColor,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.center,
-                child: _buildNavItem(
-                  2,
-                  Icons.history_outlined,
-                  Icons.history,
-                  'Activity',
-                  primaryColor,
-                  textSecondaryColor,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: _buildNavItem(
-                    3,
-                    Icons.settings_outlined,
-                    Icons.settings,
-                    'Settings',
-                    primaryColor,
-                    textSecondaryColor,
-                  ),
-                ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: FinzoTypography.labelSmall().copyWith(
+                color: isSelected 
+                    ? FinzoTheme.textPrimary(context) 
+                    : FinzoTheme.textSecondary(context),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],
         ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 8, right: 16),
-        child: FloatingActionButton(
-          backgroundColor: secondaryColor,
-          elevation: 8,
-          onPressed: () {
-            // Navigate to add group expense or create group
-            if (_currentIndex == 0) {
-              // Show group creation dialog
-              _showCreateGroupDialog();
-            }
-          },
-          child: const Icon(
-            Icons.add_rounded,
-            color: Colors.white,
-            size: 32,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
-  }
-
-  Widget _buildNavItem(
-    int index,
-    IconData icon,
-    IconData activeIcon,
-    String label,
-    Color primaryColor,
-    Color textSecondaryColor,
-  ) {
-    final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isSelected ? activeIcon : icon,
-            color: isSelected ? primaryColor : textSecondaryColor,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          AutoTranslatedText(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: isSelected ? primaryColor : textSecondaryColor,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -238,26 +171,59 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const AutoTranslatedText('Create Group'),
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        ),
+        title: Text(
+          'Create Group',
+          style: FinzoTypography.headlineSmall(),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
+              style: FinzoTypography.bodyMedium(),
               decoration: InputDecoration(
-                label: const AutoTranslatedText('Group Name'), // Using label widget instead of labelText string
+                labelText: 'Group Name',
+                labelStyle: FinzoTypography.bodySmall().copyWith(
+                  color: FinzoTheme.textSecondary(context),
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FinzoSpacing.md),
             TextField(
               controller: descriptionController,
+              style: FinzoTypography.bodyMedium(),
               decoration: InputDecoration(
-                label: const AutoTranslatedText('Description'),
+                labelText: 'Description',
+                labelStyle: FinzoTypography.bodySmall().copyWith(
+                  color: FinzoTheme.textSecondary(context),
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
                 ),
               ),
               maxLines: 2,
@@ -267,9 +233,14 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const AutoTranslatedText('Cancel'),
+            child: Text(
+              'Cancel',
+              style: FinzoTypography.labelMedium().copyWith(
+                color: FinzoTheme.textSecondary(context),
+              ),
+            ),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty) {
                 final provider =
@@ -288,18 +259,37 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
                 if (success && mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: AutoTranslatedText('Group created successfully!')),
+                    SnackBar(
+                      content: const Text('Group created successfully!'),
+                      backgroundColor: FinzoColors.success,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      ),
+                    ),
                   );
                 } else if (mounted && provider.errorMessage != null) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${provider.errorMessage}')), // Error message might be technical, keep as Text or handle carefully? keeping as Text for safety, or simple AutoTranslatedText if safe.
+                    SnackBar(
+                      content: Text('Error: ${provider.errorMessage}'),
+                      backgroundColor: FinzoColors.error,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      ),
+                    ),
                   );
                 }
               }
             },
-            child: const AutoTranslatedText('Create'),
+            style: FilledButton.styleFrom(
+              backgroundColor: FinzoTheme.brandAccent(context),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
+              ),
+            ),
+            child: const Text('Create'),
           ),
         ],
       ),
@@ -312,33 +302,49 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-
         return AlertDialog(
-          backgroundColor: surfaceColor,
-          title: const AutoTranslatedText('Join Group'),
+          backgroundColor: FinzoTheme.surface(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+          ),
+          title: Text(
+            'Join Group',
+            style: FinzoTypography.headlineSmall(),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                AutoTranslatedText(
+                Text(
                   'Enter the 6-character invite code from the group creator',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark
-                        ? AppColorsDark.textSecondary
-                        : AppColors.textSecondary,
+                  style: FinzoTypography.bodySmall().copyWith(
+                    color: FinzoTheme.textSecondary(context),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: FinzoSpacing.md),
                 TextField(
                   controller: inviteCodeController,
+                  style: FinzoTypography.bodyMedium(),
                   decoration: InputDecoration(
-                    label: const AutoTranslatedText('Invite Code'),
+                    labelText: 'Invite Code',
+                    labelStyle: FinzoTypography.bodySmall().copyWith(
+                      color: FinzoTheme.textSecondary(context),
+                    ),
                     hintText: 'e.g., ABC123',
+                    hintStyle: FinzoTypography.bodySmall().copyWith(
+                      color: FinzoTheme.textTertiary(context),
+                    ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
                     ),
                   ),
                   textCapitalization: TextCapitalization.characters,
@@ -350,9 +356,14 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const AutoTranslatedText('Cancel'),
+              child: Text(
+                'Cancel',
+                style: FinzoTypography.labelMedium().copyWith(
+                  color: FinzoTheme.textSecondary(context),
+                ),
+              ),
             ),
-            TextButton(
+            FilledButton(
               onPressed: () async {
                 if (inviteCodeController.text.length == 6) {
                   final provider =
@@ -370,8 +381,13 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
                   if (success && mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: AutoTranslatedText('Joined group successfully!'),
+                      SnackBar(
+                        content: const Text('Joined group successfully!'),
+                        backgroundColor: FinzoColors.success,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        ),
                       ),
                     );
                   } else if (mounted && provider.errorMessage != null) {
@@ -379,18 +395,34 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Error: ${provider.errorMessage}'),
+                        backgroundColor: FinzoColors.error,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        ),
                       ),
                     );
                   }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: AutoTranslatedText('Code must be exactly 6 characters'),
+                    SnackBar(
+                      content: const Text('Code must be exactly 6 characters'),
+                      backgroundColor: FinzoColors.warning,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      ),
                     ),
                   );
                 }
               },
-              child: const AutoTranslatedText('Join'),
+              style: FilledButton.styleFrom(
+                backgroundColor: FinzoTheme.brandAccent(context),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                ),
+              ),
+              child: const Text('Join'),
             ),
           ],
         );
@@ -398,5 +430,3 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> {
     );
   }
 }
-
-

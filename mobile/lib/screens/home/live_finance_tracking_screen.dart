@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../widgets/auto_translated_text.dart';
 
 /// Live Finance Tracking Screen

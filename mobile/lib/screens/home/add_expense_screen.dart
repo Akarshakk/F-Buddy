@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../models/category.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/analytics_provider.dart';
@@ -50,35 +50,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       if (image == null) return;
 
-      setState(() {
-        _isScanning = true;
-      });
+      setState(() => _isScanning = true);
 
-      // Read image as bytes (works on both web and mobile)
       final Uint8List imageBytes = await image.readAsBytes();
       
-      // Validate image bytes are not empty
       if (imageBytes.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to read image. Please try again.'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-          setState(() {
-            _isScanning = false;
-          });
+          _showSnackBar('Failed to read image. Please try again.', isError: true);
+          setState(() => _isScanning = false);
         }
         return;
       }
       
-      // Only set image bytes after validation
-      setState(() {
-        _scannedBillImageBytes = imageBytes;
-      });
+      setState(() => _scannedBillImageBytes = imageBytes);
 
-      // Call the bill scanning service with bytes
       final result = await BillScanService.scanBillFromBytes(imageBytes);
 
       if (!mounted) return;
@@ -87,71 +72,59 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         final BillScanResult scanResult = result['data'];
         
         setState(() {
-          // Auto-fill the amount if found
           if (scanResult.amount != null) {
             _amountController.text = scanResult.amount!.toStringAsFixed(2);
           }
-          
-          // Auto-select the category if found
           if (scanResult.category != null) {
             _selectedCategory = scanResult.category;
           }
-          
-          // Auto-fill merchant name if found
           if (scanResult.merchant != null && _merchantController.text.isEmpty) {
             _merchantController.text = scanResult.merchant!;
           }
-          
-          // Add merchant as description if found and description is empty
           if (scanResult.merchant != null && _descriptionController.text.isEmpty) {
             _descriptionController.text = 'Purchase from ${scanResult.merchant!}';
           }
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Bill scanned! Amount: ₹${scanResult.amount?.toStringAsFixed(2) ?? "Not found"}, '
-              'Category: ${scanResult.category ?? "Others"}${scanResult.merchant != null ? ", Merchant: ${scanResult.merchant}" : ""}',
-            ),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 3),
-          ),
+        _showSnackBar(
+          'Bill scanned! Amount: ₹${scanResult.amount?.toStringAsFixed(2) ?? "Not found"}, '
+          'Category: ${scanResult.category ?? "Others"}',
+          isSuccess: true,
+          duration: 3,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Failed to scan bill'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        _showSnackBar(result['message'] ?? 'Failed to scan bill', isError: true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showSnackBar('Error: ${e.toString()}', isError: true);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isScanning = false;
-        });
-      }
+      if (mounted) setState(() => _isScanning = false);
     }
+  }
+
+  void _showSnackBar(String message, {bool isSuccess = false, bool isError = false, int duration = 2}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: FinzoTypography.bodyMedium(color: Colors.white)),
+        backgroundColor: isSuccess ? FinzoColors.success : isError ? FinzoColors.error : FinzoColors.info,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.sm)),
+        margin: const EdgeInsets.all(FinzoSpacing.md),
+        duration: Duration(seconds: duration),
+      ),
+    );
   }
 
   void _showBillScanOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: FinzoTheme.surface(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(FinzoRadius.xl)),
       ),
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(FinzoSpacing.lg),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -159,47 +132,41 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: FinzoTheme.divider(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text(
+              const SizedBox(height: FinzoSpacing.lg),
+              Text(
                 'Scan Bill',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context)),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              const SizedBox(height: FinzoSpacing.sm),
+              Text(
                 'Take a photo or choose from gallery to auto-fill expense details',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                ),
+                style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: FinzoSpacing.xl),
               Row(
                 children: [
                   Expanded(
                     child: _buildScanOption(
-                      icon: Icons.camera_alt,
+                      icon: Icons.camera_alt_rounded,
                       label: 'Camera',
-                      color: AppColors.primary,
+                      color: FinzoColors.brandPrimary,
                       onTap: () {
                         Navigator.pop(context);
                         _scanBill(ImageSource.camera);
                       },
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: FinzoSpacing.md),
                   Expanded(
                     child: _buildScanOption(
-                      icon: Icons.photo_library,
+                      icon: Icons.photo_library_rounded,
                       label: 'Gallery',
-                      color: AppColors.secondary,
+                      color: FinzoColors.brandSecondary,
                       onTap: () {
                         Navigator.pop(context);
                         _scanBill(ImageSource.gallery);
@@ -208,7 +175,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
             ],
           ),
         ),
@@ -225,23 +192,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.lg),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           children: [
             Icon(icon, size: 40, color: color),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            const SizedBox(height: FinzoSpacing.sm),
+            Text(label, style: FinzoTypography.labelLarge(color: color)),
           ],
         ),
       ),
@@ -256,42 +217,45 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     switch (alertType) {
       case SavingsAlertType.danger:
-        backgroundColor = Colors.red.shade50;
-        iconColor = Colors.red;
+        backgroundColor = FinzoColors.error.withOpacity(0.1);
+        iconColor = FinzoColors.error;
         icon = Icons.warning_rounded;
         break;
       case SavingsAlertType.warning:
-        backgroundColor = Colors.orange.shade50;
-        iconColor = Colors.orange;
-        icon = Icons.info_outline;
+        backgroundColor = FinzoColors.warning.withOpacity(0.1);
+        iconColor = FinzoColors.warning;
+        icon = Icons.info_outline_rounded;
         break;
       case SavingsAlertType.success:
-        backgroundColor = Colors.green.shade50;
-        iconColor = Colors.green;
-        icon = Icons.check_circle_outline;
+        backgroundColor = FinzoColors.success.withOpacity(0.1);
+        iconColor = FinzoColors.success;
+        icon = Icons.check_circle_outline_rounded;
         break;
       case SavingsAlertType.celebration:
-        backgroundColor = Colors.blue.shade50;
-        iconColor = Colors.blue;
-        icon = Icons.celebration;
+        backgroundColor = FinzoColors.info.withOpacity(0.1);
+        iconColor = FinzoColors.info;
+        icon = Icons.celebration_rounded;
         break;
     }
 
     return AlertDialog(
-      backgroundColor: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: FinzoTheme.surface(context),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.xl)),
       title: Row(
         children: [
-          Icon(icon, color: iconColor, size: 28),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(FinzoSpacing.sm),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+          const SizedBox(width: FinzoSpacing.md),
           Expanded(
             child: Text(
               status['title'],
-              style: TextStyle(
-                color: iconColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+              style: FinzoTypography.titleMedium(color: iconColor),
             ),
           ),
         ],
@@ -302,43 +266,35 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         children: [
           Text(
             status['message'],
-            style: const TextStyle(fontSize: 15, height: 1.4),
+            style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
           ),
-          const SizedBox(height: 16),
-          // Savings info
+          const SizedBox(height: FinzoSpacing.md),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(FinzoSpacing.md),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
             ),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Current Savings:', style: TextStyle(fontSize: 13)),
+                    Text('Current Savings:', style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context))),
                     Text(
                       '${(status['currentSavingsPercent'] as double).toStringAsFixed(1)}%',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: iconColor,
-                      ),
+                      style: FinzoTypography.labelMedium(color: iconColor),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: FinzoSpacing.xs),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Target:', style: TextStyle(fontSize: 13)),
+                    Text('Target:', style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context))),
                     Text(
                       '${(status['savingsTargetPercent'] as double).toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: FinzoTypography.labelMedium(color: FinzoTheme.textPrimary(context)),
                     ),
                   ],
                 ),
@@ -348,22 +304,39 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ],
       ),
       actions: [
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: iconColor,
-            foregroundColor: Colors.white,
+        Container(
+          decoration: BoxDecoration(
+            color: iconColor,
+            borderRadius: BorderRadius.circular(FinzoRadius.sm),
           ),
-          child: const Text('Got it'),
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Got it', style: FinzoTypography.labelMedium(color: Colors.white)),
+          ),
         ),
       ],
     );
-  }  Future<void> _selectDate() async {
+  }
+
+  Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365)), // Allow up to 1 year in future
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: FinzoColors.brandPrimary,
+              onPrimary: Colors.white,
+              surface: FinzoTheme.surface(context),
+              onSurface: FinzoTheme.textPrimary(context),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -378,24 +351,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          backgroundColor: FinzoTheme.surface(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.lg)),
           title: Row(
             children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange[700],
-                size: 28,
+              Container(
+                padding: const EdgeInsets.all(FinzoSpacing.sm),
+                decoration: BoxDecoration(
+                  color: FinzoColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(FinzoRadius.sm),
+                ),
+                child: Icon(Icons.warning_amber_rounded, color: FinzoColors.warning, size: 24),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              const SizedBox(width: FinzoSpacing.md),
+              Expanded(
                 child: Text(
                   'Duplicate Expense Detected',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: FinzoTypography.titleMedium(color: FinzoTheme.textPrimary(context)),
                 ),
               ),
             ],
@@ -404,69 +376,59 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'It seems like this is a duplicate or false expense entry.',
-                style: TextStyle(fontSize: 15),
+                style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
               if (duplicates.isNotEmpty) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(FinzoSpacing.md),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    color: FinzoColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(FinzoRadius.md),
+                    border: Border.all(color: FinzoColors.warning.withOpacity(0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Similar expense found:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange[800],
-                        ),
+                        style: FinzoTypography.labelMedium(color: FinzoColors.warning),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: FinzoSpacing.sm),
                       ...duplicates.take(2).map((dup) => Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
                           '• ₹${dup['amount']} - ${dup['category']}${dup['merchant'] != null && dup['merchant'].isNotEmpty ? ' (${dup['merchant']})' : ''}',
-                          style: const TextStyle(fontSize: 13),
+                          style: FinzoTypography.bodySmall(color: FinzoTheme.textPrimary(context)),
                         ),
                       )),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: FinzoSpacing.md),
               ],
-              const Text(
+              Text(
                 'Do you still want to add this expense?',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey[700],
-              ),
-              child: const Text('Skip'),
+              child: Text('Skip', style: FinzoTypography.labelMedium(color: FinzoTheme.textSecondary(context))),
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary]),
+                borderRadius: BorderRadius.circular(FinzoRadius.sm),
               ),
-              child: const Text('Yes, Continue'),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('Yes, Continue', style: FinzoTypography.labelMedium(color: Colors.white)),
+              ),
             ),
           ],
         );
@@ -477,12 +439,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Future<void> _addExpense() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a category'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showSnackBar('Please select a category', isError: true);
       return;
     }
 
@@ -496,7 +453,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final description = _descriptionController.text.trim();
     final merchant = _merchantController.text.trim();
 
-    // Check for duplicate expense
     final duplicateResult = await expenseProvider.checkDuplicate(
       amount: amount,
       category: category,
@@ -506,12 +462,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     if (!mounted) return;
 
-    // If duplicate found, show confirmation dialog
     if (duplicateResult['isDuplicate'] == true) {
       final shouldContinue = await _showDuplicateConfirmationDialog(duplicateResult);
-      if (!shouldContinue) {
-        return; // User chose to skip
-      }
+      if (!shouldContinue) return;
     }
 
     final success = await expenseProvider.addExpense(
@@ -525,19 +478,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Force refresh all providers to get latest data
-      print('[AddExpense] Expense added successfully, refreshing data...');
-      
-      // Refresh expense provider first
       await expenseProvider.fetchExpenses();
-      
-      // Then refresh analytics data
       await analyticsProvider.fetchDashboardData();
       await analyticsProvider.fetchBalanceChartData();
-      
-      print('[AddExpense] All data refreshed');
 
-      // Check savings status and show alert
       final user = authProvider.user;
       if (user != null && user.savingsTarget > 0) {
         final totalIncome = incomeProvider.totalIncome;
@@ -549,10 +493,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           savingsTargetPercent: user.savingsTarget,
         );
 
-        // Show alert based on status - BEFORE popping the screen
         if (status['alertType'] == SavingsAlertType.danger ||
             status['alertType'] == SavingsAlertType.warning) {
-          // Show dialog for warnings and danger immediately
           if (mounted) {
             await showDialog(
               context: context,
@@ -561,597 +503,464 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             );
           }
         } else {
-          // Show snackbar for success messages
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: const [
-                  Icon(Icons.check_circle, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Text('Expense added successfully!'),
-                ],
-              ),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          _showSnackBar('Expense added successfully!', isSuccess: true);
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Expense added successfully!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        _showSnackBar('Expense added successfully!', isSuccess: true);
       }
       
       if (mounted) Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(expenseProvider.errorMessage ?? 'Failed to add expense'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showSnackBar(expenseProvider.errorMessage ?? 'Failed to add expense', isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : AppColors.background;
-    final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        title: const Text('Add Expense'),
-        backgroundColor: bgColor,
+        title: Text(
+          'Add Expense',
+          style: FinzoTypography.titleMedium(color: FinzoTheme.textPrimary(context)),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        titleTextStyle: TextStyle(
-          color: textPrimaryColor,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(FinzoSpacing.xs),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(Icons.arrow_back_ios_rounded, color: FinzoTheme.textPrimary(context), size: 18),
+          ),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Stack(
         children: [
           SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Scan Bill Button
-              GestureDetector(
-                onTap: _isScanning ? null : _showBillScanOptions,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        AppColors.primary,
-                        AppColors.primaryLight,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+            padding: const EdgeInsets.all(FinzoSpacing.md),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Scan Bill Button
+                  _buildActionCard(
+                    icon: Icons.document_scanner_rounded,
+                    title: '📷 Scan Bill',
+                    subtitle: 'Auto-fill amount & category from bill photo',
+                    gradientColors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
+                    onTap: _isScanning ? null : _showBillScanOptions,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.document_scanner,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '📷 Scan Bill',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Auto-fill amount & category from bill photo',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white.withOpacity(0.8),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
+                  const SizedBox(height: FinzoSpacing.md),
 
-              // Debt/IOU Button
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddDebtScreen()),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        AppColors.secondary,
-                        AppColors.secondaryLight,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.secondary.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.swap_horiz,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(Icons.attach_money, color: Colors.white, size: 20),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Track Debt / IOU',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Track money you owe or are owed',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white.withOpacity(0.8),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Scanned Bill Preview (if available)
-              if (_scannedBillImageBytes != null && _scannedBillImageBytes!.isNotEmpty) ...[
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.success, width: 2),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Stack(
-                      children: [
-                        Image.memory(
-                          _scannedBillImageBytes!,
-                          height: 120,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 120,
-                              width: double.infinity,
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
-                                    SizedBox(height: 4),
-                                    Text('Image preview unavailable', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _scannedBillImageBytes = null;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.success,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Scanned',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // Amount Input
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: AppDecorations.gradientDecoration,
-                child: Column(
-                  children: [
-                    const Text(
-                      'Enter Amount',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _amountController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: const InputDecoration(
-                        prefixText: '₹ ',
-                        prefixStyle: TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        border: InputBorder.none,
-                        hintText: '0',
-                        hintStyle: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 40,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter an amount';
-                        }
-                        if (double.tryParse(value) == null || double.parse(value) <= 0) {
-                          return 'Please enter a valid amount';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Category Selection
-              const Text('Select Category', style: AppTextStyles.heading3),
-              const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  childAspectRatio: 0.85,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: Category.all.length,
-                itemBuilder: (context, index) {
-                  final category = Category.all[index];
-                  final isSelected = _selectedCategory == category.name;
-
-                  return GestureDetector(
+                  // Debt/IOU Button
+                  _buildActionCard(
+                    icon: Icons.swap_horiz_rounded,
+                    title: '💰 Track Debt / IOU',
+                    subtitle: 'Track money you owe or are owed',
+                    gradientColors: [FinzoColors.success, const Color(0xFF4ECDC4)],
                     onTap: () {
-                      setState(() => _selectedCategory = category.name);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AddDebtScreen()));
                     },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? category.color.withOpacity(0.2)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected ? category.color : Colors.grey.shade200,
-                          width: 2,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: category.color.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            category.icon,
-                            size: 28,
-                            color: isSelected ? category.color : AppColors.textSecondary,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            category.displayName,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: isSelected
-                                  ? category.color
-                                  : AppColors.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Date Selection
-              GestureDetector(
-                onTap: _selectDate,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: AppDecorations.cardDecoration,
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_today,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Date', style: AppTextStyles.caption),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatDate(_selectedDate),
-                              style: AppTextStyles.body1,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.chevron_right,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
+                  const SizedBox(height: FinzoSpacing.lg),
 
-              // Description
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: AppDecorations.cardDecoration,
-                child: TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a note (optional)',
-                    border: InputBorder.none,
-                    prefixIcon: Icon(Icons.note_outlined),
+                  // Scanned Bill Preview
+                  if (_scannedBillImageBytes != null && _scannedBillImageBytes!.isNotEmpty) ...[
+                    _buildScannedBillPreview(),
+                    const SizedBox(height: FinzoSpacing.lg),
+                  ],
+
+                  // Amount Input
+                  _buildAmountInput(),
+                  const SizedBox(height: FinzoSpacing.xl),
+
+                  // Category Selection
+                  Text(
+                    'Select Category',
+                    style: FinzoTypography.titleSmall(color: FinzoTheme.textPrimary(context)),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
+                  const SizedBox(height: FinzoSpacing.md),
+                  _buildCategoryGrid(),
+                  const SizedBox(height: FinzoSpacing.xl),
 
-              // Merchant Name
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: AppDecorations.cardDecoration,
-                child: TextFormField(
-                  controller: _merchantController,
-                  decoration: const InputDecoration(
-                    hintText: 'Merchant/Store name (optional)',
-                    border: InputBorder.none,
-                    prefixIcon: Icon(Icons.store_outlined),
+                  // Date Selection
+                  _buildDateSelector(),
+                  const SizedBox(height: FinzoSpacing.md),
+
+                  // Description
+                  _buildInputCard(
+                    controller: _descriptionController,
+                    hint: 'Add a note (optional)',
+                    icon: Icons.note_outlined,
+                    maxLines: 2,
                   ),
-                ),
-              ),
-              const SizedBox(height: 32),
+                  const SizedBox(height: FinzoSpacing.md),
 
-              // Add Button
-              Consumer<ExpenseProvider>(
-                builder: (context, provider, _) {
-                  return SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: provider.isLoading ? null : _addExpense,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: provider.isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              'Add Expense',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                    ),
-                  );
-                },
+                  // Merchant Name
+                  _buildInputCard(
+                    controller: _merchantController,
+                    hint: 'Merchant/Store name (optional)',
+                    icon: Icons.store_outlined,
+                  ),
+                  const SizedBox(height: FinzoSpacing.xl),
+
+                  // Add Button
+                  _buildAddButton(),
+                  const SizedBox(height: FinzoSpacing.xl),
+                ],
               ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
+          // Loading overlay
+          if (_isScanning) _buildLoadingOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required List<Color> gradientColors,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(FinzoSpacing.md),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+          boxShadow: [
+            BoxShadow(
+              color: gradientColors[0].withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(FinzoSpacing.sm),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
+              ),
+              child: Icon(icon, color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: FinzoSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: FinzoTypography.titleSmall(color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: FinzoTypography.bodySmall(color: Colors.white70)),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+          ],
         ),
       ),
-          // Loading overlay for bill scanning
-          if (_isScanning)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+    );
+  }
+
+  Widget _buildScannedBillPreview() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        border: Border.all(color: FinzoColors.success, width: 2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(FinzoRadius.lg - 2),
+        child: Stack(
+          children: [
+            Image.memory(
+              _scannedBillImageBytes!,
+              height: 120,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 120,
+                  width: double.infinity,
+                  color: FinzoTheme.surfaceVariant(context),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Scanning Bill...',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Extracting amount & category',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
+                      Icon(Icons.image_not_supported_rounded, color: FinzoTheme.textSecondary(context), size: 40),
+                      const SizedBox(height: 4),
+                      Text('Image preview unavailable', style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context))),
                     ],
                   ),
+                );
+              },
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => setState(() => _scannedBillImageBytes = null),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: FinzoColors.error, shape: BoxShape.circle),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
                 ),
               ),
             ),
+            Positioned(
+              bottom: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.sm, vertical: 4),
+                decoration: BoxDecoration(
+                  color: FinzoColors.success,
+                  borderRadius: BorderRadius.circular(FinzoRadius.sm),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                    const SizedBox(width: 4),
+                    Text('Scanned', style: FinzoTypography.labelSmall(color: Colors.white)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmountInput() {
+    return Container(
+      padding: const EdgeInsets.all(FinzoSpacing.xl),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(FinzoRadius.xl),
+        boxShadow: [
+          BoxShadow(
+            color: FinzoColors.brandPrimary.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
         ],
+      ),
+      child: Column(
+        children: [
+          Text('Enter Amount', style: FinzoTypography.bodyMedium(color: Colors.white70)),
+          const SizedBox(height: FinzoSpacing.sm),
+          TextFormField(
+            controller: _amountController,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            style: FinzoTypography.displayLarge(color: Colors.white),
+            decoration: InputDecoration(
+              prefixText: '₹ ',
+              prefixStyle: FinzoTypography.displayLarge(color: Colors.white),
+              border: InputBorder.none,
+              hintText: '0',
+              hintStyle: FinzoTypography.displayLarge(color: Colors.white38),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Please enter an amount';
+              if (double.tryParse(value) == null || double.parse(value) <= 0) return 'Please enter a valid amount';
+              return null;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        childAspectRatio: 0.85,
+        crossAxisSpacing: FinzoSpacing.sm,
+        mainAxisSpacing: FinzoSpacing.sm,
+      ),
+      itemCount: Category.all.length,
+      itemBuilder: (context, index) {
+        final category = Category.all[index];
+        final isSelected = _selectedCategory == category.name;
+
+        return GestureDetector(
+          onTap: () => setState(() => _selectedCategory = category.name),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: isSelected ? category.color.withOpacity(0.15) : FinzoTheme.surface(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              border: Border.all(
+                color: isSelected ? category.color : FinzoTheme.divider(context),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected ? [
+                BoxShadow(color: category.color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+              ] : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(category.icon, size: 26, color: isSelected ? category.color : FinzoTheme.textSecondary(context)),
+                const SizedBox(height: 4),
+                Text(
+                  category.displayName,
+                  style: FinzoTypography.labelSmall(
+                    color: isSelected ? category.color : FinzoTheme.textSecondary(context),
+                  ).copyWith(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDateSelector() {
+    return GestureDetector(
+      onTap: _selectDate,
+      child: Container(
+        padding: const EdgeInsets.all(FinzoSpacing.md),
+        decoration: BoxDecoration(
+          color: FinzoTheme.surface(context),
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+          border: Border.all(color: FinzoTheme.divider(context)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(FinzoSpacing.sm),
+              decoration: BoxDecoration(
+                color: FinzoTheme.brandAccent(context).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(FinzoRadius.md),
+              ),
+              child: Icon(Icons.calendar_today_rounded, color: FinzoTheme.brandAccent(context)),
+            ),
+            const SizedBox(width: FinzoSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Date', style: FinzoTypography.labelSmall(color: FinzoTheme.textSecondary(context))),
+                  const SizedBox(height: 2),
+                  Text(_formatDate(_selectedDate), style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context))),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: FinzoTheme.textSecondary(context)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputCard({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(FinzoSpacing.md),
+      decoration: BoxDecoration(
+        color: FinzoTheme.surface(context),
+        borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        border: Border.all(color: FinzoTheme.divider(context)),
+      ),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
+          border: InputBorder.none,
+          prefixIcon: Icon(icon, color: FinzoTheme.textSecondary(context)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddButton() {
+    return Consumer<ExpenseProvider>(
+      builder: (context, provider, _) {
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary]),
+            borderRadius: BorderRadius.circular(FinzoRadius.md),
+            boxShadow: [
+              BoxShadow(color: FinzoColors.brandPrimary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6)),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: provider.isLoading ? null : _addExpense,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.md)),
+            ),
+            child: provider.isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                  )
+                : Text('Add Expense', style: FinzoTypography.labelLarge(color: Colors.white)),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.5),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(FinzoSpacing.xl),
+          decoration: BoxDecoration(
+            color: FinzoTheme.surface(context),
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: FinzoTheme.brandAccent(context)),
+              const SizedBox(height: FinzoSpacing.md),
+              Text('Scanning Bill...', style: FinzoTypography.titleSmall(color: FinzoTheme.textPrimary(context))),
+              const SizedBox(height: FinzoSpacing.xs),
+              Text('Extracting amount & category', style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context))),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1162,13 +971,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final yesterday = today.subtract(const Duration(days: 1));
     final dateToCompare = DateTime(date.year, date.month, date.day);
 
-    if (dateToCompare == today) {
-      return 'Today';
-    } else if (dateToCompare == yesterday) {
-      return 'Yesterday';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
+    if (dateToCompare == today) return 'Today';
+    if (dateToCompare == yesterday) return 'Yesterday';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }
 

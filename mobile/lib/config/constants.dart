@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class ApiConstants {
   // ====================================================================
   // NETWORK CONFIGURATION FOR SMS TESTING
@@ -21,22 +23,31 @@ class ApiConstants {
   // 🔧 CHANGE THIS BASED ON YOUR PLATFORM:
   // For Web/Emulator: 'localhost'
   // For Physical Device: Your computer's IP (e.g., '10.176.182.25')
+<<<<<<< Updated upstream
   static const String _serverIp = 'localhost'; // Use localhost for web
   static const String _serverPort = '5001';
+=======
+  static const String _serverIp = 'localhost'; // Use 'localhost' for web, your IP for physical device
+  static const String _serverPort = '5001'; // Backend runs on port 5001 (from .env)
+>>>>>>> Stashed changes
 
   // Automatically detect platform and use correct URL
   static String get baseUrl {
-    // For web and iOS simulator
-    if (identical(0, 0.0)) {
-      return 'http://$_serverIp:$_serverPort/api';
+    // For web browser - always use localhost
+    if (kIsWeb) {
+      return 'http://localhost:$_serverPort/api';
     }
 
-    // For Android emulator
-    if (_serverIp == 'localhost') {
+    // For mobile platforms - use the configured IP
+    // Note: Android emulator needs 10.0.2.2 to reach host machine
+    // For physical devices, set _serverIp to your computer's IP
+    if (_serverIp == 'localhost' || _serverIp == '127.0.0.1') {
+      // This handles Android emulator - it needs 10.0.2.2
+      // iOS simulator works with localhost
       return 'http://10.0.2.2:$_serverPort/api';
     }
 
-    // For real Android device (using computer's IP)
+    // For real devices (physical Android/iOS) using computer's IP
     return 'http://$_serverIp:$_serverPort/api';
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/sms_service.dart';
-import '../config/theme.dart';
+import '../config/app_theme.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({Key? key}) : super(key: key);
@@ -88,22 +88,22 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                        color: FinzoTheme.surface(context),
+                        border: Border(bottom: BorderSide(color: FinzoTheme.divider(context))),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.filter_list, color: Colors.grey.shade700, size: 20),
+                          Icon(Icons.filter_list, color: FinzoTheme.textSecondary(context), size: 20),
                           const SizedBox(width: 12),
-                          const Text('Filter by A/C:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Text('Filter by A/C:', style: TextStyle(fontWeight: FontWeight.w500, color: FinzoTheme.textPrimary(context))),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: FinzoTheme.surface(context),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade300),
+                                border: Border.all(color: FinzoTheme.divider(context)),
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String?>(
@@ -166,12 +166,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             Icon(
               isUPI ? Icons.phone_android : Icons.account_balance,
               size: 64,
-              color: Colors.grey.shade300,
+              color: FinzoTheme.textTertiary(context),
             ),
             const SizedBox(height: 16),
             Text(
               'No ${isUPI ? 'UPI' : 'Bank'} transactions found',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+              style: TextStyle(color: FinzoTheme.textSecondary(context), fontSize: 16),
             ),
           ],
         ),
@@ -240,23 +240,23 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 12, color: Colors.grey.shade600),
+                    Icon(Icons.calendar_today, size: 12, color: FinzoTheme.textSecondary(context)),
                     const SizedBox(width: 4),
                     Text(
                       '${txn['date']} at ${txn['time']}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 12, color: FinzoTheme.textSecondary(context)),
                     ),
                     if (txn['accountNumber'] != null && txn['accountNumber'].toString().isNotEmpty) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
+                          color: FinzoTheme.surface(context),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           'XX${txn['accountNumber']}',
-                          style: TextStyle(fontSize: 10, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 10, color: FinzoTheme.textSecondary(context), fontWeight: FontWeight.w500),
                         ),
                       ),
                     ],
@@ -268,7 +268,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: FinzoTheme.surface(context),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(12),
                     bottomRight: Radius.circular(12),
@@ -302,14 +302,14 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(Icons.message, size: 16, color: Colors.grey.shade600),
+                        Icon(Icons.message, size: 16, color: FinzoTheme.textSecondary(context)),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Full Message:',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                            color: FinzoTheme.textSecondary(context),
                           ),
                         ),
                       ],
@@ -318,13 +318,13 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: FinzoTheme.surface(context),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: FinzoTheme.divider(context)),
                       ),
                       child: Text(
                         txn['body'],
-                        style: const TextStyle(fontSize: 12, height: 1.4),
+                        style: TextStyle(fontSize: 12, height: 1.4, color: FinzoTheme.textPrimary(context)),
                       ),
                     ),
                   ],
@@ -341,7 +341,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
+        Icon(icon, size: 18, color: FinzoTheme.brandPrimary(context)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -352,14 +352,14 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade600,
+                  color: FinzoTheme.textSecondary(context),
                   letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: FinzoTheme.textPrimary(context)),
               ),
             ],
           ),
@@ -368,5 +368,3 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
   }
 }
-
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/kyc_service.dart';
+import '../../config/app_theme.dart';
 
 class MfaScreen extends StatefulWidget {
   final VoidCallback onSuccess;
@@ -128,33 +129,33 @@ class _MfaScreenState extends State<MfaScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.mark_email_read, size: 80, color: Colors.blue),
+          Icon(Icons.mark_email_read, size: 80, color: FinzoTheme.brandPrimary(context)),
           SizedBox(height: 20),
           Text(
             'Secure your Account',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: FinzoTheme.textPrimary(context)),
           ),
           SizedBox(height: 10),
           Text(
             'We sent a 6-digit code to your email. Please enter it below.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(color: FinzoTheme.textSecondary(context)),
           ),
           SizedBox(height: 10),
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: FinzoTheme.brandPrimary(context).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                Icon(Icons.info_outline, color: FinzoTheme.brandPrimary(context), size: 20),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Check backend console for OTP code',
-                    style: TextStyle(color: Colors.blue[900], fontSize: 12),
+                    style: TextStyle(color: FinzoTheme.brandPrimary(context), fontSize: 12),
                   ),
                 ),
               ],
@@ -166,21 +167,21 @@ class _MfaScreenState extends State<MfaScreen> {
             keyboardType: TextInputType.number,
             maxLength: 6,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24, letterSpacing: 10, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 24, letterSpacing: 10, fontWeight: FontWeight.bold, color: FinzoTheme.textPrimary(context)),
             decoration: InputDecoration(
               counterText: "",
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.blue, width: 2),
+                borderSide: BorderSide(color: FinzoTheme.brandPrimary(context), width: 2),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.blue, width: 2),
+                borderSide: BorderSide(color: FinzoTheme.brandPrimary(context), width: 2),
               ),
               hintText: '3 0 1 4 7 2',
-              hintStyle: TextStyle(color: Colors.grey[300]),
+              hintStyle: TextStyle(color: FinzoTheme.textTertiary(context)),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: FinzoTheme.surface(context),
             ),
             onChanged: (value) {
               // Auto-verify when 6 digits entered
@@ -196,8 +197,8 @@ class _MfaScreenState extends State<MfaScreen> {
               onPressed: (_otpSent && !_isVerifying && _otpController.text.length == 6) ? _verifyOtp : null,
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 15),
-                backgroundColor: Colors.blue,
-                disabledBackgroundColor: Colors.grey[300],
+                backgroundColor: FinzoTheme.brandPrimary(context),
+                disabledBackgroundColor: FinzoTheme.divider(context),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -227,7 +228,7 @@ class _MfaScreenState extends State<MfaScreen> {
              child: Text(
                'Resend Code',
                style: TextStyle(
-                 color: (_isLoading || _isVerifying) ? Colors.grey : Colors.blue,
+                 color: (_isLoading || _isVerifying) ? FinzoTheme.textTertiary(context) : FinzoTheme.brandPrimary(context),
                  fontWeight: FontWeight.w600,
                ),
              ),
@@ -237,5 +238,3 @@ class _MfaScreenState extends State<MfaScreen> {
     );
   }
 }
-
-

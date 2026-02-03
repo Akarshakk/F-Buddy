@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../config/theme.dart';
-import '../../services/rag_service.dart';
-import '../../services/translation_service.dart';
-import '../../providers/language_provider.dart';
+import '../config/app_theme.dart';
+import '../services/rag_service.dart';
+import '../services/translation_service.dart';
+import '../providers/language_provider.dart';
 import 'package:finzo/l10n/app_localizations.dart';
 
 /// Floating chat widget for RAG-based financial advisory

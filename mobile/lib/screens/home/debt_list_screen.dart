@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../models/debt.dart';
 import '../../providers/debt_provider.dart';
 import 'add_debt_screen.dart';
@@ -185,7 +185,7 @@ class _DebtListScreenState extends State<DebtListScreen>
             const SizedBox(height: 8),
             Text(
               'Add a new debt to track',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: FinzoTheme.textSecondary(context)),
             ),
           ],
         ),
@@ -327,7 +327,7 @@ class _DebtListScreenState extends State<DebtListScreen>
               Text(
                 debt.description,
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: FinzoTheme.textSecondary(context),
                   fontSize: 13,
                 ),
               ),
@@ -335,12 +335,12 @@ class _DebtListScreenState extends State<DebtListScreen>
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                Icon(Icons.calendar_today, size: 14, color: FinzoTheme.textTertiary(context)),
                 const SizedBox(width: 4),
                 Text(
                   'Due: ${_formatDate(debt.dueDate)}',
                   style: TextStyle(
-                    color: isOverdue ? Colors.red : Colors.grey[600],
+                    color: isOverdue ? Colors.red : FinzoTheme.textSecondary(context),
                     fontSize: 12,
                   ),
                 ),

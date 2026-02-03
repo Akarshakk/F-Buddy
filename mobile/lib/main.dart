@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'config/theme.dart';
+import 'config/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/expense_provider.dart';
@@ -16,8 +16,10 @@ import 'providers/language_provider.dart';
 import 'package:finzo/l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home/debt_list_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/splitwise/splitwise_home_screen.dart';
+import 'features/financial_calculator/finance_manager_screen.dart';
 import 'screens/feature_selection_screen.dart';
-import 'widgets/rag_chat_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,14 +55,8 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             onGenerateTitle: (context) => context.l10n.t('app_title'),
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme.copyWith(
-              textTheme: GoogleFonts.interTextTheme(),
-              visualDensity: VisualDensity.adaptivePlatformDensity,
-            ),
-            darkTheme: AppTheme.darkTheme.copyWith(
-              textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-              visualDensity: VisualDensity.adaptivePlatformDensity,
-            ),
+            theme: FinzoAppTheme.light(),
+            darkTheme: FinzoAppTheme.dark(),
             themeMode: themeProvider.themeMode,
             locale: context.watch<LanguageProvider>().locale,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -71,22 +67,42 @@ class MyApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             home: const SplashScreen(),
-            routes: {
-              '/home': (context) => const FeatureSelectionScreen(),
-              '/debts': (context) => const DebtListScreen(),
+            onGenerateRoute: (settings) {
+              switch (settings.name) {
+                case '/home':
+                  return MaterialPageRoute(
+                    builder: (context) => const FeatureSelectionScreen(),
+                    settings: settings,
+                  );
+                case '/personal-finance':
+                  return MaterialPageRoute(
+                    builder: (context) => const HomeScreen(),
+                    settings: settings,
+                  );
+                case '/group-finance':
+                  return MaterialPageRoute(
+                    builder: (context) => const SplitwiseHomeScreen(),
+                    settings: settings,
+                  );
+                case '/finance-manager':
+                  return MaterialPageRoute(
+                    builder: (context) => const FinanceManagerScreen(),
+                    settings: settings,
+                  );
+                case '/debts':
+                  return MaterialPageRoute(
+                    builder: (context) => const DebtListScreen(),
+                    settings: settings,
+                  );
+                default:
+                  return MaterialPageRoute(
+                    builder: (context) => const FeatureSelectionScreen(),
+                    settings: settings,
+                  );
+              }
             },
             builder: (context, child) {
-              return Stack(
-                children: [
-                  if (child != null) child,
-                  const RagChatWidget(),
-                ],
-              );
-            },
-            onUnknownRoute: (settings) {
-              return MaterialPageRoute(
-                builder: (context) => const FeatureSelectionScreen(),
-              );
+              return child ?? const SizedBox.shrink();
             },
           );
         },

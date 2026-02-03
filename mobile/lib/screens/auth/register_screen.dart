@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/constants.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import 'email_verification_screen.dart';
-import '../../widgets/auto_translated_text.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,7 +13,7 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -24,9 +23,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _animationController.forward();
+  }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -54,10 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      print('[Register] Response: $response'); // Debug log
-
       if (response['success'] == true) {
-        // Navigate to email verification screen
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => EmailVerificationScreen(
@@ -66,359 +78,338 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response['message'] ?? 'Registration failed'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        _showErrorSnackBar(response['message'] ?? 'Registration failed');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        _showErrorSnackBar('Error: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: FinzoTypography.bodyMedium(color: Colors.white)),
+        backgroundColor: FinzoColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.sm)),
+        margin: const EdgeInsets.all(FinzoSpacing.md),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: FinzoTheme.background(context),
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Container(
+            padding: const EdgeInsets.all(FinzoSpacing.xs),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.sm),
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_rounded,
+              color: FinzoTheme.textPrimary(context),
+              size: 18,
+            ),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
-                child: IntrinsicHeight(
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const AutoTranslatedText(
-                  'Create Your Account',
-                  style: AppTextStyles.heading2,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                const AutoTranslatedText(
-                  'Join thousands managing their finances',
-                  style: AppTextStyles.body2,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                
-                // Name field
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AutoTranslatedText('Full Name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _nameController,
-                      textCapitalization: TextCapitalization.words,
-                      style: const TextStyle(color: Colors.black87, fontSize: 15),
-                      decoration: InputDecoration(
-                        hintText: 'Your full name',
-                        prefixIcon: const Icon(Icons.person_outlined, size: 20),
-                        filled: true,
-                        fillColor: const Color(0xFFFDFCFB),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColors.primary, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(FinzoSpacing.lg),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header
+                  Text(
+                    'Create Account',
+                    style: FinzoTypography.displaySmall(
+                      color: FinzoTheme.textPrimary(context),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // Email field
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AutoTranslatedText('Email', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      style: const TextStyle(color: Colors.black87, fontSize: 15),
-                  decoration: InputDecoration(
-                        hintText: 'your@email.com',
-                        prefixIcon: const Icon(Icons.mail_outlined, size: 20),
-                        filled: true,
-                        fillColor: const Color(0xFFFDFCFB),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColors.primary, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // Password field
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AutoTranslatedText('Password', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      style: const TextStyle(color: Colors.black87, fontSize: 15),
-                      decoration: InputDecoration(
-                        hintText: 'Min. 6 characters',
-                        prefixIcon: const Icon(Icons.lock_outlined, size: 20),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
-                          },
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFFDFCFB),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColors.primary, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
-                        }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // Confirm Password field
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AutoTranslatedText('Confirm Password', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      style: const TextStyle(color: Colors.black87, fontSize: 15),
-                      decoration: InputDecoration(
-                        hintText: 'Confirm password',
-                        prefixIcon: const Icon(Icons.lock_outlined, size: 20),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
-                          },
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFFDFCFB),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColors.primary, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                      validator: (value) {
-                        if (value != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // Monthly Budget field
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AutoTranslatedText('Monthly Budget', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _budgetController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.black87, fontSize: 15),
-                      decoration: InputDecoration(
-                        hintText: 'Enter your monthly income/budget',
-                        prefixIcon: const Icon(Icons.account_balance_wallet_outlined, size: 20),
-                        prefixText: '₹ ',
-                        filled: true,
-                        fillColor: const Color(0xFFFDFCFB),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColors.primary, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          if (double.tryParse(value) == null) {
-                            return 'Please enter a valid amount';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 4),
-                    AutoTranslatedText(
-                      'Optional - you can update later',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                
-                // Register button
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
+                    textAlign: TextAlign.center,
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const AutoTranslatedText(
-                          'Create Account',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
-                        ),
-                ),
-                const SizedBox(height: 20),
-                
-                // Login link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const AutoTranslatedText(
-                      'Already have an account? ',
-                      style: AppTextStyles.body2,
+                  const SizedBox(height: FinzoSpacing.sm),
+                  Text(
+                    'Join thousands managing their finances',
+                    style: FinzoTypography.bodyLarge(
+                      color: FinzoTheme.textSecondary(context),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                      child: AutoTranslatedText(
-                        'Sign In',
-                        style: TextStyle(
-                          color: AppColors.secondary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: FinzoSpacing.xl),
+                  
+                  // Name field
+                  _buildTextField(
+                    label: 'Full Name',
+                    controller: _nameController,
+                    hint: 'Your full name',
+                    icon: Icons.person_outline_rounded,
+                    textCapitalization: TextCapitalization.words,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: FinzoSpacing.md),
+                  
+                  // Email field
+                  _buildTextField(
+                    label: 'Email',
+                    controller: _emailController,
+                    hint: 'your@email.com',
+                    icon: Icons.mail_outline_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!value.contains('@')) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: FinzoSpacing.md),
+                  
+                  // Password field
+                  _buildTextField(
+                    label: 'Password',
+                    controller: _passwordController,
+                    hint: 'Min. 6 characters',
+                    icon: Icons.lock_outline_rounded,
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 20,
+                        color: FinzoTheme.textSecondary(context),
+                      ),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: FinzoSpacing.md),
+                  
+                  // Confirm Password field
+                  _buildTextField(
+                    label: 'Confirm Password',
+                    controller: _confirmPasswordController,
+                    hint: 'Confirm password',
+                    icon: Icons.lock_outline_rounded,
+                    obscureText: _obscureConfirmPassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 20,
+                        color: FinzoTheme.textSecondary(context),
+                      ),
+                      onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                    ),
+                    validator: (value) {
+                      if (value != _passwordController.text) {
+                        return 'Passwords do not match';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: FinzoSpacing.md),
+                  
+                  // Monthly Budget field
+                  _buildTextField(
+                    label: 'Monthly Budget',
+                    controller: _budgetController,
+                    hint: 'Enter your monthly budget',
+                    icon: Icons.account_balance_wallet_outlined,
+                    keyboardType: TextInputType.number,
+                    prefixText: '₹ ',
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        if (double.tryParse(value) == null) {
+                          return 'Please enter a valid amount';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: FinzoSpacing.xs),
+                  Text(
+                    'Optional - you can update later',
+                    style: FinzoTypography.bodySmall(
+                      color: FinzoTheme.textSecondary(context),
+                    ),
+                  ),
+                  const SizedBox(height: FinzoSpacing.xl),
+                  
+                  // Register button
+                  _buildPrimaryButton(
+                    label: 'Create Account',
+                    onPressed: _isLoading ? null : _register,
+                    isLoading: _isLoading,
+                  ),
+                  const SizedBox(height: FinzoSpacing.lg),
+                  
+                  // Login link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Already have an account? ',
+                        style: FinzoTypography.bodyMedium(
+                          color: FinzoTheme.textSecondary(context),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-              ],
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Text(
+                          'Sign In',
+                          style: FinzoTypography.labelLarge(
+                            color: FinzoTheme.brandAccent(context),
+                          ).copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: FinzoSpacing.xl),
+                ],
+              ),
             ),
           ),
-                ),
-              ),
-            );
-          },
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? prefixText,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: FinzoTypography.labelMedium(
+            color: FinzoTheme.textPrimary(context),
+          ).copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: FinzoSpacing.sm),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
+          obscureText: obscureText,
+          style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
+            prefixIcon: Icon(icon, size: 20, color: FinzoTheme.textSecondary(context)),
+            prefixText: prefixText,
+            prefixStyle: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: FinzoTheme.surfaceVariant(context),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: BorderSide(color: FinzoTheme.divider(context)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: BorderSide(color: FinzoTheme.divider(context)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(FinzoRadius.md),
+              borderSide: const BorderSide(color: FinzoColors.error),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: FinzoSpacing.md,
+              vertical: FinzoSpacing.md,
+            ),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrimaryButton({
+    required String label,
+    required VoidCallback? onPressed,
+    bool isLoading = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
+        ),
+        borderRadius: BorderRadius.circular(FinzoRadius.md),
+        boxShadow: [
+          BoxShadow(
+            color: FinzoColors.brandPrimary.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FinzoRadius.md),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(label, style: FinzoTypography.labelLarge(color: Colors.white)),
       ),
     );
   }

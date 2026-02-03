@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../models/category.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/expense_provider.dart';
@@ -12,7 +12,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/splitwise_provider.dart';
 import '../widgets/expense_card.dart';
 import '../widgets/summary_card.dart';
-import '../../widgets/auto_translated_text.dart';
 import '../../l10n/app_localizations.dart';
 import 'add_income_screen.dart';
 import '../splitwise/splitwise_home_screen.dart';
@@ -93,25 +92,17 @@ class _DashboardTabState extends State<DashboardTab> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<AuthProvider>(context).user;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark
-        ? AppColorsDark.background
-        : const Color.fromARGB(255, 228, 228, 228);
-    final textPrimaryColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final textSecondaryColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: RefreshIndicator(
+          color: FinzoTheme.brandAccent(context),
           onRefresh: _refreshData,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(FinzoSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -125,14 +116,12 @@ class _DashboardTabState extends State<DashboardTab> {
                       children: [
                         Text(
                           'Hello, ${user?.name.split(' ').first ?? 'User'} 👋',
-                          style: AppTextStyles.heading2
-                              .copyWith(color: textPrimaryColor),
+                          style: FinzoTypography.headlineMedium(color: FinzoTheme.textPrimary(context)),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           DateFormat('EEEE, d MMMM').format(DateTime.now()),
-                          style: AppTextStyles.body2
-                              .copyWith(color: textSecondaryColor),
+                          style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
                         ),
                       ],
                     ),
@@ -152,7 +141,7 @@ class _DashboardTabState extends State<DashboardTab> {
                             )
                           : CircleAvatar(
                               radius: 24,
-                              backgroundColor: primaryColor,
+                              backgroundColor: FinzoTheme.brandAccent(context),
                               child: Text(
                                 (user?.name.isNotEmpty ?? false)
                                     ? user!.name[0].toUpperCase()
@@ -167,7 +156,7 @@ class _DashboardTabState extends State<DashboardTab> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: FinzoSpacing.lg),
 
                 // Summary Cards
                 Consumer2<AnalyticsProvider, IncomeProvider>(
@@ -178,8 +167,19 @@ class _DashboardTabState extends State<DashboardTab> {
                         // Balance Card
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: AppDecorations.gradientDecoration,
+                          padding: const EdgeInsets.all(FinzoSpacing.lg),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                FinzoTheme.brandAccent(context),
+                                FinzoTheme.brandAccent(context).withOpacity(0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                            boxShadow: FinzoShadows.medium,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -187,11 +187,10 @@ class _DashboardTabState extends State<DashboardTab> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  AutoTranslatedText(
+                                  Text(
                                     'Monthly Balance',
-                                    style: const TextStyle(
+                                    style: FinzoTypography.bodyMedium().copyWith(
                                       color: Colors.white70,
-                                      fontSize: 14,
                                     ),
                                   ),
                                   TextButton.icon(
@@ -207,24 +206,24 @@ class _DashboardTabState extends State<DashboardTab> {
                                     },
                                     icon: const Icon(Icons.add,
                                         color: Colors.white, size: 18),
-                                    label: const AutoTranslatedText(
+                                    label: Text(
                                       'Add Income',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 12),
+                                      style: FinzoTypography.labelSmall().copyWith(
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: FinzoSpacing.sm),
                               Text(
                                 '₹${NumberFormat('#,##,###').format(dashboard?.balance ?? 0)}',
-                                style: const TextStyle(
+                                style: FinzoTypography.displayMedium().copyWith(
                                   color: Colors.white,
-                                  fontSize: 36,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: FinzoSpacing.md),
                               Row(
                                 children: [
                                   Expanded(
@@ -233,7 +232,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                       dashboard?.totalIncome ??
                                           income.totalIncome,
                                       Icons.arrow_downward,
-                                      Colors.greenAccent,
+                                      FinzoColors.success,
                                     ),
                                   ),
                                   Container(
@@ -246,7 +245,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                       'Expenses',
                                       dashboard?.totalExpense ?? 0,
                                       Icons.arrow_upward,
-                                      Colors.redAccent,
+                                      FinzoColors.error,
                                     ),
                                   ),
                                 ],
@@ -254,7 +253,7 @@ class _DashboardTabState extends State<DashboardTab> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: FinzoSpacing.md),
 
                         // Quick Stats
                         Row(
@@ -264,16 +263,16 @@ class _DashboardTabState extends State<DashboardTab> {
                                 title: 'Savings Rate',
                                 value: '${dashboard?.savingsRate ?? 0}%',
                                 icon: Icons.savings_outlined,
-                                color: AppColors.success,
+                                color: FinzoColors.success,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: FinzoSpacing.sm),
                             Expanded(
                               child: SummaryCard(
                                 title: 'This Month',
                                 value: dashboard?.month ?? '',
                                 icon: Icons.calendar_today,
-                                color: AppColors.info,
+                                color: FinzoColors.info,
                               ),
                             ),
                           ],
@@ -282,18 +281,18 @@ class _DashboardTabState extends State<DashboardTab> {
                     );
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: FinzoSpacing.lg),
 
                 // Category Pie Chart
                 _buildPieChartSection(),
-                const SizedBox(height: 24),
+                const SizedBox(height: FinzoSpacing.lg),
 
                 _buildGroupExpensesSection(),
-                const SizedBox(height: 24),
+                const SizedBox(height: FinzoSpacing.lg),
 
                 // 7-Day Balance Chart
                 _buildBalanceChartSection(),
-                const SizedBox(height: 24),
+                const SizedBox(height: FinzoSpacing.lg),
 
                 // Latest Expenses
                 _buildLatestExpensesSection(),
@@ -309,7 +308,7 @@ class _DashboardTabState extends State<DashboardTab> {
   Widget _buildBalanceItem(
       String label, double amount, IconData icon, Color color) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -317,18 +316,19 @@ class _DashboardTabState extends State<DashboardTab> {
             children: [
               Icon(icon, color: color, size: 16),
               const SizedBox(width: 4),
-              AutoTranslatedText(
+              Text(
                 label,
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: FinzoTypography.labelSmall().copyWith(
+                  color: Colors.white70,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             '₹${NumberFormat('#,##,###').format(amount)}',
-            style: const TextStyle(
+            style: FinzoTypography.titleMedium().copyWith(
               color: Colors.white,
-              fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -344,21 +344,28 @@ class _DashboardTabState extends State<DashboardTab> {
 
         if (categoryData.isEmpty) {
           return Container(
-            padding: const EdgeInsets.all(24),
-            decoration: AppDecorations.cardDecoration,
+            padding: const EdgeInsets.all(FinzoSpacing.lg),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surface(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.lg),
+              boxShadow: FinzoShadows.small,
+            ),
             child: Column(
               children: [
-                const Icon(Icons.pie_chart_outline,
-                    size: 48, color: AppColors.textSecondary),
-                const SizedBox(height: 12),
-                AutoTranslatedText(
+                Icon(Icons.pie_chart_outline,
+                    size: 48, color: FinzoTheme.textTertiary(context)),
+                const SizedBox(height: FinzoSpacing.sm),
+                Text(
                   'No expenses yet',
-                  style: AppTextStyles.body1
-                      .copyWith(color: AppColors.textSecondary),
+                  style: FinzoTypography.bodyMedium().copyWith(
+                    color: FinzoTheme.textSecondary(context),
+                  ),
                 ),
-                const AutoTranslatedText(
+                Text(
                   'Add your first expense to see the breakdown',
-                  style: AppTextStyles.caption,
+                  style: FinzoTypography.bodySmall().copyWith(
+                    color: FinzoTheme.textTertiary(context),
+                  ),
                 ),
               ],
             ),
@@ -366,18 +373,22 @@ class _DashboardTabState extends State<DashboardTab> {
         }
 
         return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: AppDecorations.cardDecoration,
+          padding: const EdgeInsets.all(FinzoSpacing.md),
+          decoration: BoxDecoration(
+            color: FinzoTheme.surface(context),
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+            boxShadow: FinzoShadows.small,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AutoTranslatedText('Expense Categories', style: AppTextStyles.heading3),
-              const SizedBox(height: 8),
-              const AutoTranslatedText(
+              Text('Expense Categories', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
+              const SizedBox(height: FinzoSpacing.xs),
+              Text(
                 'Monthly breakdown by category',
-                style: AppTextStyles.caption,
+                style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
               SizedBox(
                 height: 200,
                 child: PieChart(
@@ -420,18 +431,18 @@ class _DashboardTabState extends State<DashboardTab> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: FinzoSpacing.sm,
+                runSpacing: FinzoSpacing.sm,
                 children: categoryData.map((data) {
                   final category = Category.getByName(data.category);
                   return Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: FinzoSpacing.sm, vertical: 4),
                     decoration: BoxDecoration(
                       color: category.color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(FinzoRadius.full),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -450,9 +461,11 @@ class _DashboardTabState extends State<DashboardTab> {
                             Icon(category.icon,
                                 size: 14, color: category.color),
                             const SizedBox(width: 4),
-                            AutoTranslatedText(
+                            Text(
                               category.displayName,
-                              style: AppTextStyles.caption.copyWith(
+                              style: FinzoTypography.labelSmall(
+                                color: FinzoTheme.textPrimary(context),
+                              ).copyWith(
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -461,7 +474,7 @@ class _DashboardTabState extends State<DashboardTab> {
                         const SizedBox(width: 4),
                         Text(
                           '₹${NumberFormat.compact().format(data.amount)}',
-                          style: AppTextStyles.caption.copyWith(
+                          style: FinzoTypography.labelSmall().copyWith(
                             color: category.color,
                             fontWeight: FontWeight.w600,
                           ),
@@ -488,24 +501,31 @@ class _DashboardTabState extends State<DashboardTab> {
 
         if (!analytics.hasEnoughDataForChart) {
           return Container(
-            padding: const EdgeInsets.all(24),
-            decoration: AppDecorations.cardDecoration,
+            padding: const EdgeInsets.all(FinzoSpacing.lg),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surface(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.lg),
+              boxShadow: FinzoShadows.small,
+            ),
             child: Column(
               children: [
-                const Icon(Icons.show_chart,
-                    size: 48, color: AppColors.textSecondary),
-                const SizedBox(height: 12),
-                AutoTranslatedText(
+                Icon(Icons.show_chart,
+                    size: 48, color: FinzoTheme.textTertiary(context)),
+                const SizedBox(height: FinzoSpacing.sm),
+                Text(
                   '7-Day Balance Chart',
-                  style: AppTextStyles.body1
-                      .copyWith(color: AppColors.textSecondary),
+                  style: FinzoTypography.bodyMedium().copyWith(
+                    color: FinzoTheme.textSecondary(context),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                AutoTranslatedText(
+                const SizedBox(height: FinzoSpacing.sm),
+                Text(
                   analytics.daysRemainingForChart > 0
                       ? 'Add expenses for ${analytics.daysRemainingForChart} more unique dates'
                       : 'Start adding expenses to see the chart',
-                  style: AppTextStyles.caption,
+                  style: FinzoTypography.bodySmall().copyWith(
+                    color: FinzoTheme.textTertiary(context),
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -516,17 +536,22 @@ class _DashboardTabState extends State<DashboardTab> {
         final chartData = analytics.balanceChartData;
         if (chartData.isEmpty) {
           return Container(
-            padding: const EdgeInsets.all(24),
-            decoration: AppDecorations.cardDecoration,
+            padding: const EdgeInsets.all(FinzoSpacing.lg),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surface(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.lg),
+              boxShadow: FinzoShadows.small,
+            ),
             child: Column(
               children: [
-                const Icon(Icons.show_chart,
-                    size: 48, color: AppColors.textSecondary),
-                const SizedBox(height: 12),
-                AutoTranslatedText(
+                Icon(Icons.show_chart,
+                    size: 48, color: FinzoTheme.textTertiary(context)),
+                const SizedBox(height: FinzoSpacing.sm),
+                Text(
                   'Loading chart data...',
-                  style: AppTextStyles.body1
-                      .copyWith(color: AppColors.textSecondary),
+                  style: FinzoTypography.bodyMedium().copyWith(
+                    color: FinzoTheme.textSecondary(context),
+                  ),
                 ),
               ],
             ),
@@ -535,8 +560,12 @@ class _DashboardTabState extends State<DashboardTab> {
 
         return ClipRect(
           child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: AppDecorations.cardDecoration,
+            padding: const EdgeInsets.all(FinzoSpacing.md),
+            decoration: BoxDecoration(
+              color: FinzoTheme.surface(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.lg),
+              boxShadow: FinzoShadows.small,
+            ),
             clipBehavior: Clip.antiAlias,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,33 +574,33 @@ class _DashboardTabState extends State<DashboardTab> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const AutoTranslatedText('7-Day Overview', style: AppTextStyles.heading3),
+                    Text('7-Day Overview', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
                     _buildWeekSelector(analytics),
                   ],
                 ),
                 const SizedBox(height: 4),
-                AutoTranslatedText(
+                Text(
                   analytics.isCurrentWeek
                       ? 'Income vs Expenses (Last 7 Days)'
                       : 'Income vs Expenses',
-                  style: AppTextStyles.caption,
+                  style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: FinzoSpacing.lg),
                 ClipRect(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 219),
                     child: _buildLayeredAreaChart(chartData),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: FinzoSpacing.md),
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildChartLegendItem('Income', AppColors.income),
-                      const SizedBox(width: 24),
-                      _buildChartLegendItem('Expense', AppColors.expense),
+                      _buildChartLegendItem('Income', FinzoColors.success),
+                      const SizedBox(width: FinzoSpacing.lg),
+                      _buildChartLegendItem('Expense', FinzoColors.error),
                     ],
                   ),
                 ),
@@ -611,7 +640,7 @@ class _DashboardTabState extends State<DashboardTab> {
               return touchedSpots.map((spot) {
                 final isIncome = spot.barIndex == 0;
                 final label = isIncome ? 'Income' : 'Expense';
-                final color = isIncome ? AppColors.income : AppColors.expense;
+                final color = isIncome ? FinzoColors.success : FinzoColors.error;
                 return LineTooltipItem(
                   '$label\n₹${NumberFormat('#,##0').format(spot.y)}',
                   TextStyle(
@@ -631,7 +660,7 @@ class _DashboardTabState extends State<DashboardTab> {
           horizontalInterval: maxY / 4,
           getDrawingHorizontalLine: (value) {
             return FlLine(
-              color: AppColors.textSecondary.withOpacity(0.15),
+              color: FinzoTheme.textSecondary(context).withOpacity(0.15),
               strokeWidth: 1,
               dashArray: [5, 5],
             );
@@ -652,10 +681,8 @@ class _DashboardTabState extends State<DashboardTab> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     chartData[index].dayName,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
+                    style: FinzoTypography.labelSmall().copyWith(
+                      color: FinzoTheme.textSecondary(context),
                     ),
                   ),
                 );
@@ -673,9 +700,9 @@ class _DashboardTabState extends State<DashboardTab> {
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
                     '₹${NumberFormat.compact().format(value)}',
-                    style: const TextStyle(
+                    style: FinzoTypography.labelSmall().copyWith(
                       fontSize: 10,
-                      color: AppColors.textSecondary,
+                      color: FinzoTheme.textSecondary(context),
                     ),
                   ),
                 );
@@ -695,7 +722,7 @@ class _DashboardTabState extends State<DashboardTab> {
             spots: incomeSpots,
             isCurved: true,
             curveSmoothness: 0.3,
-            color: AppColors.income,
+            color: FinzoColors.success,
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: FlDotData(
@@ -705,7 +732,7 @@ class _DashboardTabState extends State<DashboardTab> {
                   radius: 4,
                   color: Colors.white,
                   strokeWidth: 2,
-                  strokeColor: AppColors.income,
+                  strokeColor: FinzoColors.success,
                 );
               },
             ),
@@ -715,9 +742,9 @@ class _DashboardTabState extends State<DashboardTab> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.income.withOpacity(0.3),
-                  AppColors.income.withOpacity(0.1),
-                  AppColors.income.withOpacity(0.0),
+                  FinzoColors.success.withOpacity(0.3),
+                  FinzoColors.success.withOpacity(0.1),
+                  FinzoColors.success.withOpacity(0.0),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
@@ -728,7 +755,7 @@ class _DashboardTabState extends State<DashboardTab> {
             spots: expenseSpots,
             isCurved: true,
             curveSmoothness: 0.3,
-            color: AppColors.expense,
+            color: FinzoColors.error,
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: FlDotData(
@@ -738,7 +765,7 @@ class _DashboardTabState extends State<DashboardTab> {
                   radius: 4,
                   color: Colors.white,
                   strokeWidth: 2,
-                  strokeColor: AppColors.expense,
+                  strokeColor: FinzoColors.error,
                 );
               },
             ),
@@ -748,9 +775,9 @@ class _DashboardTabState extends State<DashboardTab> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.expense.withOpacity(0.25),
-                  AppColors.expense.withOpacity(0.1),
-                  AppColors.expense.withOpacity(0.0),
+                  FinzoColors.error.withOpacity(0.25),
+                  FinzoColors.error.withOpacity(0.1),
+                  FinzoColors.error.withOpacity(0.0),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
@@ -783,12 +810,10 @@ class _DashboardTabState extends State<DashboardTab> {
           ),
         ),
         const SizedBox(width: 6),
-        AutoTranslatedText(
+        Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
+          style: FinzoTypography.labelSmall().copyWith(
+            color: FinzoTheme.textSecondary(context),
           ),
         ),
       ],
@@ -810,8 +835,12 @@ class _DashboardTabState extends State<DashboardTab> {
         final expenses = expenseProvider.latestExpenses;
 
         return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: AppDecorations.cardDecoration,
+          padding: const EdgeInsets.all(FinzoSpacing.md),
+          decoration: BoxDecoration(
+            color: FinzoTheme.surface(context),
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+            boxShadow: FinzoShadows.small,
+          ),
           clipBehavior: Clip.antiAlias,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -820,27 +849,32 @@ class _DashboardTabState extends State<DashboardTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Latest Expenses', style: AppTextStyles.heading3),
+                  Text('Latest Expenses', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
                   TextButton(
                     onPressed: () {
                       // Navigate to expenses tab
                     },
-                    child: const Text('See All'),
+                    child: Text(
+                      'See All',
+                      style: FinzoTypography.labelMedium(color: FinzoTheme.brandAccent(context)),
+                    ),
                   ),
                 ],
               ),
               if (expenses.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.lg),
                   child: Center(
                     child: Column(
                       children: [
                         Icon(Icons.receipt_long,
-                            size: 48, color: AppColors.textSecondary),
-                        SizedBox(height: 8),
+                            size: 48, color: FinzoTheme.textTertiary(context)),
+                        const SizedBox(height: FinzoSpacing.sm),
                         Text(
                           'No expenses yet',
-                          style: AppTextStyles.body2,
+                          style: FinzoTypography.bodyMedium().copyWith(
+                            color: FinzoTheme.textSecondary(context),
+                          ),
                         ),
                       ],
                     ),
@@ -852,7 +886,7 @@ class _DashboardTabState extends State<DashboardTab> {
                   children: [
                     for (int i = 0; i < expenses.length; i++) ...[
                       ExpenseCard(expense: expenses[i]),
-                      if (i < expenses.length - 1) const Divider(height: 1),
+                      if (i < expenses.length - 1) Divider(height: 1, color: FinzoTheme.divider(context)),
                     ],
                   ],
                 ),
@@ -867,31 +901,30 @@ class _DashboardTabState extends State<DashboardTab> {
     return GestureDetector(
       onTap: () => _showWeekPickerDialog(analytics),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.sm, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+          color: FinzoTheme.brandAccent(context).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(FinzoRadius.md),
+          border: Border.all(color: FinzoTheme.brandAccent(context).withOpacity(0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.calendar_today,
-                size: 14, color: AppColors.primary),
+            Icon(Icons.calendar_today,
+                size: 14, color: FinzoTheme.brandAccent(context)),
             const SizedBox(width: 6),
             Text(
               _selectedWeekOfMonth == 0
                   ? 'Current'
                   : 'Week $_selectedWeekOfMonth',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 12,
+              style: FinzoTypography.labelSmall().copyWith(
+                color: FinzoTheme.brandAccent(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down,
-                size: 18, color: AppColors.primary),
+            Icon(Icons.arrow_drop_down,
+                size: 18, color: FinzoTheme.brandAccent(context)),
           ],
         ),
       ),
@@ -903,35 +936,35 @@ class _DashboardTabState extends State<DashboardTab> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 202, 215, 212),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: FinzoTheme.surface(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(FinzoRadius.xl)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Handle bar
             Container(
-              margin: const EdgeInsets.only(top: 12),
+              margin: const EdgeInsets.only(top: FinzoSpacing.sm),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.transparent,
+                color: FinzoTheme.divider(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FinzoSpacing.md),
 
             // Title
-            const Text(
+            Text(
               'Select Week',
-              style: AppTextStyles.heading3,
+              style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context)),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: FinzoSpacing.sm),
 
             // Month selector
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -946,19 +979,19 @@ class _DashboardTabState extends State<DashboardTab> {
                       Navigator.pop(context);
                       _showWeekPickerDialog(analytics);
                     },
-                    icon: const Icon(Icons.chevron_left),
+                    icon: Icon(Icons.chevron_left, color: FinzoTheme.textPrimary(context)),
                   ),
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        const EdgeInsets.symmetric(horizontal: FinzoSpacing.md, vertical: FinzoSpacing.sm),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: FinzoTheme.brandAccent(context).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(FinzoRadius.full),
                     ),
                     child: Text(
                       DateFormat('MMMM yyyy').format(_selectedMonth),
-                      style: const TextStyle(
-                        color: AppColors.primary,
+                      style: FinzoTypography.labelMedium().copyWith(
+                        color: FinzoTheme.brandAccent(context),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -974,12 +1007,12 @@ class _DashboardTabState extends State<DashboardTab> {
                       Navigator.pop(context);
                       _showWeekPickerDialog(analytics);
                     },
-                    icon: const Icon(Icons.chevron_right),
+                    icon: Icon(Icons.chevron_right, color: FinzoTheme.textPrimary(context)),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FinzoSpacing.md),
 
             // Week options
             Flexible(
@@ -1007,42 +1040,41 @@ class _DashboardTabState extends State<DashboardTab> {
                       height: 40,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.primary
-                            : AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
+                            ? FinzoTheme.brandAccent(context)
+                            : FinzoTheme.brandAccent(context).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
                       ),
                       child: Center(
                         child: Text(
                           week['weekNum'] == 0 ? '⟳' : '${week['weekNum']}',
-                          style: TextStyle(
+                          style: FinzoTypography.labelMedium().copyWith(
                             color: isSelected
-                                ? AppColors.textPrimary
-                                : AppColors.primary,
+                                ? Colors.white
+                                : FinzoTheme.brandAccent(context),
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
                           ),
                         ),
                       ),
                     ),
                     title: Text(
                       week['label'],
-                      style: TextStyle(
+                      style: FinzoTypography.bodyMedium().copyWith(
                         fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.normal,
                         color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textPrimary,
+                            ? FinzoTheme.brandAccent(context)
+                            : FinzoTheme.textPrimary(context),
                       ),
                     ),
                     trailing: isSelected
-                        ? const Icon(Icons.check_circle,
-                            color: AppColors.primary)
+                        ? Icon(Icons.check_circle,
+                            color: FinzoTheme.brandAccent(context))
                         : null,
                   );
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: FinzoSpacing.md),
           ],
         ),
       ),
@@ -1057,26 +1089,29 @@ class _DashboardTabState extends State<DashboardTab> {
 
         if (groups.isEmpty) {
           return Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(FinzoSpacing.lg),
             decoration: AppDecorations.cardDecoration,
             child: Column(
               children: [
-                const Icon(Icons.groups_outlined,
-                    size: 48, color: AppColors.textSecondary),
-                const SizedBox(height: 12),
+                Icon(Icons.groups_outlined,
+                    size: 48, color: FinzoTheme.textTertiary(context)),
+                const SizedBox(height: FinzoSpacing.sm),
                 Text(
                   'No Group Expenses',
-                  style: AppTextStyles.body1
-                      .copyWith(color: AppColors.textSecondary),
+                  style: FinzoTypography.bodyMedium().copyWith(
+                    color: FinzoTheme.textSecondary(context),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                const SizedBox(height: FinzoSpacing.sm),
+                Text(
                   'Create or join a group to split expenses with friends',
-                  style: AppTextStyles.caption,
+                  style: FinzoTypography.bodySmall().copyWith(
+                    color: FinzoTheme.textTertiary(context),
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
+                const SizedBox(height: FinzoSpacing.md),
+                FilledButton.icon(
                   onPressed: () {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
@@ -1085,9 +1120,8 @@ class _DashboardTabState extends State<DashboardTab> {
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Go to Groups'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: FinzoTheme.brandAccent(context),
                   ),
                 ),
               ],
@@ -1103,15 +1137,19 @@ class _DashboardTabState extends State<DashboardTab> {
         }
 
         return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: AppDecorations.cardDecoration,
+          padding: const EdgeInsets.all(FinzoSpacing.md),
+          decoration: BoxDecoration(
+            color: FinzoTheme.surface(context),
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+            boxShadow: FinzoShadows.small,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const AutoTranslatedText('Group Expenses', style: AppTextStyles.heading3),
+                  Text('Group Expenses', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pushReplacement(
@@ -1119,79 +1157,84 @@ class _DashboardTabState extends State<DashboardTab> {
                             builder: (_) => const SplitwiseHomeScreen()),
                       );
                     },
-                    child: const AutoTranslatedText('View All'),
+                    child: Text(
+                      'View All',
+                      style: FinzoTypography.labelMedium(color: FinzoTheme.brandAccent(context)),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              const AutoTranslatedText(
+              Text(
                 'Your spending in group expenses',
-                style: AppTextStyles.caption,
+                style: FinzoTypography.bodySmall().copyWith(
+                  color: FinzoTheme.textSecondary(context),
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
 
               // Summary cards
               Row(
                 children: [
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(FinzoSpacing.sm),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: FinzoTheme.brandAccent(context).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
                         border: Border.all(
-                            color: AppColors.primary.withOpacity(0.3)),
+                            color: FinzoTheme.brandAccent(context).withOpacity(0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(Icons.payment,
-                              color: AppColors.primary, size: 20),
-                          const SizedBox(height: 8),
-                          const AutoTranslatedText(
+                              color: FinzoTheme.brandAccent(context), size: 20),
+                          const SizedBox(height: FinzoSpacing.sm),
+                          Text(
                             'Total Spent',
-                            style: AppTextStyles.caption,
+                            style: FinzoTypography.labelSmall().copyWith(
+                              color: FinzoTheme.textSecondary(context),
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '₹${NumberFormat('#,##,###').format(totalSpent)}',
-                            style: const TextStyle(
-                              fontSize: 18,
+                            style: FinzoTypography.titleMedium().copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: FinzoSpacing.sm),
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(FinzoSpacing.sm),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: FinzoColors.info.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
                         border: Border.all(
-                            color: AppColors.secondary.withOpacity(0.3)),
+                            color: FinzoColors.info.withOpacity(0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.groups,
-                              color: AppColors.secondary, size: 20),
-                          const SizedBox(height: 8),
-                          const AutoTranslatedText(
+                          const Icon(Icons.groups,
+                              color: FinzoColors.info, size: 20),
+                          const SizedBox(height: FinzoSpacing.sm),
+                          Text(
                             'Active Groups',
-                            style: AppTextStyles.caption,
+                            style: FinzoTypography.labelSmall().copyWith(
+                              color: FinzoTheme.textSecondary(context),
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${groups.length}',
-                            style: const TextStyle(
-                              fontSize: 18,
+                            style: FinzoTypography.titleMedium().copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
                             ),
                           ),
                         ],
@@ -1200,16 +1243,17 @@ class _DashboardTabState extends State<DashboardTab> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
 
               // Group breakdown
               if (groups.isNotEmpty) ...[
-                AutoTranslatedText(
+                Text(
                   'Recent Groups',
-                  style:
-                      AppTextStyles.body2.copyWith(fontWeight: FontWeight.w600),
+                  style: FinzoTypography.labelMedium().copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FinzoSpacing.sm),
                 ...groups.take(3).map((group) {
                   final userExpenses =
                       group.expenses.where((e) => e.paidBy == userId);
@@ -1222,63 +1266,47 @@ class _DashboardTabState extends State<DashboardTab> {
                   final balance = userMember.balance;
 
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: FinzoSpacing.sm),
+                    padding: const EdgeInsets.all(FinzoSpacing.sm),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
+                      color: FinzoTheme.surface(context),
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
                       border: Border.all(
-                          color: AppColors.primary.withOpacity(0.15)),
+                          color: FinzoTheme.divider(context)),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(FinzoSpacing.sm),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            color: FinzoTheme.brandAccent(context).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(FinzoRadius.md),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.group,
-                            color: AppColors.primary,
+                            color: FinzoTheme.brandAccent(context),
                             size: 20,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: FinzoSpacing.sm),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 group.name,
-                                style: const TextStyle(
+                                style: FinzoTypography.bodyMedium().copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
-                              Row(
-                                children: [
-                                  Text(
-                                    '${group.members.length} ',
-                                    style: AppTextStyles.caption,
-                                  ),
-                                  const AutoTranslatedText(
-                                    'members',
-                                    style: AppTextStyles.caption,
-                                  ),
-                                  const Text(' • ', style: AppTextStyles.caption),
-                                  Text(
-                                    '${group.expenses.length} ',
-                                    style: AppTextStyles.caption,
-                                  ),
-                                  const AutoTranslatedText(
-                                    'expenses',
-                                    style: AppTextStyles.caption,
-                                  ),
-                                ],
+                              Text(
+                                '${group.members.length} members • ${group.expenses.length} expenses',
+                                style: FinzoTypography.labelSmall().copyWith(
+                                  color: FinzoTheme.textSecondary(context),
+                                ),
                               ),
                             ],
                           ),
@@ -1288,18 +1316,17 @@ class _DashboardTabState extends State<DashboardTab> {
                           children: [
                             Text(
                               '₹${groupTotal.toStringAsFixed(0)}',
-                              style: const TextStyle(
+                              style: FinzoTypography.labelMedium().copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: FinzoTheme.brandAccent(context),
                               ),
                             ),
-                            AutoTranslatedText(
+                            Text(
                               balance >= 0
                                   ? 'Gets ₹${balance.abs().toStringAsFixed(0)}'
                                   : 'Owes ₹${balance.abs().toStringAsFixed(0)}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: balance >= 0 ? Colors.green : Colors.red,
+                              style: FinzoTypography.labelSmall().copyWith(
+                                color: balance >= 0 ? FinzoColors.success : FinzoColors.error,
                               ),
                             ),
                           ],
@@ -1307,7 +1334,7 @@ class _DashboardTabState extends State<DashboardTab> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ],
           ),
@@ -1316,5 +1343,3 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 }
-
-

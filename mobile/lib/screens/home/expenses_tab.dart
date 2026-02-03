@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 import '../../providers/expense_provider.dart';
 import '../../models/expense.dart';
 import '../../models/category.dart';
 import '../widgets/expense_card.dart';
-import '../../widgets/auto_translated_text.dart';
 
 class ExpensesTab extends StatefulWidget {
   const ExpensesTab({super.key});
@@ -52,26 +51,16 @@ class _ExpensesTabState extends State<ExpensesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColorsDark.background : AppColors.background;
-    final textPrimaryColor = isDark ? const Color.fromARGB(255, 234, 237, 243) : AppColors.textPrimary;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final primaryLightColor = isDark ? AppColorsDark.primaryLight : AppColors.primaryLight;
-
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       appBar: AppBar(
-        title: const AutoTranslatedText('Expenses'),
-        backgroundColor: bgColor,
+        title: Text('Expenses', style: FinzoTypography.headlineMedium()),
+        backgroundColor: FinzoTheme.background(context),
         elevation: 0,
-        titleTextStyle: TextStyle(
-          color: textPrimaryColor,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.filter_list, color: textPrimaryColor),
+            icon: Icon(Icons.filter_list, color: FinzoTheme.textPrimary(context)),
             onPressed: _showFilterBottomSheet,
           ),
         ],
@@ -81,40 +70,40 @@ class _ExpensesTabState extends State<ExpensesTab> {
           // Filter chips
           if (_selectedCategory != null || _dateRange != null)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md, vertical: FinzoSpacing.sm),
               child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: FinzoSpacing.sm,
+                runSpacing: FinzoSpacing.sm,
                 children: [
                   if (_selectedCategory != null)
                     Chip(
-                      label: AutoTranslatedText(
+                      label: Text(
                         Category.getByName(_selectedCategory!).displayName,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                        style: FinzoTypography.labelMedium(),
                       ),
                       deleteIcon: const Icon(Icons.close, size: 18),
                       onDeleted: () {
                         setState(() => _selectedCategory = null);
                         _loadExpenses();
                       },
-                      backgroundColor: primaryLightColor.withOpacity(0.2),
-                      labelStyle: TextStyle(color: primaryColor),
-                      deleteIconColor: primaryColor,
+                      backgroundColor: FinzoTheme.brandAccent(context).withOpacity(0.1),
+                      labelStyle: TextStyle(color: FinzoTheme.brandAccent(context)),
+                      deleteIconColor: FinzoTheme.brandAccent(context),
                     ),
                   if (_dateRange != null)
                     Chip(
-                      label: AutoTranslatedText(
+                      label: Text(
                         '${DateFormat('MMM d').format(_dateRange!.start)} - ${DateFormat('MMM d').format(_dateRange!.end)}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                        style: FinzoTypography.labelMedium(),
                       ),
                       deleteIcon: const Icon(Icons.close, size: 18),
                       onDeleted: () {
                         setState(() => _dateRange = null);
                         _loadExpenses();
                       },
-                      backgroundColor: AppColors.secondaryLight.withOpacity(0.2),
-                      labelStyle: TextStyle(color: AppColors.secondary),
-                      deleteIconColor: AppColors.secondary,
+                      backgroundColor: FinzoColors.info.withOpacity(0.1),
+                      labelStyle: const TextStyle(color: FinzoColors.info),
+                      deleteIconColor: FinzoColors.info,
                     ),
                 ],
               ),
@@ -126,24 +115,22 @@ class _ExpensesTabState extends State<ExpensesTab> {
               if (provider.expenses.isEmpty) return const SizedBox.shrink();
               
               return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: FinzoSpacing.md, vertical: FinzoSpacing.sm),
+                padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.sm, vertical: FinzoSpacing.sm),
                 decoration: BoxDecoration(
-                  color: primaryLightColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: primaryColor.withOpacity(0.2)),
+                  color: FinzoTheme.brandAccent(context).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  border: Border.all(color: FinzoTheme.brandAccent(context).withOpacity(0.2)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.swipe_left, size: 16, color: primaryColor),
-                    const SizedBox(width: 8),
-                    AutoTranslatedText(
+                    Icon(Icons.swipe_left, size: 16, color: FinzoTheme.brandAccent(context)),
+                    const SizedBox(width: FinzoSpacing.sm),
+                    Text(
                       'Swipe left to delete an expense',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: primaryColor,
-                        fontWeight: FontWeight.w500,
+                      style: FinzoTypography.labelSmall().copyWith(
+                        color: FinzoTheme.brandAccent(context),
                       ),
                     ),
                   ],
@@ -157,7 +144,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
             child: Consumer<ExpenseProvider>(
               builder: (context, expenseProvider, _) {
                 if (expenseProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(child: CircularProgressIndicator(color: FinzoTheme.brandAccent(context)));
                 }
 
                 final expenses = expenseProvider.expenses;
@@ -170,19 +157,19 @@ class _ExpensesTabState extends State<ExpensesTab> {
                         Icon(
                           Icons.receipt_long_outlined,
                           size: 80,
-                          color: AppColors.primary.withOpacity(0.3),
+                          color: FinzoTheme.textTertiary(context),
                         ),
-                        const SizedBox(height: 16),
-                        AutoTranslatedText(
+                        const SizedBox(height: FinzoSpacing.md),
+                        Text(
                           'No expenses found',
-                          style: AppTextStyles.heading3.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                          style: FinzoTypography.titleLarge(),
                         ),
-                        const SizedBox(height: 8),
-                        const AutoTranslatedText(
+                        const SizedBox(height: FinzoSpacing.sm),
+                        Text(
                           'Start tracking your expenses',
-                          style: AppTextStyles.body2,
+                          style: FinzoTypography.bodyMedium().copyWith(
+                            color: FinzoTheme.textSecondary(context),
+                          ),
                         ),
                       ],
                     ),
@@ -193,9 +180,10 @@ class _ExpensesTabState extends State<ExpensesTab> {
                 final groupedExpenses = _groupExpensesByDate(expenses);
 
                 return RefreshIndicator(
+                  color: FinzoTheme.brandAccent(context),
                   onRefresh: _loadExpenses,
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(FinzoSpacing.md),
                     itemCount: groupedExpenses.length,
                     itemBuilder: (context, index) {
                       final date = groupedExpenses.keys.elementAt(index);
@@ -209,21 +197,20 @@ class _ExpensesTabState extends State<ExpensesTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                            padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.sm, horizontal: 4),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                AutoTranslatedText(
+                                Text(
                                   _formatDate(date),
-                                  style: AppTextStyles.body1.copyWith(
+                                  style: FinzoTypography.labelLarge().copyWith(
                                     fontWeight: FontWeight.w700,
-                                    color: textPrimaryColor,
                                   ),
                                 ),
                                 Text(
                                   '₹${NumberFormat('#,##,###').format(dayTotal)}',
-                                  style: AppTextStyles.body2.copyWith(
-                                    color: AppColors.expense,
+                                  style: FinzoTypography.labelMedium().copyWith(
+                                    color: FinzoColors.error,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -231,14 +218,16 @@ class _ExpensesTabState extends State<ExpensesTab> {
                             ),
                           ),
                           Container(
-                            decoration: AppDecorations.cardDecoration.copyWith(
-                              borderRadius: BorderRadius.circular(12),
+                            decoration: BoxDecoration(
+                              color: FinzoTheme.surface(context),
+                              borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                              boxShadow: FinzoShadows.small,
                             ),
                             child: ListView.separated(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: dayExpenses.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, __) => Divider(height: 1, color: FinzoTheme.divider(context)),
                               itemBuilder: (context, i) {
                                 return Dismissible(
                                   key: Key(dayExpenses[i].id),
@@ -246,7 +235,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                                   background: Container(
                                     alignment: Alignment.centerRight,
                                     padding: const EdgeInsets.only(right: 20),
-                                    color: AppColors.error,
+                                    color: FinzoColors.error,
                                     child: const Icon(
                                       Icons.delete,
                                       color: Colors.white,
@@ -256,23 +245,33 @@ class _ExpensesTabState extends State<ExpensesTab> {
                                     return await showDialog(
                                       context: context,
                                       builder: (context) => AlertDialog(
-                                        title: const AutoTranslatedText('Delete Expense'),
-                                        content: const AutoTranslatedText(
+                                        backgroundColor: FinzoTheme.surface(context),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                                        ),
+                                        title: Text('Delete Expense', style: FinzoTypography.titleLarge()),
+                                        content: Text(
                                           'Are you sure you want to delete this expense?',
+                                          style: FinzoTypography.bodyMedium(),
                                         ),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(context, false),
-                                            child: const AutoTranslatedText('Cancel'),
+                                            child: Text(
+                                              'Cancel',
+                                              style: FinzoTypography.labelMedium().copyWith(
+                                                color: FinzoTheme.textSecondary(context),
+                                              ),
+                                            ),
                                           ),
-                                          TextButton(
+                                          FilledButton(
                                             onPressed: () =>
                                                 Navigator.pop(context, true),
-                                            child: const AutoTranslatedText(
-                                              'Delete',
-                                              style: TextStyle(color: AppColors.error),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: FinzoColors.error,
                                             ),
+                                            child: const Text('Delete'),
                                           ),
                                         ],
                                       ),
@@ -281,9 +280,14 @@ class _ExpensesTabState extends State<ExpensesTab> {
                                   onDismissed: (direction) {
                                     expenseProvider.deleteExpense(dayExpenses[i].id);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: AutoTranslatedText('Expense deleted'),
-                                        duration: Duration(seconds: 2),
+                                      SnackBar(
+                                        content: const Text('Expense deleted'),
+                                        backgroundColor: FinzoTheme.brandAccent(context),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(FinzoRadius.md),
+                                        ),
+                                        duration: const Duration(seconds: 2),
                                       ),
                                     );
                                   },
@@ -292,7 +296,7 @@ class _ExpensesTabState extends State<ExpensesTab> {
                               },
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: FinzoSpacing.md),
                         ],
                       );
                     },
@@ -339,30 +343,46 @@ class _ExpensesTabState extends State<ExpensesTab> {
   void _showFilterBottomSheet() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(FinzoRadius.xl)),
       ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(FinzoSpacing.lg),
+          decoration: BoxDecoration(
+            color: FinzoTheme.surface(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(FinzoRadius.xl)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AutoTranslatedText('Filter Expenses', style: AppTextStyles.heading3),
-              const SizedBox(height: 24),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: FinzoSpacing.md),
+                  decoration: BoxDecoration(
+                    color: FinzoTheme.divider(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text('Filter Expenses', style: FinzoTypography.titleLarge()),
+              const SizedBox(height: FinzoSpacing.lg),
               
               // Category filter
-              const AutoTranslatedText('Category', style: AppTextStyles.body1),
-              const SizedBox(height: 12),
+              Text('Category', style: FinzoTypography.labelLarge()),
+              const SizedBox(height: FinzoSpacing.sm),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: FinzoSpacing.sm,
+                runSpacing: FinzoSpacing.sm,
                 children: Category.all.map((category) {
                   final isSelected = _selectedCategory == category.name;
                   return FilterChip(
-                    avatar: Icon(category.icon, size: 18, color: isSelected ? category.color : AppColors.textSecondary),
-                    label: AutoTranslatedText(category.displayName), // Category displayName is usually localized? No, it's a string. AutoTranslate it.
+                    avatar: Icon(category.icon, size: 18, color: isSelected ? category.color : FinzoTheme.textSecondary(context)),
+                    label: Text(category.displayName),
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() {
@@ -376,23 +396,31 @@ class _ExpensesTabState extends State<ExpensesTab> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: FinzoSpacing.lg),
               
               // Date range filter
               ListTile(
-                leading: const Icon(Icons.date_range),
-                title: const AutoTranslatedText('Select Date Range'),
+                leading: Icon(Icons.date_range, color: FinzoTheme.brandAccent(context)),
+                title: Text('Select Date Range', style: FinzoTypography.bodyMedium()),
                 subtitle: _dateRange != null
-                    ? AutoTranslatedText(
+                    ? Text(
                         '${DateFormat('MMM d').format(_dateRange!.start)} - ${DateFormat('MMM d').format(_dateRange!.end)}',
+                        style: FinzoTypography.bodySmall().copyWith(
+                          color: FinzoTheme.textSecondary(context),
+                        ),
                       )
-                    : const AutoTranslatedText('All time'),
+                    : Text(
+                        'All time',
+                        style: FinzoTypography.bodySmall().copyWith(
+                          color: FinzoTheme.textSecondary(context),
+                        ),
+                      ),
                 onTap: () {
                   Navigator.pop(context);
                   _selectDateRange();
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: FinzoSpacing.md),
               
               // Clear filters
               SizedBox(
@@ -406,7 +434,17 @@ class _ExpensesTabState extends State<ExpensesTab> {
                     Navigator.pop(context);
                     _loadExpenses();
                   },
-                  child: const AutoTranslatedText('Clear All Filters'),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: FinzoTheme.divider(context)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+                  ),
+                  child: Text(
+                    'Clear All Filters',
+                    style: FinzoTypography.labelMedium(),
+                  ),
                 ),
               ),
             ],
@@ -416,5 +454,3 @@ class _ExpensesTabState extends State<ExpensesTab> {
     );
   }
 }
-
-

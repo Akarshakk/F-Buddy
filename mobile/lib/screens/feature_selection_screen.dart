@@ -1,55 +1,87 @@
 import 'package:flutter/material.dart';
+<<<<<<< Updated upstream
 import '../config/theme.dart';
 import 'home/home_screen.dart';
 import 'splitwise/splitwise_home_screen.dart';
 import '../features/financial_calculator/calculator_feature.dart';
 import '../widgets/auto_translated_text.dart';
 import 'markets/markets_lab_home_screen.dart';
+=======
+import 'package:provider/provider.dart';
+import '../config/app_theme.dart';
+import '../providers/theme_provider.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/finzo_components.dart';
+>>>>>>> Stashed changes
 
 class FeatureSelectionScreen extends StatelessWidget {
   const FeatureSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark
-        ? AppColorsDark.background
-        : const Color.fromARGB(255, 228, 228, 228);
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final secondaryColor =
-        isDark ? AppColorsDark.secondary : AppColors.secondary;
-    final textPrimaryColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final textSecondaryColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
+    final user = Provider.of<AuthProvider>(context).user;
+    
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: FinzoTheme.background(context),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo and Title
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [primaryColor, primaryColor.withOpacity(0.7)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primaryColor.withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: FinzoSpacing.xl),
+                
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back,',
+                          style: FinzoTypography.bodyMedium(
+                            color: FinzoTheme.textSecondary(context),
+                          ),
+                        ),
+                        const SizedBox(height: FinzoSpacing.xs),
+                        Text(
+                          user?.name ?? 'User',
+                          style: FinzoTypography.headlineMedium(
+                            color: FinzoTheme.textPrimary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        _ThemeToggleButton(),
+                        const SizedBox(width: FinzoSpacing.sm),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                FinzoTheme.brandPrimary(context),
+                                FinzoTheme.brandSecondary(context),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(FinzoRadius.full),
+                          ),
+                          child: Center(
+                            child: Text(
+                              (user?.name ?? 'U')[0].toUpperCase(),
+                              style: FinzoTypography.titleMedium(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+<<<<<<< Updated upstream
                 child: const Icon(
                   Icons.account_balance_wallet,
                   size: 48,
@@ -142,114 +174,284 @@ class FeatureSelectionScreen extends StatelessWidget {
                   border: Border.all(
                     color: primaryColor.withOpacity(0.3),
                     width: 1,
+=======
+                
+                const SizedBox(height: FinzoSpacing.xxxl),
+                
+                // Title
+                Text(
+                  'Choose your\nfinance tracker',
+                  style: FinzoTypography.displaySmall(
+                    color: FinzoTheme.textPrimary(context),
+>>>>>>> Stashed changes
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: primaryColor,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AutoTranslatedText(
-                        'You can switch between features anytime from the settings menu',
-                        style: AppTextStyles.caption.copyWith(
-                          color: textSecondaryColor,
+                
+                const SizedBox(height: FinzoSpacing.md),
+                
+                Text(
+                  'Select a feature to manage your finances effectively',
+                  style: FinzoTypography.bodyLarge(
+                    color: FinzoTheme.textSecondary(context),
+                  ),
+                ),
+                
+                const SizedBox(height: FinzoSpacing.xxxl),
+                
+                // Feature Cards
+                _FeatureCard(
+                  icon: Icons.account_balance_wallet_outlined,
+                  activeIcon: Icons.account_balance_wallet,
+                  title: 'Personal Finance',
+                  description: 'Track expenses, income, and manage your personal budget with ease',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  ),
+                  onTap: () => Navigator.pushNamed(context, '/personal-finance'),
+                ),
+                
+                const SizedBox(height: FinzoSpacing.lg),
+                
+                _FeatureCard(
+                  icon: Icons.groups_outlined,
+                  activeIcon: Icons.groups,
+                  title: 'Group Expenses',
+                  description: 'Split bills with friends, track shared expenses, and settle up easily',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF093FB), Color(0xFFF5576C)],
+                  ),
+                  onTap: () => Navigator.pushNamed(context, '/group-finance'),
+                ),
+                
+                const SizedBox(height: FinzoSpacing.lg),
+                
+                _FeatureCard(
+                  icon: Icons.trending_up_outlined,
+                  activeIcon: Icons.trending_up,
+                  title: 'Finance Manager',
+                  description: 'Plan investments, calculate returns, and manage your financial future',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+                  ),
+                  onTap: () => Navigator.pushNamed(context, '/finance-manager'),
+                ),
+                
+                const SizedBox(height: FinzoSpacing.xxxl),
+                
+                // Quick tip
+                Container(
+                  padding: const EdgeInsets.all(FinzoSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: FinzoTheme.surfaceVariant(context),
+                    borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(FinzoSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: FinzoTheme.brandAccent(context).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        ),
+                        child: Icon(
+                          Icons.lightbulb_outline,
+                          color: FinzoTheme.brandAccent(context),
+                          size: 20,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: FinzoSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Quick Tip',
+                              style: FinzoTypography.labelLarge(
+                                color: FinzoTheme.textPrimary(context),
+                              ),
+                            ),
+                            const SizedBox(height: FinzoSpacing.xs),
+                            Text(
+                              'Swipe between features or use the navigation bar to switch.',
+                              style: FinzoTypography.bodySmall(
+                                color: FinzoTheme.textSecondary(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                
+                const SizedBox(height: FinzoSpacing.xxxl),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildFeatureCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+class _ThemeToggleButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    
+    return GestureDetector(
+      onTap: () => themeProvider.toggleTheme(),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(20),
+          color: FinzoTheme.surfaceVariant(context),
+          borderRadius: BorderRadius.circular(FinzoRadius.full),
           border: Border.all(
-            color: color.withOpacity(0.3),
-            width: 2,
+            color: FinzoTheme.border(context),
+            width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 28,
-              ),
+        child: Center(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              key: ValueKey(isDark),
+              color: FinzoTheme.textPrimary(context),
+              size: 22,
             ),
-            const SizedBox(height: 16),
-            AutoTranslatedText(
-              title,
-              style: AppTextStyles.heading3.copyWith(color: color),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeatureCard extends StatefulWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String title;
+  final String description;
+  final LinearGradient gradient;
+  final VoidCallback onTap;
+
+  const _FeatureCard({
+    required this.icon,
+    required this.activeIcon,
+    required this.title,
+    required this.description,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  @override
+  State<_FeatureCard> createState() => _FeatureCardState();
+}
+
+class _FeatureCardState extends State<_FeatureCard> {
+  bool _isPressed = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = _isPressed || _isHovered;
+    
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          transform: Matrix4.identity()..scale(isActive ? 0.98 : 1.0),
+          decoration: BoxDecoration(
+            color: FinzoTheme.surface(context),
+            borderRadius: BorderRadius.circular(FinzoRadius.xl),
+            border: Border.all(
+              color: isActive 
+                  ? widget.gradient.colors.first 
+                  : FinzoTheme.border(context),
+              width: isActive ? 2 : 1,
             ),
-            const SizedBox(height: 8),
-            AutoTranslatedText(
-              subtitle,
-              style: AppTextStyles.body2.copyWith(
-                color: isDark
-                    ? AppColorsDark.textSecondary
-                    : AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
+            boxShadow: isActive ? FinzoShadows.medium : FinzoShadows.small,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(FinzoSpacing.xl),
+            child: Row(
               children: [
-                AutoTranslatedText(
-                  'Get Started',
-                  style: AppTextStyles.body1.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
+                // Icon container with gradient
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: widget.gradient,
+                    borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      isActive ? widget.activeIcon : widget.icon,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.arrow_forward,
-                  color: color,
-                  size: 18,
+                
+                const SizedBox(width: FinzoSpacing.lg),
+                
+                // Text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: FinzoTypography.titleLarge(
+                          color: FinzoTheme.textPrimary(context),
+                        ),
+                      ),
+                      const SizedBox(height: FinzoSpacing.xs),
+                      Text(
+                        widget.description,
+                        style: FinzoTypography.bodyMedium(
+                          color: FinzoTheme.textSecondary(context),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(width: FinzoSpacing.md),
+                
+                // Arrow icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isActive 
+                        ? widget.gradient.colors.first.withValues(alpha: 0.1)
+                        : FinzoTheme.surfaceVariant(context),
+                    borderRadius: BorderRadius.circular(FinzoRadius.full),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      color: isActive 
+                          ? widget.gradient.colors.first
+                          : FinzoTheme.textSecondary(context),
+                      size: 18,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

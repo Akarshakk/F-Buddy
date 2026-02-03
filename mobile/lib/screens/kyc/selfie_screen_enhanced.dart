@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/kyc_service.dart';
-import '../../config/theme.dart';
+import '../../config/app_theme.dart';
 
 /// FINZO Face Verification Screen - UI ENHANCED
 /// ✅ Clear instructions: "Only your own face is allowed"
