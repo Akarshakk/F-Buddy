@@ -4,6 +4,7 @@ import 'home/home_screen.dart';
 import 'splitwise/splitwise_home_screen.dart';
 import '../features/financial_calculator/calculator_feature.dart';
 import '../widgets/auto_translated_text.dart';
+import 'markets/markets_lab_home_screen.dart';
 
 class FeatureSelectionScreen extends StatelessWidget {
   const FeatureSelectionScreen({super.key});
@@ -111,6 +112,22 @@ class FeatureSelectionScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                         builder: (_) => const FinanceManagerScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Feature Card 4: Markets Lab (Paper Trading)
+              _buildFeatureCard(
+                context,
+                icon: Icons.candlestick_chart,
+                title: 'Markets Lab',
+                subtitle: 'Learn stock trading with\nvirtual ₹10 Lakh',
+                color: Colors.deepOrange,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const MarketsLabHomeScreen()),
                   );
                 },
               ),

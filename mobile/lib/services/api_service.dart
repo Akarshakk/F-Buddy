@@ -74,10 +74,14 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}$endpoint';
       print('[API] POST $url'); // Debug log
+      print('[API] Body: $body'); // Debug log
+      
+      final headers = await _getHeaders(requiresAuth: requiresAuth);
+      print('[API] Headers: $headers'); // Debug log
       
       final response = await http.post(
         Uri.parse(url),
-        headers: await _getHeaders(requiresAuth: requiresAuth),
+        headers: headers,
         body: body != null ? jsonEncode(body) : null,
       );
       
@@ -127,10 +131,13 @@ class ApiService {
   
   // Handle response
   static Map<String, dynamic> _handleResponse(http.Response response) {
+    print('[API] Response status: ${response.statusCode}');
+    print('[API] Response body: ${response.body}');
     try {
       final data = jsonDecode(response.body);
       return data;
     } catch (e) {
+      print('[API] Failed to parse response: $e');
       return {
         'success': false,
         'message': 'Failed to parse response',

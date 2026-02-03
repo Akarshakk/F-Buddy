@@ -59,6 +59,7 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/kyc', require('./routes/kyc'));
 app.use('/api/statement', require('./routes/statement'));
 app.use('/api/tax', require('./routes/tax'));
+app.use('/api/markets', require('./routes/markets'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
