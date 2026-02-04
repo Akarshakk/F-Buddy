@@ -20,6 +20,7 @@ import 'screens/home/home_screen.dart';
 import 'screens/splitwise/splitwise_home_screen.dart';
 import 'features/financial_calculator/finance_manager_screen.dart';
 import 'screens/feature_selection_screen.dart';
+import 'screens/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +70,11 @@ class MyApp extends StatelessWidget {
             home: const SplashScreen(),
             onGenerateRoute: (settings) {
               switch (settings.name) {
+                case '/login':
+                  return MaterialPageRoute(
+                    builder: (context) => const LoginScreen(),
+                    settings: settings,
+                  );
                 case '/home':
                   return MaterialPageRoute(
                     builder: (context) => const FeatureSelectionScreen(),
@@ -96,7 +102,7 @@ class MyApp extends StatelessWidget {
                   );
                 default:
                   return MaterialPageRoute(
-                    builder: (context) => const FeatureSelectionScreen(),
+                    builder: (context) => const LoginScreen(),
                     settings: settings,
                   );
               }

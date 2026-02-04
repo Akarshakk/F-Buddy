@@ -10,6 +10,8 @@ import '../../l10n/app_localizations.dart';
 import 'stock_detail_screen.dart';
 import 'portfolio_screen.dart';
 import 'trade_history_screen.dart';
+import 'stock_comparator_screen.dart';
+import 'candlestick_chart_screen.dart';
 
 class MarketsLabHomeScreen extends StatefulWidget {
   const MarketsLabHomeScreen({super.key});
@@ -326,6 +328,9 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                             // Market Indices
                             if (_marketOverview != null) _buildIndicesSection(isDark, surfaceColor, textPrimary, textSecondary),
                             
+                            // Pro Features Bar
+                            _buildProFeaturesBar(isDark, surfaceColor, textPrimary, textSecondary),
+                            
                             // Search Bar
                             _buildSearchBar(isDark, surfaceColor, textPrimary, textSecondary),
                             
@@ -557,16 +562,16 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 100,
+            height: 90,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _marketOverview!.indices.length,
               itemBuilder: (context, index) {
                 final idx = _marketOverview!.indices[index];
                 return Container(
-                  width: 160,
+                  width: 150,
                   margin: EdgeInsets.only(right: index < _marketOverview!.indices.length - 1 ? 12 : 0),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     borderRadius: BorderRadius.circular(12),
@@ -580,14 +585,15 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                     children: [
                       Text(
                         idx.name,
-                        style: AppTextStyles.caption.copyWith(color: textSecondary),
+                        style: TextStyle(fontSize: 11, color: textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         idx.formattedValue,
-                        style: AppTextStyles.body1.copyWith(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          fontSize: 15,
                           color: textPrimary,
                         ),
                       ),
@@ -596,9 +602,10 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                         '${idx.formattedChange} (${idx.formattedChangePercent})',
                         style: TextStyle(
                           color: idx.isPositive ? Colors.green : Colors.red,
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -608,6 +615,220 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProFeaturesBar(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
+    const marketAccent = Color(0xFFE87A2E);
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, color: marketAccent, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Pro Tools',
+                style: FinzoTypography.titleSmall(color: textPrimary).copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              // Stock Comparator
+              Expanded(
+                child: _buildProFeatureCard(
+                  icon: Icons.compare_arrows_rounded,
+                  label: 'Compare',
+                  subtitle: 'Side-by-side',
+                  gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) => const StockComparatorScreen(),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(1, 0),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+                
+              // Watchlist
+              Expanded(
+                child: _buildProFeatureCard(
+                  icon: Icons.bookmark_rounded,
+                  label: 'Watchlist',
+                  subtitle: 'Your favorites',
+                  gradient: const [Color(0xFFEF4444), Color(0xFFF87171)],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PortfolioScreen(initialTab: 1),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProFeatureCard({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required List<Color> gradient,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: gradient[0].withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCandlestickStockPicker() {
+    final isDark = FinzoTheme.isDark(context);
+    final surfaceColor = FinzoTheme.surface(context);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.candlestick_chart, color: Color(0xFFF59E0B)),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Select Stock for Candlestick Chart',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Popular Stocks',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  {'symbol': 'RELIANCE', 'name': 'Reliance Industries'},
+                  {'symbol': 'TCS', 'name': 'TCS'},
+                  {'symbol': 'HDFCBANK', 'name': 'HDFC Bank'},
+                  {'symbol': 'INFY', 'name': 'Infosys'},
+                  {'symbol': 'ICICIBANK', 'name': 'ICICI Bank'},
+                  {'symbol': 'SBIN', 'name': 'SBI'},
+                  {'symbol': 'TATAMOTORS', 'name': 'Tata Motors'},
+                  {'symbol': 'ITC', 'name': 'ITC'},
+                ].map((stock) => ActionChip(
+                  label: Text(stock['symbol']!),
+                  backgroundColor: isDark ? const Color(0xFF1A1F2E) : Colors.grey[200],
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CandlestickChartScreen(
+                          symbol: stock['symbol']!,
+                          stockName: stock['name']!,
+                        ),
+                      ),
+                    );
+                  },
+                )).toList(),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../config/app_theme.dart';
 import '../services/rag_service.dart';
@@ -25,6 +26,11 @@ class _RagChatWidgetState extends State<RagChatWidget>
   final TranslationService _translationService = TranslationService.instance;
   bool _isLoading = false;
 
+  // Speech to text
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
+  bool _speechAvailable = false;
+
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -40,6 +46,9 @@ class _RagChatWidgetState extends State<RagChatWidget>
       curve: Curves.easeInOut,
     );
 
+    // Initialize speech to text
+    _initSpeech();
+
     // Add welcome message
     // Welcome message is localized when widget builds (header shows language)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,6 +61,55 @@ class _RagChatWidgetState extends State<RagChatWidget>
         ),
       );
     });
+  }
+
+  Future<void> _initSpeech() async {
+    _speechAvailable = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _isListening = false);
+        }
+      },
+      onError: (error) {
+        setState(() => _isListening = false);
+      },
+    );
+    setState(() {});
+  }
+
+  Future<void> _startListening() async {
+    if (!_speechAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Speech recognition not available'),
+          backgroundColor: Colors.red[400],
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isListening = true);
+    
+    await _speech.listen(
+      onResult: (result) {
+        setState(() {
+          _messageController.text = result.recognizedWords;
+          // Move cursor to end
+          _messageController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _messageController.text.length),
+          );
+        });
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      partialResults: true,
+      localeId: 'en_IN', // Indian English
+    );
+  }
+
+  Future<void> _stopListening() async {
+    await _speech.stop();
+    setState(() => _isListening = false);
   }
 
   @override
@@ -353,6 +411,27 @@ class _RagChatWidgetState extends State<RagChatWidget>
                               ),
                             ),
                             const SizedBox(width: 8),
+                            // Mic button for speech-to-text
+                            Container(
+                              decoration: BoxDecoration(
+                                color: _isListening 
+                                    ? Colors.red 
+                                    : primaryColor.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: Icon(
+                                  _isListening ? Icons.mic : Icons.mic_none,
+                                  color: _isListening ? Colors.white : primaryColor,
+                                ),
+                                onPressed: _isLoading 
+                                    ? null 
+                                    : (_isListening ? _stopListening : _startListening),
+                                tooltip: _isListening ? 'Stop listening' : 'Speak',
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            // Send button
                             Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(

@@ -15,7 +15,9 @@ const {
   getWatchlist,
   addToWatchlist,
   removeFromWatchlist,
-  checkWatchlist
+  checkWatchlist,
+  compareStocks,
+  getCandlestickData
 } = require('../controllers/marketsController');
 
 // Trade validation rules
@@ -44,7 +46,10 @@ const watchlistValidation = [
     .withMessage('Stock symbol is required')
 ];
 
-// All routes are protected
+// PUBLIC ROUTES (no authentication required)
+
+
+// Protected routes (authentication required)
 router.use(protect);
 
 // Market overview
@@ -68,5 +73,11 @@ router.get('/watchlist', getWatchlist);
 router.post('/watchlist/add', watchlistValidation, handleValidationErrors, addToWatchlist);
 router.delete('/watchlist/:symbol', removeFromWatchlist);
 router.get('/watchlist/check/:symbol', checkWatchlist);
+
+// Stock comparator route
+router.post('/compare', compareStocks);
+
+// Candlestick/OHLC data route
+router.get('/stocks/:symbol/candles', getCandlestickData);
 
 module.exports = router;

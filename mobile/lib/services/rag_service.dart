@@ -14,17 +14,19 @@ class RagService {
   /// Send a chat query to the RAG service
   Future<RagResponse> chat(String query) async {
     try {
+      print('[RAG] Sending query to $baseUrl/chat: $query');
       final response = await http.post(
         Uri.parse('$baseUrl/chat'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'query': query}),
       ).timeout(
-        const Duration(seconds: 30),
+        const Duration(minutes: 5),
         onTimeout: () {
           throw Exception('Request timeout');
         },
       );
 
+      print('[RAG] Response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return RagResponse.fromJson(data);
@@ -36,6 +38,7 @@ class RagService {
         );
       }
     } catch (e) {
+      print('[RAG] Error: $e');
       return RagResponse(
         success: false,
         answer: '',

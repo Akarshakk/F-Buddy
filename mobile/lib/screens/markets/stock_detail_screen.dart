@@ -5,6 +5,7 @@ import '../../models/stock.dart';
 import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
 import 'trade_screen.dart';
+import 'candlestick_chart_screen.dart';
 
 class StockDetailScreen extends StatefulWidget {
   final String symbol;
@@ -174,6 +175,25 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           ],
         ),
         actions: [
+          // Candlestick chart button
+          IconButton(
+            icon: Icon(
+              Icons.candlestick_chart_rounded,
+              color: const Color(0xFFF59E0B),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CandlestickChartScreen(
+                    symbol: widget.symbol,
+                    stockName: widget.name,
+                  ),
+                ),
+              );
+            },
+            tooltip: 'Full Candlestick Chart',
+          ),
           // Watchlist button
           _watchlistLoading
               ? const Padding(

@@ -242,6 +242,13 @@ class _FeatureSelectionScreenState extends State<FeatureSelectionScreen>
                 },
               ),
               const SizedBox(width: 12),
+              // Logout button
+              _PremiumIconButton(
+                icon: Icons.logout_rounded,
+                onTap: () => _showLogoutConfirmation(context),
+                isDestructive: true,
+              ),
+              const SizedBox(width: 12),
               _buildProfileAvatar(context, user),
             ],
           ),
@@ -358,15 +365,97 @@ class _FeatureSelectionScreenState extends State<FeatureSelectionScreen>
       builder: (context) => _LanguageBottomSheet(),
     );
   }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: Colors.red,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Text(
+              'Logout',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: FinzoTheme.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to logout? You will need to sign in again to access your account.',
+          style: TextStyle(
+            fontSize: 15,
+            color: FinzoTheme.textSecondary(context),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: FinzoTheme.textSecondary(context),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.logout();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text(
+              'Logout',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PremiumIconButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final bool isDestructive;
 
   const _PremiumIconButton({
     required this.icon,
     required this.onTap,
+    this.isDestructive = false,
   });
 
   @override
@@ -430,7 +519,9 @@ class _PremiumIconButtonState extends State<_PremiumIconButton>
             child: Icon(
               widget.icon,
               size: 20,
-              color: FinzoTheme.textPrimary(context),
+              color: widget.isDestructive 
+                  ? Colors.red 
+                  : FinzoTheme.textPrimary(context),
             ),
           ),
         ),

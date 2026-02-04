@@ -973,3 +973,400 @@ exports.checkWatchlist = async (req, res) => {
     });
   }
 };
+
+// ============================================================
+// STOCK COMPARATOR ENDPOINTS
+// ============================================================
+
+// @desc    Compare multiple stocks
+// @route   POST /api/markets/compare
+// @access  Private
+exports.compareStocks = async (req, res) => {
+  try {
+    const { symbols } = req.body;
+
+    if (!symbols || !Array.isArray(symbols) || symbols.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide at least 2 stock symbols to compare'
+      });
+    }
+
+    if (symbols.length > 4) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum 4 stocks can be compared at once'
+      });
+    }
+
+    const stocksData = await Promise.all(
+      symbols.map(async (symbol) => {
+        try {
+          // Try to get real data from API
+          const stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(symbol)}`);
+          
+          if (stockInfo) {
+            const currentPrice = parseFloat(
+              stockInfo.currentPrice?.NSE?.replace(/,/g, '') || 
+              stockInfo.currentPrice?.BSE?.replace(/,/g, '') || 0
+            );
+            
+            return {
+              symbol: symbol.toUpperCase(),
+              name: stockInfo.companyName || symbol,
+              currentPrice,
+              change: parseFloat(stockInfo.percentChange || 0),
+              changePercent: parseFloat(stockInfo.percentChange || 0),
+              dayHigh: parseFloat(stockInfo.dayHigh?.replace(/,/g, '') || currentPrice * 1.02),
+              dayLow: parseFloat(stockInfo.dayLow?.replace(/,/g, '') || currentPrice * 0.98),
+              yearHigh: parseFloat(stockInfo['52WeekHighPrice']?.replace(/,/g, '') || currentPrice * 1.3),
+              yearLow: parseFloat(stockInfo['52WeekLowPrice']?.replace(/,/g, '') || currentPrice * 0.7),
+              marketCap: stockInfo.marketCap || 'N/A',
+              pe: parseFloat(stockInfo.peTTM || stockInfo.pe || 0),
+              pb: parseFloat(stockInfo.pbRatio || 0),
+              eps: parseFloat(stockInfo.eps || 0),
+              dividend: parseFloat(stockInfo.dividendYield || 0),
+              sector: stockInfo.sector || 'N/A',
+              industry: stockInfo.industry || 'N/A',
+              volume: parseInt(stockInfo.totalTradedVolume?.replace(/,/g, '') || 0),
+              avgVolume: parseInt(stockInfo.avgVolume || stockInfo.totalTradedVolume?.replace(/,/g, '') || 0)
+            };
+          }
+        } catch (e) {
+          console.log(`[Compare] API failed for ${symbol}, using fallback`);
+        }
+
+        // Fallback mock data
+        const fallback = FALLBACK_STOCKS[symbol.toUpperCase()];
+        if (fallback) {
+          const price = fallback.price * (1 + (Math.random() - 0.5) * 0.02);
+          return {
+            symbol: symbol.toUpperCase(),
+            name: fallback.name,
+            currentPrice: parseFloat(price.toFixed(2)),
+            change: fallback.change,
+            changePercent: fallback.change,
+            dayHigh: parseFloat((price * 1.015).toFixed(2)),
+            dayLow: parseFloat((price * 0.985).toFixed(2)),
+            yearHigh: parseFloat((price * 1.25).toFixed(2)),
+            yearLow: parseFloat((price * 0.75).toFixed(2)),
+            marketCap: 'N/A',
+            pe: parseFloat((15 + Math.random() * 20).toFixed(2)),
+            pb: parseFloat((1 + Math.random() * 4).toFixed(2)),
+            eps: parseFloat((price / (15 + Math.random() * 10)).toFixed(2)),
+            dividend: parseFloat((Math.random() * 3).toFixed(2)),
+            sector: 'N/A',
+            industry: 'N/A',
+            volume: Math.floor(Math.random() * 10000000),
+            avgVolume: Math.floor(Math.random() * 8000000)
+          };
+        }
+
+        return {
+          symbol: symbol.toUpperCase(),
+          name: symbol,
+          currentPrice: 0,
+          error: 'Stock not found'
+        };
+      })
+    );
+
+    // Calculate comparison metrics
+    const comparison = {
+      priceLeader: stocksData.reduce((a, b) => a.currentPrice > b.currentPrice ? a : b).symbol,
+      changeLeader: stocksData.reduce((a, b) => a.changePercent > b.changePercent ? a : b).symbol,
+      peLeader: stocksData.filter(s => s.pe > 0).reduce((a, b) => a.pe < b.pe ? a : b, stocksData[0])?.symbol,
+      volumeLeader: stocksData.reduce((a, b) => a.volume > b.volume ? a : b).symbol
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stocks: stocksData,
+        comparison,
+        comparedAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error comparing stocks',
+      error: error.message
+    });
+  }
+};
+
+// ============================================================
+// CANDLESTICK / OHLC DATA ENDPOINTS
+// ============================================================
+
+// @desc    Get OHLC candlestick data for a stock
+// @route   GET /api/markets/stocks/:symbol/candles
+// @access  Private
+exports.getCandlestickData = async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { timeframe = '1M', interval = 'daily' } = req.query;
+
+    // Determine number of data points based on timeframe
+    const timeframeDays = {
+      '1D': 1,
+      '1W': 7,
+      '1M': 30,
+      '3M': 90,
+      '6M': 180,
+      '1Y': 365
+    };
+    const days = timeframeDays[timeframe] || 30;
+
+    let candles = [];
+    let stockInfo = null;
+
+    // Try to get real data
+    try {
+      stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(symbol)}`);
+      
+      if (stockInfo && stockInfo.historicalDataDaily) {
+        // Parse real historical data
+        candles = stockInfo.historicalDataDaily
+          .slice(0, days)
+          .map(day => ({
+            date: day.date,
+            timestamp: new Date(day.date).getTime(),
+            open: parseFloat(day.open?.replace(/,/g, '') || 0),
+            high: parseFloat(day.high?.replace(/,/g, '') || 0),
+            low: parseFloat(day.low?.replace(/,/g, '') || 0),
+            close: parseFloat(day.close?.replace(/,/g, '') || 0),
+            volume: parseInt(day.volume?.replace(/,/g, '') || 0)
+          }))
+          .reverse(); // Oldest first
+      }
+    } catch (e) {
+      console.log(`[Candles] API failed for ${symbol}, generating mock data`);
+    }
+
+    // Generate mock data if needed
+    if (candles.length === 0) {
+      const fallback = FALLBACK_STOCKS[symbol.toUpperCase()];
+      const basePrice = fallback?.price || 1000;
+      candles = generateMockHistoricalData(basePrice, days, symbol.toUpperCase(), timeframe);
+    }
+
+    // Detect candlestick patterns
+    const patterns = detectCandlestickPatterns(candles);
+
+    // Calculate technical indicators
+    const indicators = calculateTechnicalIndicators(candles);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        symbol: symbol.toUpperCase(),
+        timeframe,
+        interval,
+        candles,
+        patterns,
+        indicators,
+        dataPoints: candles.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching candlestick data',
+      error: error.message
+    });
+  }
+};
+
+// Helper: Detect common candlestick patterns
+const detectCandlestickPatterns = (candles) => {
+  const patterns = [];
+  
+  if (candles.length < 3) return patterns;
+
+  for (let i = 2; i < candles.length; i++) {
+    const curr = candles[i];
+    const prev = candles[i - 1];
+    const prev2 = candles[i - 2];
+    
+    const bodySize = Math.abs(curr.close - curr.open);
+    const upperWick = curr.high - Math.max(curr.open, curr.close);
+    const lowerWick = Math.min(curr.open, curr.close) - curr.low;
+    const isBullish = curr.close > curr.open;
+    const isBearish = curr.close < curr.open;
+
+    // Doji (open ≈ close)
+    if (bodySize < (curr.high - curr.low) * 0.1) {
+      patterns.push({
+        name: 'Doji',
+        type: 'neutral',
+        date: curr.date,
+        index: i,
+        significance: 'Indecision in market',
+        icon: '✚'
+      });
+    }
+
+    // Hammer (bullish reversal)
+    if (isBullish && lowerWick > bodySize * 2 && upperWick < bodySize * 0.5) {
+      patterns.push({
+        name: 'Hammer',
+        type: 'bullish',
+        date: curr.date,
+        index: i,
+        significance: 'Potential bullish reversal',
+        icon: '🔨'
+      });
+    }
+
+    // Shooting Star (bearish reversal)
+    if (isBearish && upperWick > bodySize * 2 && lowerWick < bodySize * 0.5) {
+      patterns.push({
+        name: 'Shooting Star',
+        type: 'bearish',
+        date: curr.date,
+        index: i,
+        significance: 'Potential bearish reversal',
+        icon: '⭐'
+      });
+    }
+
+    // Engulfing patterns
+    const prevBodySize = Math.abs(prev.close - prev.open);
+    const prevIsBullish = prev.close > prev.open;
+    
+    // Bullish Engulfing
+    if (isBullish && !prevIsBullish && 
+        curr.open < prev.close && curr.close > prev.open &&
+        bodySize > prevBodySize) {
+      patterns.push({
+        name: 'Bullish Engulfing',
+        type: 'bullish',
+        date: curr.date,
+        index: i,
+        significance: 'Strong bullish reversal signal',
+        icon: '📈'
+      });
+    }
+
+    // Bearish Engulfing
+    if (isBearish && prevIsBullish && 
+        curr.open > prev.close && curr.close < prev.open &&
+        bodySize > prevBodySize) {
+      patterns.push({
+        name: 'Bearish Engulfing',
+        type: 'bearish',
+        date: curr.date,
+        index: i,
+        significance: 'Strong bearish reversal signal',
+        icon: '📉'
+      });
+    }
+
+    // Morning Star (bullish)
+    if (i >= 2) {
+      const dayBefore = candles[i - 2];
+      const isSmallMiddle = Math.abs(prev.close - prev.open) < Math.abs(dayBefore.close - dayBefore.open) * 0.3;
+      if (dayBefore.close < dayBefore.open && // Day 1: bearish
+          isSmallMiddle && // Day 2: small body
+          isBullish && curr.close > (dayBefore.open + dayBefore.close) / 2) { // Day 3: bullish closing above midpoint
+        patterns.push({
+          name: 'Morning Star',
+          type: 'bullish',
+          date: curr.date,
+          index: i,
+          significance: 'Strong bullish reversal pattern',
+          icon: '🌅'
+        });
+      }
+    }
+
+    // Evening Star (bearish)
+    if (i >= 2) {
+      const dayBefore = candles[i - 2];
+      const isSmallMiddle = Math.abs(prev.close - prev.open) < Math.abs(dayBefore.close - dayBefore.open) * 0.3;
+      if (dayBefore.close > dayBefore.open && // Day 1: bullish
+          isSmallMiddle && // Day 2: small body
+          isBearish && curr.close < (dayBefore.open + dayBefore.close) / 2) { // Day 3: bearish closing below midpoint
+        patterns.push({
+          name: 'Evening Star',
+          type: 'bearish',
+          date: curr.date,
+          index: i,
+          significance: 'Strong bearish reversal pattern',
+          icon: '🌆'
+        });
+      }
+    }
+  }
+
+  // Return most recent patterns (max 10)
+  return patterns.slice(-10);
+};
+
+// Helper: Calculate basic technical indicators
+const calculateTechnicalIndicators = (candles) => {
+  if (candles.length < 14) {
+    return { sma20: null, sma50: null, rsi: null, macd: null };
+  }
+
+  const closes = candles.map(c => c.close);
+
+  // Simple Moving Averages
+  const sma = (data, period) => {
+    if (data.length < period) return null;
+    const slice = data.slice(-period);
+    return slice.reduce((a, b) => a + b, 0) / period;
+  };
+
+  // RSI calculation
+  const calculateRSI = (data, period = 14) => {
+    if (data.length < period + 1) return null;
+    
+    let gains = 0;
+    let losses = 0;
+    
+    for (let i = data.length - period; i < data.length; i++) {
+      const diff = data[i] - data[i - 1];
+      if (diff > 0) gains += diff;
+      else losses -= diff;
+    }
+    
+    const avgGain = gains / period;
+    const avgLoss = losses / period;
+    
+    if (avgLoss === 0) return 100;
+    const rs = avgGain / avgLoss;
+    return 100 - (100 / (1 + rs));
+  };
+
+  // EMA calculation
+  const ema = (data, period) => {
+    if (data.length < period) return null;
+    const k = 2 / (period + 1);
+    let emaValue = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+    for (let i = period; i < data.length; i++) {
+      emaValue = data[i] * k + emaValue * (1 - k);
+    }
+    return emaValue;
+  };
+
+  const sma20 = sma(closes, 20);
+  const sma50 = sma(closes, Math.min(50, closes.length));
+  const rsi = calculateRSI(closes, 14);
+  const ema12 = ema(closes, 12);
+  const ema26 = ema(closes, Math.min(26, closes.length));
+  const macd = ema12 && ema26 ? ema12 - ema26 : null;
+
+  const currentPrice = closes[closes.length - 1];
+  
+  return {
+    sma20: sma20 ? parseFloat(sma20.toFixed(2)) : null,
+    sma50: sma50 ? parseFloat(sma50.toFixed(2)) : null,
+    rsi: rsi ? parseFloat(rsi.toFixed(2)) : null,
+    macd: macd ? parseFloat(macd.toFixed(2)) : null,
+    trend: currentPrice > (sma20 || currentPrice) ? 'bullish' : 'bearish',
+    rsiSignal: rsi ? (rsi > 70 ? 'overbought' : rsi < 30 ? 'oversold' : 'neutral') : null
+  };
+};

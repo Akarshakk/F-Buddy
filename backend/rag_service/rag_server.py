@@ -23,7 +23,7 @@ load_dotenv()
 
 # Configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "fbuddy-rag")
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "rag1")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 ALLOWED_EXTENSIONS = {'docx', 'doc', 'pdf'}
@@ -52,6 +52,49 @@ def sanitize_text(text: str) -> str:
     # Remove control characters except newlines
     text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', text)
     return text.strip()
+
+def clean_response(text: str) -> str:
+    """Clean up Gemini response to remove markdown and unwanted phrases"""
+    if not text:
+        return ""
+    
+    # Remove markdown symbols
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Bold
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Italic
+    text = re.sub(r'#{1,6}\s*', '', text)           # Headers
+    text = re.sub(r'`([^`]+)`', r'\1', text)        # Inline code
+    text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)  # Bullet points
+    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)  # Numbered lists
+    
+    # Remove common unwanted phrases
+    unwanted_starts = [
+        r'^Based on (the|my|this|your).*?,\s*',
+        r'^According to.*?,\s*',
+        r'^From (the|my|this).*?,\s*',
+        r'^The (context|document|information).*?,\s*',
+        r'^In (conclusion|summary|short),?\s*',
+        r'^To (summarize|conclude|sum up),?\s*',
+        r'^Overall,?\s*',
+        r'^Generally (speaking)?,?\s*',
+    ]
+    for pattern in unwanted_starts:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    # Remove trailing phrases
+    unwanted_ends = [
+        r'\s*I hope this helps!?\s*$',
+        r'\s*Let me know if.*$',
+        r'\s*Feel free to.*$',
+        r'\s*Is there anything else.*$',
+    ]
+    for pattern in unwanted_ends:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    # Clean up whitespace
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = text.strip()
+    
+    return text
 
 def init_clients():
     """Initialize Pinecone, Embeddings, and Gemini clients"""
@@ -96,7 +139,7 @@ def init_clients():
         
         # Initialize Gemini
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel("gemini-2.5-flash-lite")
+        gemini_model = genai.GenerativeModel("gemini-2.5-flash")
         print("✅ Initialized Gemini model")
         
     except Exception as e:
@@ -256,52 +299,80 @@ def chat():
         context_chunks = []
         sources = []
         for match in results.get("matches", []):
+            if match["score"] < 0.25:
+                continue
             if match.get("metadata"):
                 context_chunks.append(match["metadata"]["text"])
                 source = match["metadata"].get("source", "Unknown")
                 if source not in sources:
                     sources.append(source)
         
-        if not context_chunks:
-            return jsonify({
-                'success': True,
-                'answer': "I don't have any relevant information to answer your question. Please ensure financial advisory documents are uploaded.",
-                'sources': []
-            })
+        # Determine if we have good context from documents
+        has_document_context = len(context_chunks) > 0
         
         # Generate answer using Gemini
-        context = "\n\n".join(context_chunks)
-        
-        prompt = f"""You are a helpful financial advisor AI assistant for F-Buddy, a student finance management app.
+        if has_document_context:
+            # Primary: Answer from uploaded documents
+            context = "\n\n".join(context_chunks)
+            
+            prompt = f"""
+You are F-Buddy AI, a friendly and helpful financial assistant.
 
-CONTEXT (from financial advisory documents):
+CONTEXT FROM DOCUMENTS:
 {context}
 
 USER QUESTION:
 {query}
 
-Instructions:
-- Provide a clear, concise, and helpful answer based ONLY on the context above
-- If the context doesn't contain relevant information, politely say so
-- For financial advice, always remind users to consult with professionals for major decisions
-- Be friendly and encouraging, especially to students
-- Keep your response under 200 words
+IMPORTANT RESPONSE RULES:
+1. Give a DIRECT, CONCISE answer in 2-4 sentences max
+2. NO asterisks (*), hashes (#), or markdown symbols
+3. NO phrases like "Based on the context" or "According to the documents"
+4. NO "In conclusion" or summary statements
+5. Use simple, conversational language
+6. If asking about numbers, give the direct figure
+7. Only add a brief disclaimer for major financial decisions
+8. If not about finance, politely say you only help with money topics
 
-Answer:"""
+Answer directly:
+"""
+        else:
+            # Fallback: No relevant documents found, use LLM's general finance knowledge
+            prompt = f"""
+You are F-Buddy AI, a friendly financial assistant.
 
-        print("🤖 Generating answer with Gemini...")
+USER QUESTION:
+{query}
+
+IMPORTANT RESPONSE RULES:
+1. Give a DIRECT, CONCISE answer in 2-4 sentences max
+2. NO asterisks (*), hashes (#), or markdown symbols
+3. NO phrases like "Based on my knowledge" or "Generally speaking"
+4. NO "In conclusion" or summary statements
+5. Use simple, conversational language
+6. Only add a brief disclaimer for major financial decisions
+7. If not about finance, politely say you only help with money topics
+
+Answer directly:
+"""
+
+        print(f"🤖 Generating answer with Gemini (document context: {has_document_context})...")
         # Re-configure API key before each request (ensures it's set)
         genai.configure(api_key=GEMINI_API_KEY)
         response = gemini_model.generate_content(prompt)
         answer = response.text
+        
+        # Clean up the response
+        answer = clean_response(answer)
         
         print(f"✅ Generated answer ({len(answer)} chars)")
         
         return jsonify({
             'success': True,
             'answer': answer,
-            'sources': sources,
-            'context_used': len(context_chunks)
+            'sources': sources if has_document_context else ['General Knowledge'],
+            'context_used': len(context_chunks),
+            'used_document_context': has_document_context
         })
         
     except Exception as e:
@@ -349,4 +420,4 @@ if __name__ == '__main__':
     print("\n📡 Starting Flask server on port 5002...")
     print("=" * 60)
     
-    app.run(host='0.0.0.0', port=5002, debug=True)
+    app.run(host='0.0.0.0', port=5002, debug=False)

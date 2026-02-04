@@ -6,7 +6,9 @@ import '../../l10n/app_localizations.dart';
 import 'stock_detail_screen.dart';
 
 class PortfolioScreen extends StatefulWidget {
-  const PortfolioScreen({super.key});
+  final int initialTab;
+  
+  const PortfolioScreen({super.key, this.initialTab = 0});
 
   @override
   State<PortfolioScreen> createState() => _PortfolioScreenState();
@@ -22,7 +24,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     _loadData();
   }
 
