@@ -628,8 +628,8 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                             final accuratePercent = accuratePercentages[index];
                             
                             // Ensure minimum radius for small sections to be tappable
-                            final baseRadius = 50.0;
-                            final touchedRadius = 62.0;
+                            const baseRadius = 50.0;
+                            const touchedRadius = 62.0;
 
                             return PieChartSectionData(
                               color: category.color,

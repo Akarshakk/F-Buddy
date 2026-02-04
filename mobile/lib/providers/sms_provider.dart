@@ -11,7 +11,7 @@ class SmsProvider with ChangeNotifier {
   bool _isEnabled = false;
   bool _isInitializing = false;
   int _smsTransactionCount = 0;
-  List<Map<String, dynamic>> _pendingReviews = [];
+  final List<Map<String, dynamic>> _pendingReviews = [];
   Timer? _pollTimer;
 
   bool get isEnabled => _isEnabled;

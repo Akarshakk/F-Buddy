@@ -176,7 +176,7 @@ class _TaxCalculatorPageState extends State<TaxCalculatorPage> {
         hraExemption;
 
     // --- NEW REGIME CALCULATION (FY 2025-26) ---
-    final newRegimeStandardDeduction = 75000.0;
+    const newRegimeStandardDeduction = 75000.0;
     final newRegimeTaxableIncome = (grossIncome - newRegimeStandardDeduction)
         .clamp(0.0, double.infinity)
         .toDouble();
@@ -193,7 +193,7 @@ class _TaxCalculatorPageState extends State<TaxCalculatorPage> {
     final newRegimeTotalTax = newRegimeTax + newRegimeCess;
 
     // --- OLD REGIME CALCULATION ---
-    final oldRegimeStandardDeduction = 50000.0;
+    const oldRegimeStandardDeduction = 50000.0;
     final oldRegimeTaxableIncome =
         (grossIncome - oldRegimeStandardDeduction - totalDeductions)
             .clamp(0.0, double.infinity)
@@ -1427,7 +1427,7 @@ class _TaxCalculatorPageState extends State<TaxCalculatorPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),
@@ -1444,7 +1444,7 @@ class _TaxCalculatorPageState extends State<TaxCalculatorPage> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           border: InputBorder.none,

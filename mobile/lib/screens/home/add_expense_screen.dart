@@ -361,7 +361,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   color: FinzoColors.warning.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(FinzoRadius.sm),
                 ),
-                child: Icon(Icons.warning_amber_rounded, color: FinzoColors.warning, size: 24),
+                child: const Icon(Icons.warning_amber_rounded, color: FinzoColors.warning, size: 24),
               ),
               const SizedBox(width: FinzoSpacing.md),
               Expanded(
@@ -422,7 +422,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
             Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary]),
+                gradient: const LinearGradient(colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary]),
                 borderRadius: BorderRadius.circular(FinzoRadius.sm),
               ),
               child: TextButton(
@@ -670,7 +670,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
           ],
         ),
       ),
@@ -749,7 +749,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return Container(
       padding: const EdgeInsets.all(FinzoSpacing.xl),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -913,7 +913,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         return Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary]),
+            gradient: const LinearGradient(colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary]),
             borderRadius: BorderRadius.circular(FinzoRadius.md),
             boxShadow: [
               BoxShadow(color: FinzoColors.brandPrimary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6)),

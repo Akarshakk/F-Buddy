@@ -1,0 +1,1048 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    FINZO - BACKEND SYSTEM GUIDE                              ║
+║            Node.js API Server, Database Models, and Services                  ║
+║                    For Senior Backend Engineers                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+BACKEND SERVER STRUCTURE (Node.js + Express)
+================================================================================
+
+Project Root: /backend
+
+Directory Layout:
+  backend/
+  ├── src/
+  │   ├── server.js ........................ Express app initialization
+  │   ├── config/
+  │   │   ├── firebase.js ................. Firebase Admin SDK setup
+  │   │   └── database.js ................. Database connection
+  │   ├── controllers/ ..................... Business logic handlers
+  │   ├── models/ .......................... Data layer (CRUD ops)
+  │   ├── routes/ .......................... Express route handlers
+  │   ├── middleware/ ...................... Authentication, validation
+  │   ├── services/ ........................ External service integrations
+  │   └── utils/ ........................... Helper functions
+  ├── uploads/ ............................ File storage (KYC documents)
+  ├── .env ................................ Environment variables
+  ├── package.json ......................... Dependencies
+  ├── startup-check.js .................... Pre-flight checks
+  └── README.md ........................... Documentation
+
+================================================================================
+SERVER INITIALIZATION (server.js)
+================================================================================
+
+Middleware Stack (Order Matters):
+
+1. Environment Loading:
+   require('dotenv').config();
+   └─→ Loads .env file into process.env
+
+2. Firebase Initialization:
+   initializeFirebase()
+   └─→ Connects to Google Cloud Firestore
+   └─→ Initializes Firebase Admin SDK
+   └─→ Non-blocking: If fails, logs warning and continues with MongoDB
+
+3. Express App Creation:
+   const app = express();
+   app.set('etag', false);
+   └─→ Disables HTTP 304 Not Modified responses (Flutter compatibility)
+
+4. CORS Middleware:
+   app.use(cors({
+     origin: '*',
+     credentials: true,
+     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     allowedHeaders: ['Content-Type', 'Authorization']
+   }));
+   └─→ Allows cross-origin requests from mobile/web frontend
+   └─→ Credentials enabled for cookies (if used)
+
+5. Body Parser Middleware:
+   app.use(express.json({ limit: '50mb' }));
+   app.use(express.urlencoded({ limit: '50mb', extended: true }));
+   └─→ Handles JSON and form-encoded requests
+   └─→ 50MB limit for large file uploads (KYC documents)
+
+6. Request Logging:
+   app.use(morgan('dev'));
+   └─→ Logs every HTTP request: [method] [path] [status] [ms]
+   └─→ Development format: includes colors and response time
+
+7. Static File Serving:
+   app.use('/uploads', express.static('uploads'));
+   └─→ Serves uploaded KYC documents, selfies
+   └─→ Accessible at http://localhost:5001/uploads/filename
+
+8. Cache Control Middleware:
+   app.use((req, res, next) => {
+     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+     delete req.headers['if-none-match'];
+     delete req.headers['if-modified-since'];
+     next();
+   });
+   └─→ Forces fresh responses (prevents 304 caching issues)
+   └─→ Critical for Flutter HTTP client compatibility
+
+9. Route Mounting:
+   Routes mounted with /api/ prefix:
+   └─→ /api/auth
+   └─→ /api/expenses
+   └─→ /api/income
+   └─→ /api/analytics
+   └─→ /api/categories
+   └─→ /api/groups
+   └─→ /api/debts
+   └─→ /api/bill
+   └─→ /api/sms
+   └─→ /api/kyc
+   └─→ /api/statement
+   └─→ /api/tax
+
+Server Start:
+  PORT = process.env.PORT || 5001
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+
+================================================================================
+AUTHENTICATION FLOW (Middleware + Controllers)
+================================================================================
+
+File: middleware/auth.js
+
+exports.protect = async (req, res, next) => {
+  // 1. Extract token from request
+  let token;
+  
+  if (req.headers.authorization?.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.headers['x-auth-token']) {
+    token = req.headers['x-auth-token'];  // Fallback header
+  }
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized - No token provided',
+      hint: 'Please include Authorization header with Bearer token'
+    });
+  }
+  
+  try {
+    // 2. Verify JWT signature & expiration
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // 3. Lookup user in database
+    req.user = await User.findById(decoded.id);
+    
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found - Token may be invalid'
+      });
+    }
+    
+    // 4. Attach user to request, allow next middleware
+    next();
+    
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized - Invalid token',
+      error: error.message
+    });
+  }
+};
+
+Usage in Routes:
+  router.get('/profile', protect, getProfile);
+  router.post('/expenses', protect, createExpense);
+  └─→ Any route with "protect" middleware requires valid token
+
+Token Structure (JWT Payload):
+  {
+    id: "user_id_from_firestore",
+    iat: 1704067200,        // Issued at timestamp
+    exp: 1704153600         // Expiration timestamp (7 days later)
+  }
+
+Login Flow (authController.js):
+  1. User POSTs /api/auth/login with { email, password }
+  2. Find user by email: User.findByEmail(email, true)
+     └─→ true = include password hash in result
+  3. Compare submitted password with hash: bcrypt.compare()
+  4. If match: Generate JWT token = jwt.sign({ id }, JWT_SECRET, { expiresIn: '7d' })
+  5. Return token to frontend
+  6. Frontend stores in secure storage
+  7. Frontend includes in every API request: Authorization: Bearer {token}
+
+Performance Optimization (Current):
+  ✓ JWT verification is local (no DB lookup)
+  ✓ User lookup done once per request
+  ✓ Bcrypt comparison optimized (8 rounds, not 10)
+  ✓ Token expiration prevents long-lived credentials
+
+================================================================================
+MODEL LAYER - DATA PERSISTENCE PATTERNS
+================================================================================
+
+All models follow this pattern:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ GENERIC CRUD PATTERN                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+// Create
+const create = async (data) => {
+  const db = getDb();  // Get Firestore instance
+  const docRef = await db.collection(COLLECTION_NAME).add(data);
+  return { id: docRef.id, ...data };  // Return with generated ID
+};
+
+// Read - Find by ID
+const findById = async (id) => {
+  const db = getDb();
+  const doc = await db.collection(COLLECTION_NAME).doc(id).get();
+  if (!doc.exists) return null;
+  return serializeDoc(doc);  // Convert Firestore doc to JS object
+};
+
+// Read - Find with Query
+const findByUser = async (userId, options = {}) => {
+  const db = getDb();
+  let query = db.collection(COLLECTION_NAME).where('user', '==', userId);
+  
+  // Apply filters if provided
+  if (options.category) {
+    query = query.where('category', '==', options.category);
+  }
+  
+  const snapshot = await query.get();
+  return snapshot.docs.map(doc => serializeDoc(doc));
+};
+
+// Update
+const updateById = async (id, updateData) => {
+  const db = getDb();
+  await db.collection(COLLECTION_NAME).doc(id).update(updateData);
+  return await findById(id);  // Return updated document
+};
+
+// Delete
+const deleteById = async (id) => {
+  const db = getDb();
+  await db.collection(COLLECTION_NAME).doc(id).delete();
+  return true;
+};
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ KEY MODELS EXPLAINED                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+USER MODEL (models/User.js)
+─────────────────────────
+
+Purpose: User account management & authentication
+
+Key Methods:
+  • createUser(userData)
+    └─→ Hash password with bcryptjs (8 salt rounds)
+    └─→ Stores in Firestore
+    └─→ Returns user object with generated ID
+
+  • findByEmail(email, includePassword = false)
+    └─→ Firestore query: collection.where('email', '==', email)
+    └─→ includePassword: true for login, false for profile display
+    └─→ Strips password from response if false
+
+  • findById(id, includePassword = false)
+    └─→ Direct document fetch: collection.doc(id).get()
+    └─→ Includes serialization of timestamps
+
+  • matchPassword(enteredPassword, hashedPassword)
+    └─→ Async bcrypt comparison
+    └─→ Returns true/false (timing-safe)
+    └─→ Used during login verification
+
+  • getSignedJwtToken(userId)
+    └─→ Creates JWT: { id: userId, iat: now, exp: now + 7days }
+    └─→ Signed with process.env.JWT_SECRET
+    └─→ 7 days expiration (configurable)
+
+  • updateUser(id, updateData)
+    └─→ Partial update of user document
+    └─→ If password included, hashes it first
+    └─→ Returns updated user object
+
+Security Considerations:
+  ✓ Passwords never returned to client
+  ✓ Passwords hashed before storage
+  ✓ Timing-safe password comparison (bcrypt)
+  ✓ JWT secret stored in env, not in code
+  ✓ Email field unique in Firestore (enforced via rules)
+
+EXPENSE MODEL (models/Expense.js)
+────────────────────────────────
+
+Purpose: Personal and group transaction tracking
+
+Key Methods:
+  • create(expenseData)
+    └─→ Creates expense document
+    └─→ Fields: amount, category, merchant, date, source
+    └─→ source: 'manual' or 'sms_auto' for auto-parsed
+
+  • findByUser(userId, options = {})
+    └─→ Filters: startDate, endDate, category, limit
+    └─→ In-memory sorting (by date descending)
+    └─→ Handles Firestore index limitations
+
+  • aggregateByCategory(userId, startDate, endDate)
+    └─→ Returns expense totals per category
+    └─→ Used for pie chart analytics
+    └─→ Calculates percentages
+
+  • getDailyExpense(userId, startDate, endDate)
+    └─→ Groups expenses by date
+    └─→ Used for trend/line charts
+    └─→ Returns [{ date, amount, count }, ...]
+
+Special Fields:
+  • source: Tracks if expense is manual entry or auto-parsed from SMS
+  • groupExpenseId: Links to GROUP_EXPENSES document (for splitwise)
+  • smsId: References the SMS that generated this expense (audit trail)
+  • confidence: Score from SMS parsing (0-1)
+  • paymentMethod: cash, card, upi, bank_transfer
+
+INCOME MODEL (models/Income.js)
+───────────────────────────────
+
+Purpose: Income tracking by source and time period
+
+Key Methods:
+  • create(incomeData)
+    └─→ Creates income document
+    └─→ Fields: amount, source, month, year, date
+
+  • findByUser(userId, options = {})
+    └─→ Filters: month, year
+    └─→ Returns in descending date order
+
+  • getTotalForMonth(userId, month, year)
+    └─→ Quick aggregation for dashboard summary
+    └─→ Returns single number: total income
+
+  • getTotalForRange(userId, startDate, endDate)
+    └─→ Calculates income for date range
+    └─→ Used in analytics comparisons
+
+  • getDailyIncome(userId, startDate, endDate)
+    └─→ Groups income by day
+    └─→ Used for income trend charts
+
+Income Sources:
+  'pocket_money', 'salary', 'freelance', 'gift', 'scholarship', 'other'
+
+GROUP MODEL (models/Group.js)
+──────────────────────────────
+
+Purpose: Group creation and member management for bill splitting
+
+Key Methods:
+  • create(groupData)
+    └─→ Creates group document
+    └─→ Auto-generates 6-char invite code
+    └─→ Members array with userId and email
+    └─→ CreatedBy field tracks creator
+
+  • generateInviteCode()
+    └─→ Random 6-char string: uppercase + numbers
+    └─→ Example: "A3B8Z2"
+    └─→ Used for joining without email
+
+  • findByMember(userId)
+    └─→ Fetch all groups where user is member
+    └─→ Filters in-memory (Firestore array limitation)
+
+  • findByInviteCode(code)
+    └─→ Lookup group by invite code
+    └─→ Used when joining a group
+
+  • addMember(groupId, member)
+    └─→ Adds user to group members array
+    └─→ Checks for duplicates
+    └─→ Updates group.updatedAt
+
+  • calculateBalances(groupId)
+    └─→ Complex calculation of who owes whom
+    └─→ Based on all group_expenses
+    └─→ Returns net balances
+
+Group Structure:
+  {
+    name: "Bali Trip 2024",
+    description: "Vacation expenses",
+    members: [
+      { userId: "user1", email: "john@example.com", joinedAt: ... },
+      { userId: "user2", email: "jane@example.com", joinedAt: ... }
+    ],
+    inviteCode: "ABC123",
+    createdBy: "user1",
+    createdAt: timestamp
+  }
+
+KYC MODEL (models/KYC.js)
+───────────────────────
+
+Purpose: Identity verification document and face matching data
+
+Key Methods:
+  • createOrGet(userId)
+    └─→ Gets existing KYC for user, or creates new one
+    └─→ Prevents duplicate KYC documents
+
+  • findByUser(userId)
+    └─→ Lookup KYC document for verification check
+    └─→ Used throughout KYC flow
+
+  • updateDocument(userId, documentType, filePath, ocrData)
+    └─→ Stores uploaded document information
+    └─→ ocrData: { rawText, confidence, extractedFields }
+
+  • addVerificationHistory(userId, step, status, message)
+    └─→ Audit trail of verification steps
+    └─→ Helps debug failed verifications
+    └─→ Shows progression through KYC workflow
+
+KYC Status Transitions:
+  NOT_STARTED → PENDING (after document upload) 
+            → VERIFIED (after all steps done)
+            → FAILED (if any step fails)
+
+================================================================================
+SERVICE LAYER - BUSINESS LOGIC & EXTERNAL INTEGRATIONS
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SMS PARSER SERVICE (services/smsParser.js)                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+🌟 CRITICAL INNOVATION: Converts SMS into expense transactions
+
+Initialization:
+  const smsParser = new SmsParser();
+  └─→ Initializes Google Gemini client
+  └─→ Loads 17 bank identifiers
+  └─→ Compiles regex patterns
+
+Bank Identifiers (17 major Indian banks):
+  'SBIINB', 'HDFCBK', 'ICICIB', 'AXISBK', 'PNBSMS', 'KOTAKBK',
+  'PAYTM', 'GPAY', 'PHONEPE', 'AMAZPAY', 'BHARPE', 'SBIPAY',
+  'YESBNK', 'CITIBK', 'SCBANK', 'HSBC', 'IDBIBNK'
+
+Key Methods:
+
+isPaymentSms(sender):
+  Input: SMS sender ID (e.g., "SBIINB", "PAYTM")
+  Logic: Checks if sender matches known bank identifiers
+  Output: boolean
+  Purpose: Early filter to avoid parsing non-payment SMS
+
+parseSms(smsText, sender):
+  
+  Input:
+    smsText: Raw SMS message
+    sender: SMS sender ID
+  
+  Process:
+    1. Amount Extraction
+       └─→ Regex: /(?:Rs\.?|INR|₹)\s*([0-9,]+\.?\d*)/i
+       └─→ Matches: "₹500", "Rs.1000", "INR 250.50"
+       └─→ Strips commas and converts to float
+    
+    2. Transaction Type Detection
+       └─→ Debit pattern: debited|spent|paid|withdrawn|deducted|purchase
+       └─→ Credit pattern: credited|received|deposited|refund|cashback
+       └─→ Sets type to 'expense' or 'income'
+    
+    3. Merchant Extraction
+       └─→ Regex: /(?:at|to|from|merchant)\s+([A-Za-z0-9\s&.-]+?)/i
+       └─→ Example: "at Amazon.com" → "Amazon.com"
+       └─→ Cleaned for display
+    
+    4. UPI ID Extraction
+       └─→ Regex: /(?:UPI|VPA|UPI ID):\s*([a-zA-Z0-9._-]+@[a-zA-Z]+)/i
+       └─→ Format: "user@paytm" or "user@phonepe"
+       └─→ For identifying transaction counterparty
+    
+    5. Reference Number
+       └─→ Regex: /(?:Ref\.?|Txn)\s*(?:No\.?|ID|#)?\s*:?\s*([A-Z0-9]+)/i
+       └─→ Example: "Ref No: SBI123456"
+       └─→ Unique identifier for transaction
+    
+    6. Gemini AI Processing (if amount found)
+       └─→ Calls Google Gemini API
+       └─→ Analyzes SMS for category
+       └─→ Returns: { category: 'food', confidence: 0.92 }
+  
+  Output:
+    {
+      type: 'expense',
+      amount: 500,
+      merchant: 'Amazon',
+      category: 'shopping',
+      upiId: 'user@paytm',
+      refNo: 'SBI123456',
+      confidence: 0.87,
+      needsReview: false
+    }
+  
+  Confidence Rules:
+    • 0.85 - 1.0: Trusted (auto-save optional)
+    • 0.70 - 0.85: Medium (requires review)
+    • < 0.70: Low (rejected or needs manual entry)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OCR SERVICE (services/ocrService.js)                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Purpose: Extract text from KYC documents using Tesseract
+
+Implementation:
+  Uses Tesseract.js (JavaScript OCR library)
+  └─→ No external API calls needed
+  └─→ Works offline
+  └─→ Takes 2-5 seconds per image
+
+Key Methods:
+
+extractText(imagePath):
+  Input: File path to document image
+  Process:
+    1. Load image using Tesseract
+    2. Run OCR on image
+    3. Extract text from document
+    4. Calculate confidence (0-1)
+  Output:
+    {
+      text: "UIDAI Document\nName: John Doe\nUID: 123456789012\nDOB: 01-01-1990",
+      confidence: 0.94
+    }
+
+validateDocument(documentType, ocrText):
+  Input: Document type and extracted text
+  Process:
+    • Aadhaar: Check for "UIDAI" and 12-digit number
+    • PAN: Check for 10-char PAN format
+    • Passport: Check passport indicators
+    • DL: Validate with state codes
+  Output: boolean (valid or not)
+
+Example OCR Result:
+  Input: Photo of Aadhaar card
+  Output:
+    {
+      text: "UIDAI\nName: John Doe\nUID: 387654321098\nDOB: 15/10/1995",
+      confidence: 0.96
+    }
+  Usage: Store first 500 chars in database, use for validation
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FACE SERVICE (services/faceService.js)                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Purpose: Compare faces between ID document and selfie
+
+Technologies:
+  • face-api.js: Face detection & recognition
+  • Canvas: Image processing backend
+  • Embedding-based comparison (cosine distance)
+
+Key Methods:
+
+validateFaceInImage(imagePath):
+  Purpose: Check if image contains a valid face for KYC
+  
+  Checks:
+    ✓ Image exists and is readable
+    ✓ At least one face detected
+    ✓ Face occupies 30-70% of image
+    ✓ Face is frontal (pitch within -20° to +20°)
+    ✓ Lighting is adequate
+    ✓ No glasses or masks (configurable)
+  
+  Output:
+    {
+      hasFace: true,
+      quality: 'good',
+      details: {
+        faceCount: 1,
+        brightness: 0.8,
+        angle: 'frontal'
+      }
+    }
+
+compareFaces(docImagePath, selfiePath):
+  Purpose: Compare face in ID document with selfie
+  
+  Process:
+    1. Extract face embeddings from document image
+       └─→ 128-dimensional vector representation
+    2. Extract face embeddings from selfie
+       └─→ Same 128-dimensional space
+    3. Calculate cosine similarity
+       └─→ Distance between vectors
+    4. Apply threshold:
+       └─→ Score >= 0.85: Faces match ✓
+       └─→ Score < 0.85: Faces don't match ✗
+  
+  Output:
+    {
+      isMatch: true,
+      score: 0.92,
+      details: {
+        docFaceQuality: 'good',
+        selfieFaceQuality: 'excellent',
+        matchDetails: 'High confidence match'
+      }
+    }
+  
+  Liveness Detection (Production):
+    • Challenge user to perform actions (blink, smile)
+    • Detect movement in video
+    • Check eyes are open and focused
+    • Anti-spoofing checks (detects printed photos)
+
+Tuning Parameters:
+  • Threshold: 0.85 (adjust for false positive/negative rate)
+  • Quality checks: Can be relaxed for accessibility
+  • Liveness: Can be enabled/disabled based on security needs
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MFA SERVICE (services/mfaService.js)                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Purpose: Send OTP and verify multi-factor authentication
+
+Key Methods:
+
+generateOTP():
+  └─→ Uses otp-generator package
+  └─→ Generates 6-digit OTP
+  └─→ Example: "123456"
+  └─→ Validity: 10 minutes
+
+sendOTP(email, otp):
+  └─→ Uses Nodemailer to send via SMTP
+  └─→ Email template: Professional, with branding
+  └─→ Subject: "Your Finzo KYC Verification Code"
+  └─→ Body: Large OTP display, 10-min expiry notice
+  └─→ Returns: true if sent successfully
+
+verifyOTP(storedOTP, enteredOTP):
+  └─→ Compare submitted OTP with stored
+  └─→ Check if OTP not expired
+  └─→ Mark as used (prevent replay)
+  └─→ Returns: { valid: true/false, message: string }
+
+SMTP Configuration:
+  Host: smtp.gmail.com (or custom)
+  Port: 587 (TLS)
+  From: business@finzo.com
+  Auth: Service account email & app password
+  Rate limiting: Max 5 OTPs per 15 minutes
+
+================================================================================
+CONTROLLER LAYER - REQUEST HANDLING
+================================================================================
+
+Controller Pattern:
+
+exports.methodName = async (req, res) => {
+  try {
+    // 1. Extract and validate input
+    const { field1, field2 } = req.body;
+    
+    // 2. Call model/service methods
+    const result = await Model.method(param);
+    
+    // 3. Return standardized response
+    res.status(200).json({
+      success: true,
+      message: 'Operation successful',
+      data: result
+    });
+    
+  } catch (error) {
+    // 4. Centralized error handling
+    res.status(500).json({
+      success: false,
+      message: 'Error message',
+      error: error.message
+    });
+  }
+};
+
+Response Format (Standardized):
+  Success:
+    {
+      success: true,
+      message: 'Optional message',
+      data: { /* actual data */ }
+    }
+  
+  Error:
+    {
+      success: false,
+      message: 'Error description',
+      error: 'Technical error details'
+    }
+
+Validation Strategy:
+  • express-validator for schema validation
+  • Custom validators for business logic
+  • Firestore rules as backup validation
+  • Sanitization of inputs
+
+Example Controller - Create Expense:
+
+exports.createExpense = async (req, res) => {
+  try {
+    const { amount, category, description, merchant, date } = req.body;
+    
+    // Validation
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide valid amount'
+      });
+    }
+    
+    if (!category || !EXPENSE_CATEGORIES.includes(category.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category'
+      });
+    }
+    
+    // Create expense
+    const expense = await Expense.create({
+      user: req.user.id,
+      amount,
+      category: category.toLowerCase(),
+      description,
+      merchant,
+      date: date ? new Date(date) : new Date(),
+      source: 'manual'
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Expense created successfully',
+      data: expense
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error creating expense',
+      error: error.message
+    });
+  }
+};
+
+================================================================================
+ROUTE CONFIGURATION
+================================================================================
+
+Routes are organized by feature:
+
+auth.js - Authentication routes
+  POST /api/auth/register
+  POST /api/auth/login
+  GET /api/auth/verify
+  POST /api/auth/logout
+
+expense.js - Expense management
+  POST /api/expenses (+ protect middleware)
+  GET /api/expenses
+  GET /api/expenses/:id
+  PUT /api/expenses/:id
+  DELETE /api/expenses/:id
+
+income.js - Income tracking
+  POST /api/income
+  GET /api/income
+  GET /api/income/:id
+  PUT /api/income/:id
+  DELETE /api/income/:id
+
+analytics.js - Financial insights
+  GET /api/analytics/category (pie chart data)
+  GET /api/analytics/summary (dashboard summary)
+  GET /api/analytics/daily (trend data)
+  GET /api/analytics/comparison (month comparison)
+
+group.js - Group expense splitting
+  POST /api/groups (create group)
+  GET /api/groups (list user's groups)
+  GET /api/groups/:id (group details + balances)
+  POST /api/groups/:id/expenses (add group expense)
+  POST /api/groups/:id/settle (settle debt)
+  POST /api/groups/:code/join (join via invite code)
+
+kyc.js - Identity verification
+  GET /api/kyc/status
+  POST /api/kyc/upload-document (+ multer)
+  POST /api/kyc/upload-selfie (+ multer)
+  POST /api/kyc/verify-mfa
+
+sms.js - SMS transaction processing
+  POST /api/sms/parse (parse SMS)
+  GET /api/sms/list (list parsed transactions)
+  POST /api/sms/confirm/:id (save as expense)
+  POST /api/sms/reject/:id (discard)
+
+Route Protection:
+  Routes that modify data or access user data use protect middleware
+  └─→ Ensures request includes valid JWT token
+  └─→ req.user populated from token
+  └─→ Prevents unauthorized access
+
+================================================================================
+ERROR HANDLING & LOGGING
+================================================================================
+
+Logging Strategy:
+
+Console Logs with Context Labels:
+  [AuthMiddleware] Headers: {...}
+  [KYC] Processing document: /uploads/kyc_12345.jpg
+  [FaceMatch] Comparing images...
+  [SmsParser] Parsed transaction: { amount: 500, ... }
+
+Development Mode:
+  • Detailed logs with full data
+  • Morgan logging every HTTP request
+  • Stack traces for debugging
+  • Response body logging
+
+Production Mode (Recommended):
+  • Sensitive data filtered from logs
+  • Centralized logging service (Winston, Bunyan)
+  • Error tracking (Sentry)
+  • Performance monitoring (New Relic)
+
+Error Categories:
+
+1. Validation Errors (400)
+   • Invalid input format
+   • Missing required fields
+   • Out of range values
+
+2. Authentication Errors (401)
+   • No token provided
+   • Invalid token
+   • Token expired
+   • User not found
+
+3. Authorization Errors (403)
+   • User doesn't own resource
+   • Insufficient permissions
+   • Account not verified
+
+4. Not Found Errors (404)
+   • Resource doesn't exist
+   • User not found
+   • Group not found
+
+5. Server Errors (500)
+   • Database connection error
+   • External service failure
+   • Unhandled exception
+
+Error Recovery:
+
+Database Failures:
+  • Retry logic with exponential backoff
+  • Graceful degradation
+  • Fallback to MongoDB if Firestore fails
+
+External API Failures:
+  • Timeout handling (10 seconds)
+  • Retry with circuit breaker
+  • Graceful error messages to user
+
+File Upload Failures:
+  • Clean up temporary files
+  • Return clear error message
+  • Log file details for debugging
+
+================================================================================
+PERFORMANCE CONSIDERATIONS
+================================================================================
+
+Query Optimization:
+
+Expensive Operations:
+  ❌ Fetching all expenses, then filtering in memory
+  ✓ Push filters to Firestore query
+
+  ❌ Getting user details in every request
+  ✓ Cache in request header or Redis
+
+  ❌ Multiple sequential DB calls
+  ✓ Batch operations or load in parallel
+
+Index Strategy:
+
+Required Indexes:
+  • users: email (for login)
+  • expenses: (user, date) for date range queries
+  • expenses: (user, category) for category filtering
+  • income: (user, month, year) for monthly summaries
+  • groups: inviteCode (for joining)
+  • kyc: user (for KYC lookup)
+
+Firestore Limitations:
+  • Array queries not directly supported
+    Solution: Filter in application code
+  • Multiple inequality filters not allowed
+    Solution: Query with one inequality, filter others in JS
+  • No OR queries
+    Solution: Multiple queries, then merge results
+
+Caching Strategy:
+
+Frontend Caching:
+  • Analytics results cached for 5 minutes
+  • User profile cached for session
+  • Category list cached (rarely changes)
+
+Backend Caching (Optional):
+  • Redis for frequently accessed data
+  • Cache expiration: 5-10 minutes
+  • Invalidate on write
+
+Request Optimization:
+  • Compress responses with gzip
+  • Pagination for large datasets
+  • Return only needed fields (sparse queries)
+  • Conditional requests with ETags
+
+================================================================================
+DEPLOYMENT CHECKLIST
+================================================================================
+
+Pre-deployment:
+  ✓ All environment variables set in .env
+  ✓ Firebase credentials configured
+  ✓ SMTP credentials for email working
+  ✓ Firestore indexes created
+  ✓ Security rules reviewed and set
+  ✓ File upload directory writable
+  ✓ API tested with Postman/Insomnia
+
+Deployment:
+  ✓ npm install (no dev dependencies)
+  ✓ NODE_ENV=production npm start
+  ✓ Monitor startup logs
+  ✓ Verify database connectivity
+  ✓ Test API endpoints
+  ✓ Check CORS headers
+  ✓ Verify file uploads work
+
+Post-deployment:
+  ✓ Monitor error logs
+  ✓ Check response times
+  ✓ Verify user registration flow
+  ✓ Test KYC document upload
+  ✓ Verify email notifications sending
+  ✓ Check database queries performance
+  ✓ Monitor file storage usage
+
+Scaling Considerations:
+  • Database: Firestore auto-scales
+  • Backend: Stateless, can run multiple instances
+  • Load balancer: Route traffic across instances
+  • Cache layer: Add Redis for high-traffic
+  • File storage: Migrate uploads to Google Cloud Storage
+  • CDN: Serve static assets via CDN
+
+================================================================================
+TROUBLESHOOTING GUIDE
+================================================================================
+
+Issue: "Cannot find module 'firebase-admin'"
+Fix: npm install || npm install firebase-admin
+
+Issue: "FIREBASE_PROJECT_ID not set"
+Fix: Create .env file with credentials
+     or set environment variables in deployment platform
+
+Issue: "Cannot connect to Firestore"
+Fix: Verify firebase-service-account.json exists
+     Check credentials are valid
+     Verify network connectivity
+
+Issue: "File upload failing"
+Fix: Check /uploads directory exists and writable
+     Check file size limit (50MB)
+     Verify multer configuration
+
+Issue: "JWT token verification failing"
+Fix: Ensure JWT_SECRET is same across all instances
+     Check token not expired
+     Verify Authorization header format
+
+Issue: "KYC verification slow"
+Fix: Tesserat OCR takes 2-5 seconds (normal)
+     Face matching takes ~2 seconds (normal)
+     Check server CPU/memory usage
+     Consider async job queue for large volumes
+
+Issue: "SMS parsing inaccurate"
+Fix: Check Gemini API key valid
+     Verify bank sender in known list
+     Adjust confidence threshold
+
+================================================================================
+SECURITY BEST PRACTICES
+================================================================================
+
+Secrets Management:
+  ✓ Never commit .env to git
+  ✓ Use environment variables in production
+  ✓ Rotate secrets regularly
+  ✓ Use secret management service (AWS Secrets Manager)
+
+Data Protection:
+  ✓ Encrypt sensitive data at rest
+  ✓ Use HTTPS (enforce in production)
+  ✓ No sensitive data in logs
+  ✓ PII minimization
+
+API Security:
+  ✓ Rate limiting (recommended)
+  ✓ Request validation & sanitization
+  ✓ CORS configured properly
+  ✓ No info leakage in errors
+
+Database Security:
+  ✓ Firestore rules restrict access
+  ✓ No public anonymous access
+  ✓ User can only access own data
+  ✓ Admin operations protected
+
+File Upload Security:
+  ✓ Validate file type
+  ✓ Scan for malware (optional)
+  ✓ Store outside web root (if possible)
+  ✓ Generate random filenames
+  ✓ Serve with Content-Disposition: attachment
+
+═══════════════════════════════════════════════════════════════════════════════
+End of Backend System Guide
+For questions, refer to inline code comments and models/controllers
+═══════════════════════════════════════════════════════════════════════════════

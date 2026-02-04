@@ -54,8 +54,9 @@ class _VehicleLoanPageState extends State<VehicleLoanPage> {
   }
 
   String _formatCurrency(double amount) {
-    if (amount >= 10000000)
+    if (amount >= 10000000) {
       return '₹${(amount / 10000000).toStringAsFixed(2)} Cr';
+    }
     if (amount >= 100000) return '₹${(amount / 100000).toStringAsFixed(2)} L';
     return '₹${amount.toStringAsFixed(0)}';
   }

@@ -393,8 +393,9 @@ class _LiveFinanceTrackingScreenState extends State<LiveFinanceTrackingScreen> {
                                       style: const TextStyle(fontSize: 10)),
                                   selected: isSelected,
                                   onSelected: (selected) {
-                                    if (selected)
+                                    if (selected) {
                                       setState(() => _insureFrequency = freq);
+                                    }
                                   },
                                   selectedColor: Colors.teal.shade100,
                                   visualDensity: VisualDensity.compact,
@@ -718,9 +719,10 @@ class _LiveFinanceTrackingScreenState extends State<LiveFinanceTrackingScreen> {
     final annualIncome = _parseDouble(_annualIncomeController.text);
     final monthlyIncome = annualIncome / 12;
 
-    if (monthlyIncome <= 0)
+    if (monthlyIncome <= 0) {
       return const Center(
           child: Text('Enter Annual Income to see distribution'));
+    }
 
     final totalMonthlyEmi =
         _loans.fold<double>(0, (sum, l) => sum + (l['emi'] as double));
@@ -739,8 +741,9 @@ class _LiveFinanceTrackingScreenState extends State<LiveFinanceTrackingScreen> {
     final data = <MapEntry<String, double>>[];
     if (totalMonthlyEmi > 0) data.add(MapEntry('EMIs', totalMonthlyEmi));
     if (totalMonthlySip > 0) data.add(MapEntry('SIPs', totalMonthlySip));
-    if (totalMonthlyInsurance > 0)
+    if (totalMonthlyInsurance > 0) {
       data.add(MapEntry('Insurance', totalMonthlyInsurance));
+    }
     if (balance > 0) data.add(MapEntry('Disposable/Savings', balance));
 
     // Colors: Red for Debt, Blue for SIP, Teal for Insurance, Green for Balance
@@ -1001,10 +1004,12 @@ class _LiveFinanceTrackingScreenState extends State<LiveFinanceTrackingScreen> {
 
     final data = <MapEntry<String, double>>[];
     if (totalLoans > 0) data.add(MapEntry('Loans', totalLoans));
-    if (totalSipsYearly > 0)
+    if (totalSipsYearly > 0) {
       data.add(MapEntry('SIPs (Yearly)', totalSipsYearly));
-    if (totalInvestments > 0)
+    }
+    if (totalInvestments > 0) {
       data.add(MapEntry('Investments', totalInvestments));
+    }
     if (annualIncome > 0) {
       final savings = annualIncome - totalEmiYearly - totalSipsYearly;
       if (savings > 0) data.add(MapEntry('Remaining Income', savings));

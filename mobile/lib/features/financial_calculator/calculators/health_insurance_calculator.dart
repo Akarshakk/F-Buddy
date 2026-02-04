@@ -206,7 +206,7 @@ class _HealthInsuranceCalculatorState extends State<HealthInsuranceCalculator> {
             ),
           ),
           DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding:

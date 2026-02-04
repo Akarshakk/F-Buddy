@@ -183,7 +183,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Colors.orange))
+          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
           : _error != null
               ? Center(
                   child: Column(

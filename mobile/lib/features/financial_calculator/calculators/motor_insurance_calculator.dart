@@ -54,7 +54,7 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
     }
 
     // Base rate: 2.5% of IDV for comprehensive
-    final baseRate = 0.025;
+    const baseRate = 0.025;
     final basePremium = idv * baseRate;
 
     final vehicleMultiplier = _vehicleMultipliers[_vehicleType]!;
@@ -195,7 +195,7 @@ class _MotorInsuranceCalculatorState extends State<MotorInsuranceCalculator> {
             ),
           ),
           DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding:

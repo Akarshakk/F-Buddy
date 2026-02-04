@@ -1,0 +1,1397 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    FINZO - FRONTEND SYSTEM GUIDE                             ║
+║           Flutter Mobile App - Architecture, State Management, UI              ║
+║                    For Senior Mobile Developers                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+PROJECT STRUCTURE - FLUTTER APP
+================================================================================
+
+Project Path: /mobile
+
+Directory Layout (Clean Architecture):
+  mobile/
+  ├── lib/
+  │   ├── main.dart ........................ App entry point, MultiProvider setup
+  │   ├── config/
+  │   │   ├── app_theme.dart .............. Material Design 3 theme
+  │   │   └── constants.dart .............. App-wide constants
+  │   ├── providers/ ....................... State management (Provider pattern)
+  │   │   ├── theme_provider.dart
+  │   │   ├── auth_provider.dart
+  │   │   ├── expense_provider.dart
+  │   │   ├── income_provider.dart
+  │   │   ├── analytics_provider.dart
+  │   │   ├── debt_provider.dart
+  │   │   ├── splitwise_provider.dart
+  │   │   ├── sms_provider.dart
+  │   │   └── language_provider.dart
+  │   ├── screens/ ......................... UI Screens
+  │   │   ├── splash_screen.dart
+  │   │   ├── auth/
+  │   │   │   ├── login_screen.dart
+  │   │   │   ├── register_screen.dart
+  │   │   │   └── password_reset_screen.dart
+  │   │   ├── home/
+  │   │   │   ├── home_screen.dart
+  │   │   │   ├── expense_list_screen.dart
+  │   │   │   ├── add_expense_screen.dart
+  │   │   │   ├── debt_list_screen.dart
+  │   │   │   ├── analytics_screen.dart
+  │   │   │   └── budget_screen.dart
+  │   │   ├── splitwise/
+  │   │   │   ├── splitwise_home_screen.dart
+  │   │   │   ├── create_group_screen.dart
+  │   │   │   ├── group_detail_screen.dart
+  │   │   │   └── settlement_screen.dart
+  │   │   ├── kyc/
+  │   │   │   ├── kyc_intro_screen.dart
+  │   │   │   ├── document_upload_screen.dart
+  │   │   │   ├── selfie_screen.dart
+  │   │   │   └── kyc_status_screen.dart
+  │   │   ├── markets/ ................... (Future: Markets feature)
+  │   │   ├── feature_selection_screen.dart
+  │   │   └── widgets/
+  │   │       ├── custom_app_bar.dart
+  │   │       ├── transaction_card.dart
+  │   │       ├── category_icon.dart
+  │   │       ├── bottom_nav_bar.dart
+  │   │       └── loading_shimmer.dart
+  │   ├── services/ ....................... API & Device services
+  │   │   ├── api_service.dart ........... REST API client
+  │   │   ├── auth_service.dart ......... Authentication operations
+  │   │   ├── expense_service.dart ...... Expense API calls
+  │   │   ├── sms_service.dart ......... SMS reading (Android)
+  │   │   └── storage_service.dart ..... Secure token storage
+  │   ├── models/ ......................... Data models
+  │   │   ├── user.dart
+  │   │   ├── expense.dart
+  │   │   ├── income.dart
+  │   │   ├── group.dart
+  │   │   └── kyc.dart
+  │   ├── l10n/ .......................... Localization files
+  │   │   ├── app_localizations.dart
+  │   │   ├── app_en.dart (English)
+  │   │   ├── app_hi.dart (Hindi)
+  │   │   └── ... (other languages)
+  │   ├── features/ ...................... Feature modules
+  │   │   ├── financial_calculator/
+  │   │   │   ├── finance_manager_screen.dart
+  │   │   │   ├── sip_calculator.dart
+  │   │   │   ├── emi_calculator.dart
+  │   │   │   └── tax_calculator.dart
+  │   │   └── (other features)
+  │   └── utils/ ......................... Helper functions
+  │       ├── date_utils.dart
+  │       ├── currency_formatter.dart
+  │       └── validators.dart
+  ├── pubspec.yaml ....................... Dependencies
+  ├── pubspec.lock ....................... Locked versions
+  ├── analysis_options.yaml .............. Lint rules
+  └── android/ .......................... Android native code
+      ├── app/build.gradle
+      └── AndroidManifest.xml (SMS permissions)
+
+================================================================================
+APP ENTRY POINT & INITIALIZATION (main.dart)
+================================================================================
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize SMS provider early
+  final smsProvider = SmsProvider();
+  await smsProvider.initializeOnStartup();
+  
+  runApp(MyApp(smsProvider: smsProvider));
+}
+
+Multi-Provider Setup:
+  The app uses Provider pattern for state management
+  Each feature has its own provider (ChangeNotifier)
+  
+  Providers:
+    1. ThemeProvider - Light/dark mode, Material Design 3 theme
+    2. AuthProvider - Login/logout, token management
+    3. ExpenseProvider - Expense CRUD, filtering, caching
+    4. IncomeProvider - Income tracking
+    5. AnalyticsProvider - Charts data, calculations
+    6. DebtProvider - Debt tracking
+    7. SplitWiseProvider - Group expenses
+    8. SmsProvider - SMS auto-parsing
+    9. LanguageProvider - Multi-language support
+
+MaterialApp Configuration:
+  • Material Design 3 (latest Flutter design system)
+  • Dynamic theme colors (based on system/user preference)
+  • Localization delegates for multi-language
+  • Navigation: Named routes or Navigator
+  • Home: SplashScreen (checks auth state)
+
+Material Design 3 Integration:
+  • ColorScheme.fromSeed(seedColor)
+    └─→ Auto-generates 13 color variations from single seed
+    └─→ Creates harmonious color palette
+  • Dynamic Material You colors (Android 12+)
+    └─→ Adapts to device wallpaper colors
+  • Smooth transitions & animations
+  • Updated typography scale
+
+================================================================================
+STATE MANAGEMENT - PROVIDER PATTERN DEEP DIVE
+================================================================================
+
+Architecture: MVVM-like with Providers
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ PROVIDER PATTERN FLOW                                                    │
+└──────────────────────────────────────────────────────────────────────────┘
+
+User Action (Tap button)
+         ↓
+    Screen Widget
+         ↓
+    Calls Provider method (provider.addExpense(data))
+         ↓
+    Provider calls Service (expenseService.createExpense)
+         ↓
+    Service makes API call (http.post)
+         ↓
+    Response received
+         ↓
+    Provider updates state (notifyListeners())
+         ↓
+    Consumer/Selector widgets rebuild
+         ↓
+    UI updates automatically
+
+Key Concepts:
+
+1. ChangeNotifier:
+   Base class for all providers
+   └─→ Holds mutable state
+   └─→ notifyListeners() triggers rebuild
+   └─→ Mixing with ChangeNotifier = ChangeNotifierProvider
+
+2. Consumer Widget:
+   Listens to provider changes
+   └─→ Rebuilds when provider notifies
+   └─→ Syntax: Consumer<ProviderType>(
+         builder: (context, provider, child) => Widget
+       )
+
+3. Selector Widget:
+   More efficient Consumer (rebuilds only if selected data changes)
+   └─→ Syntax: Selector<ProviderType, SelectedType>(
+         selector: (_, provider) => provider.selectedField,
+         builder: (context, selectedValue, child) => Widget
+       )
+
+4. Provider.of:
+   Listen to provider without Consumer
+   └─→ Syntax: Provider.of<ProviderType>(context).method()
+   └─→ listen: false to avoid rebuilds
+
+Example Provider (ExpenseProvider):
+
+class ExpenseProvider with ChangeNotifier {
+  List<Expense> _expenses = [];
+  bool _isLoading = false;
+  String? _error;
+  
+  // Getters
+  List<Expense> get expenses => _expenses;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  
+  // Methods (called from UI)
+  Future<void> fetchExpenses() async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      
+      // API call
+      _expenses = await ExpenseService.getExpenses();
+      _error = null;
+      
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  
+  Future<void> addExpense(Expense expense) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      
+      // API call
+      final created = await ExpenseService.createExpense(expense);
+      _expenses.add(created);
+      
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}
+
+Example Usage in Screen:
+
+class ExpenseListScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Expenses')),
+      body: Consumer<ExpenseProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return LoadingShimmer(); // Custom loading widget
+          }
+          
+          if (provider.error != null) {
+            return ErrorWidget(error: provider.error);
+          }
+          
+          return ListView.builder(
+            itemCount: provider.expenses.length,
+            itemBuilder: (context, index) {
+              return ExpenseCard(expense: provider.expenses[index]);
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddExpenseScreen()),
+        ),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+AuthProvider Special Pattern:
+
+class AuthProvider with ChangeNotifier {
+  User? _user;
+  String? _token;
+  bool _isLoggedIn = false;
+  
+  bool get isLoggedIn => _isLoggedIn;
+  User? get user => _user;
+  
+  Future<bool> login(String email, String password) async {
+    try {
+      final result = await AuthService.login(email, password);
+      _token = result['token'];
+      _user = User.fromJson(result['user']);
+      _isLoggedIn = true;
+      
+      // Store token securely
+      await StorageService.saveToken(_token!);
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  Future<void> logout() async {
+    _user = null;
+    _token = null;
+    _isLoggedIn = false;
+    
+    // Clear secure storage
+    await StorageService.deleteToken();
+    
+    notifyListeners();
+  }
+  
+  // Check if logged in on app start
+  Future<void> checkAuthStatus() async {
+    final token = await StorageService.getToken();
+    if (token != null) {
+      _token = token;
+      _isLoggedIn = true;
+    }
+    notifyListeners();
+  }
+}
+
+Performance Tips:
+
+✓ Use Selector instead of Consumer when possible
+  └─→ Reduces unnecessary rebuilds
+✓ Split providers by feature domain
+  └─→ Expense, Income, Analytics separate
+✓ Lazy load expensive operations
+  └─→ Don't fetch on app start, fetch on screen open
+✓ Cache data with TTL
+  └─→ Avoid redundant API calls
+✓ Use const widgets
+  └─→ Widgets not depending on data should be const
+
+================================================================================
+API INTEGRATION - REST CLIENT
+================================================================================
+
+File: services/api_service.dart
+
+The ApiService handles all HTTP communication with backend.
+
+Initialization:
+
+class ApiService {
+  static final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: 'http://localhost:5001/api',
+      connectTimeout: Duration(seconds: 10),
+      receiveTimeout: Duration(seconds: 10),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    ),
+  );
+  
+  static void init() {
+    // Add interceptors
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          // Add token to every request
+          final token = StorageService.getToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+        onError: (error, handler) {
+          // Handle 401 - redirect to login
+          if (error.response?.statusCode == 401) {
+            // Clear token and redirect
+            StorageService.deleteToken();
+            // Navigate to login
+          }
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+}
+
+API Methods (Example):
+
+// GET request with parameters
+Future<List<Expense>> getExpenses({
+  required String startDate,
+  required String endDate,
+  String? category,
+  int? limit,
+}) async {
+  try {
+    final response = await _dio.get(
+      '/expenses',
+      queryParameters: {
+        'startDate': startDate,
+        'endDate': endDate,
+        if (category != null) 'category': category,
+        if (limit != null) 'limit': limit,
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      final List expenses = response.data['data'];
+      return expenses.map((e) => Expense.fromJson(e)).toList();
+    } else {
+      throw 'Failed to fetch expenses';
+    }
+  } on DioException catch (e) {
+    throw e.message ?? 'Network error';
+  }
+}
+
+// POST request with body
+Future<Expense> createExpense(Expense expense) async {
+  try {
+    final response = await _dio.post(
+      '/expenses',
+      data: expense.toJson(),
+    );
+    
+    if (response.statusCode == 201) {
+      return Expense.fromJson(response.data['data']);
+    } else {
+      throw response.data['message'] ?? 'Failed to create expense';
+    }
+  } on DioException catch (e) {
+    throw e.message ?? 'Network error';
+  }
+}
+
+// File upload with multipart
+Future<KycResult> uploadKycDocument({
+  required File documentFile,
+  required String documentType,
+}) async {
+  try {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        documentFile.path,
+        filename: documentFile.path.split('/').last,
+      ),
+      'documentType': documentType,
+    });
+    
+    final response = await _dio.post(
+      '/kyc/upload-document',
+      data: formData,
+    );
+    
+    if (response.statusCode == 200) {
+      return KycResult.fromJson(response.data['data']);
+    } else {
+      throw response.data['message'] ?? 'Upload failed';
+    }
+  } on DioException catch (e) {
+    throw e.message ?? 'Network error';
+  }
+}
+
+Error Handling Pattern:
+
+try {
+  // API call
+  final result = await service.method();
+  
+  // Success - update UI
+  provider.updateState(result);
+  
+} on DioException catch (e) {
+  // Network errors
+  if (e.type == DioExceptionType.connectionTimeout) {
+    showError('Connection timeout - please try again');
+  } else if (e.type == DioExceptionType.unknown) {
+    showError('Network error - check your connection');
+  } else {
+    showError(e.message ?? 'Unknown error');
+  }
+  
+} catch (e) {
+  // Generic errors
+  showError('An error occurred: ${e.toString()}');
+}
+
+HTTP Interceptors:
+
+The Dio client automatically:
+  ✓ Adds Authorization: Bearer {token} to every request
+  ✓ Handles 401 Unauthorized (redirects to login)
+  ✓ Handles 5xx Server errors (shows user error)
+  ✓ Logs all requests/responses (development mode)
+  ✓ Retries on network timeout (configurable)
+  ✓ Gzip compression of request/response
+
+Performance:
+
+Connection Pooling:
+  └─→ Reuses HTTP connections
+  └─→ Faster subsequent requests
+  └─→ Automatically managed by Dio
+
+Request Deduplication:
+  └─→ Don't make same API call twice simultaneously
+  └─→ Implement caching layer
+
+Timeout Handling:
+  └─→ 10 second timeout per request
+  └─→ Shows "network error" to user
+  └─→ Allows retry
+
+================================================================================
+SCREENS & UI COMPONENTS
+================================================================================
+
+Screen Types:
+
+1. Authentication Screens
+   • LoginScreen: Email + password login
+   • RegisterScreen: Sign up with validation
+   • PasswordResetScreen: Forgot password flow
+
+2. Home Screens
+   • HomeScreen: Dashboard with expense summary
+   • ExpenseListScreen: All transactions with filters
+   • AddExpenseScreen: Create/edit transaction
+   • AnalyticsScreen: Charts and insights
+   • BudgetScreen: Budget tracking and alerts
+
+3. Group Expense Screens
+   • SplitWiseHomeScreen: List of groups
+   • CreateGroupScreen: Create new group
+   • GroupDetailScreen: Group expenses and balances
+   • SettlementScreen: Pay/settle debts
+
+4. KYC Verification Screens
+   • KycIntroScreen: Explain KYC process
+   • DocumentUploadScreen: Upload ID with camera/gallery
+   • SelfieScreen: Capture selfie for face matching
+   • KycStatusScreen: Check verification status
+
+5. Feature Screens
+   • FeatureSelectionScreen: Choose between features
+   • FinancialCalculatorScreen: SIP, EMI, Tax calculators
+   • MarketsScreen: Placeholder for future feature
+
+Component Library:
+
+Reusable Widgets:
+
+TransactionCard:
+  Displays single expense/income in list
+  Properties: transaction, onEdit, onDelete
+  Shows: Amount, category icon, description, date
+  Supports: Swipe actions, long press context menu
+
+CategoryIcon:
+  Renders category icon with color
+  14 categories with distinct icons
+  Maps: 'food' → 🍔, 'transport' → 🚗, etc.
+
+CustomAppBar:
+  Themed app bar with:
+  • Title
+  • Back button
+  • Action buttons (settings, menu)
+  • Profile picture (optional)
+
+BottomNavigationBar:
+  Fixed navigation across 5 main tabs:
+  • Home (expenses overview)
+  • Analytics (charts)
+  • Groups (splitwise)
+  • KYC (verification)
+  • Settings (profile, language)
+
+LoadingShimmer:
+  Skeleton loading state
+  Shows placeholder cards with shimmer animation
+  Improves perceived performance
+
+Chart Widgets (fl_chart):
+
+PieChart (Category breakdown):
+  • Each slice = category
+  • Tap to drill down
+  • Legend on side
+  • Animated transitions
+
+LineChart (Trend):
+  • X-axis: dates
+  • Y-axis: amount
+  • Smooth curves
+  • Tooltips on hover
+  • Color gradient under line
+
+BarChart (Monthly comparison):
+  • Two bars: current vs previous month
+  • Color coded
+  • Percentage change indicator
+
+Dialog Widgets:
+
+ConfirmDialog:
+  Confirms destructive actions
+  "Are you sure you want to delete?"
+  Two buttons: Cancel, Confirm
+
+ErrorDialog:
+  Shows error messages
+  Icon + message + Dismiss button
+
+ProgressDialog:
+  Shows during loading
+  Circular progress indicator
+  "Please wait..." message
+
+================================================================================
+DATA MODELS
+================================================================================
+
+Models use JSON serialization for API integration.
+
+User Model:
+class User {
+  final String id;
+  final String name;
+  final String email;
+  final String? profilePicture;
+  final double monthlyBudget;
+  final int savingsTarget;
+  final bool emailVerified;
+  final String kycStatus; // NOT_STARTED, PENDING, VERIFIED, FAILED
+  final DateTime createdAt;
+  
+  User.fromJson(Map<String, dynamic> json)
+    : id = json['id'],
+      name = json['name'],
+      // ... etc
+  
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    // ... etc
+  };
+}
+
+Expense Model:
+class Expense {
+  final String id;
+  final String user;
+  final double amount;
+  final String category; // 14 categories
+  final String description;
+  final String? merchant;
+  final DateTime date;
+  final String source; // 'manual' or 'sms_auto'
+  final String? smsId;
+  final double? confidence; // for SMS-parsed items
+  final DateTime createdAt;
+  
+  // Getters for UI
+  String get categoryLabel => CategoryHelper.getLabel(category);
+  IconData get categoryIcon => CategoryHelper.getIcon(category);
+  Color get categoryColor => CategoryHelper.getColor(category);
+  
+  String get formattedDate {
+    return DateFormat('dd MMM yyyy').format(date);
+  }
+  
+  String get formattedAmount {
+    return CurrencyFormatter.format(amount);
+  }
+}
+
+Income Model:
+class Income {
+  final String id;
+  final String user;
+  final double amount;
+  final String source; // pocket_money, salary, freelance, gift, scholarship, other
+  final String description;
+  final int month;
+  final int year;
+  final DateTime date;
+  final DateTime createdAt;
+}
+
+Group Model:
+class Group {
+  final String id;
+  final String name;
+  final String description;
+  final List<GroupMember> members;
+  final String inviteCode;
+  final String createdBy;
+  final DateTime createdAt;
+  
+  double getBalance(String userId) {
+    // Calculate balance for user in group
+  }
+  
+  Map<String, double> getAllBalances() {
+    // Get all user balances
+  }
+}
+
+KYC Model:
+class KycDocument {
+  final String id;
+  final String user;
+  final String documentType; // aadhaar, pan, passport, driving_license
+  final String documentImage;
+  final OcrData ocrData;
+  final String? selfieImage;
+  final double? faceMatchScore;
+  final List<VerificationStep> verificationHistory;
+}
+
+================================================================================
+SMS INTEGRATION (Android-specific)
+================================================================================
+
+File: services/sms_service.dart & providers/sms_provider.dart
+
+Android Permissions (AndroidManifest.xml):
+<uses-permission android:name="android.permission.READ_SMS" />
+<uses-permission android:name="android.permission.RECEIVE_SMS" />
+
+Permission Handling (Flutter):
+class SmsProvider with ChangeNotifier {
+  Future<void> initializeOnStartup() async {
+    final status = await Permission.sms.request();
+    
+    if (status.isGranted) {
+      // Permission granted, listen to SMS
+      listenToSms();
+    } else if (status.isDenied) {
+      // Ask later
+      print('SMS permission denied');
+    } else if (status.isDenied) {
+      // Need to go to settings
+      openAppSettings();
+    }
+  }
+}
+
+Reading SMS (Flutter plugin):
+The app uses a custom SMS reading mechanism:
+
+Future<List<SmsMessage>> fetchSmsMessages() async {
+  // Read SMS using platform channel or package
+  // Filter for bank/payment app senders
+  // Return list of SMS
+}
+
+Parsing Flow:
+
+1. Background Service (if available):
+   • Listens for incoming SMS in background
+   • Filters bank SMS
+   • Queues for processing
+
+2. Foreground Parsing:
+   • User taps "Sync SMS"
+   • Fetches recent SMS messages
+   • Sends to backend for Gemini parsing
+   • Shows parsed transactions
+   • User can confirm/reject
+
+3. Auto-Confirmation:
+   • If confidence > 0.85: Auto-save
+   • If confidence 0.70-0.85: Show review dialog
+   • If confidence < 0.70: Reject
+
+Data Structures:
+
+ParsedTransaction {
+  type: 'expense' | 'income',
+  amount: double,
+  merchant: string,
+  category: string,
+  confidence: double (0-1),
+  rawSms: string,
+  status: 'pending' | 'confirmed' | 'rejected'
+}
+
+UI Flow:
+
+SMS Settings Screen:
+  • Enable/disable SMS parsing
+  • Show last sync time
+  • Manual sync button
+  • Sync history log
+
+SMS List Screen:
+  • Shows unparsed transactions
+  • Group by date
+  • Each transaction:
+    - Parsed details
+    - Confidence score
+    - Confirm/Edit/Reject buttons
+  • Batch operations (confirm all)
+
+================================================================================
+FINANCIAL CALCULATORS (Feature Module)
+================================================================================
+
+File: features/financial_calculator/finance_manager_screen.dart
+
+9 Built-in Calculators:
+
+1. SIP Calculator (Systematic Investment Plan)
+   Inputs: Monthly investment, Annual return %, Years
+   Calculates: Future value, total return
+   Use: Plan mutual fund investments
+
+2. EMI Calculator (Equated Monthly Installment)
+   Inputs: Loan amount, Interest rate %, Tenure
+   Calculates: Monthly EMI, Total interest, Total amount
+   Use: Home/car loan planning
+
+3. Compound Interest Calculator
+   Inputs: Principal, Rate, Time
+   Calculates: Final amount, Interest earned
+   Use: Savings goal planning
+
+4. Inflation Calculator
+   Inputs: Current amount, Inflation rate, Years
+   Calculates: Purchasing power
+   Use: Understand real vs nominal value
+
+5. Retirement Calculator
+   Inputs: Current savings, Monthly contribution, Returns, Years to retirement
+   Calculates: Retirement corpus needed
+   Use: Retirement planning
+
+6. Net Present Value (NPV)
+   Inputs: Cash flows, Discount rate
+   Calculates: Project viability
+   Use: Investment decision making
+
+7. Tax Calculator
+   Inputs: Income, Deductions, Tax regime
+   Calculates: Tax liability, effective rate
+   Use: Tax optimization
+
+8. Break-even Analysis
+   Inputs: Fixed costs, Variable costs, Selling price
+   Calculates: Break-even point
+   Use: Business planning
+
+9. Loan Comparison
+   Inputs: Multiple loans with different terms
+   Compares: EMI, total cost, best option
+   Use: Choose best loan
+
+Implementation Pattern:
+
+class SipCalculator {
+  double calculateFutureValue({
+    required double monthlyAmount,
+    required double annualRate,
+    required int years,
+  }) {
+    double monthlyRate = annualRate / 12 / 100;
+    int months = years * 12;
+    
+    // Formula: FV = P × (((1 + r)^n - 1) / r)
+    double futureValue = monthlyAmount *
+        (((pow(1 + monthlyRate, months) - 1) / monthlyRate));
+    
+    return futureValue;
+  }
+}
+
+UI:
+
+Single screen with Tab view:
+  • Tab 1: SIP Calculator
+  • Tab 2: EMI Calculator
+  • Tab 3: Tax Calculator
+  • ... etc
+
+Each tab contains:
+  • Input fields with validation
+  • Calculate button
+  • Result display card
+  • Share/Save result option
+
+Results are exportable as PDF or image.
+
+================================================================================
+THEMING & MATERIAL DESIGN 3
+================================================================================
+
+File: config/app_theme.dart
+
+Color System (Material 3):
+
+seedColor: Color(0xFF2E7D32) // Green (Finzo brand)
+
+Auto-generated Colors:
+  • Primary: Main brand color
+  • Secondary: Complementary color
+  • Tertiary: Accent color
+  • Neutral: Gray scales
+  • Error: Red for errors
+  • Surface: Background colors
+  • Outline: Borders and dividers
+
+Each color has light/dark variants (tonal).
+
+Theme Definition:
+
+ThemeData lightTheme = ThemeData(
+  useMaterial3: true,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: Color(0xFF2E7D32),
+    brightness: Brightness.light,
+  ),
+  typography: Typography.material2021(),
+  
+  // Component customization
+  appBarTheme: AppBarTheme(
+    backgroundColor: seedColor,
+    elevation: 0,
+    foregroundColor: Colors.white,
+  ),
+  
+  cardTheme: CardTheme(
+    elevation: 2,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
+  
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+  ),
+);
+
+Dark Theme:
+Same structure but with brightness: Brightness.dark
+Darker surface colors, lighter text.
+
+Theme Provider:
+
+class ThemeProvider with ChangeNotifier {
+  bool _isDarkMode = false;
+  
+  bool get isDarkMode => _isDarkMode;
+  
+  ThemeData get currentTheme {
+    return _isDarkMode ? darkTheme : lightTheme;
+  }
+  
+  void toggleTheme() {
+    _isDarkMode = !_isDarkMode;
+    // Persist to shared preferences
+    notifyListeners();
+  }
+}
+
+Dynamic Material You (Android 12+):
+
+When running on Android 12+:
+  • extracts dominant colors from wallpaper
+  • Creates theme with device colors
+  • Theme updates when wallpaper changes
+  • Seamless integration with system UI
+
+Accessibility:
+
+  ✓ Proper contrast ratios (WCAG AA)
+  ✓ Large touch targets (48dp minimum)
+  ✓ Semantic labels for screen readers
+  ✓ High contrast mode support
+  ✓ Text scaling support
+
+Typography (Material Typography Scale):
+
+Display Large: 57sp, weight: 400
+Display Medium: 45sp
+Display Small: 36sp
+Headline Large: 32sp
+Headline Medium: 28sp
+...
+Body Large: 16sp
+Body Medium: 14sp
+Body Small: 12sp
+Label Large: 14sp
+Label Medium: 12sp
+
+Consistent across light/dark themes.
+
+================================================================================
+LOCALIZATION - MULTI-LANGUAGE SUPPORT
+================================================================================
+
+File: l10n/app_localizations.dart
+
+Supported Languages:
+  • English (en)
+  • Hindi (hi)
+  • Tamil (ta)
+  • Kannada (kn)
+  • Malayalam (ml)
+  • Telugu (te)
+
+Implementation:
+
+class AppLocalizations {
+  static const Map<String, Map<String, String>> _localizations = {
+    'en': {
+      'app_title': 'Finzo',
+      'login': 'Login',
+      'logout': 'Logout',
+      'expense': 'Expense',
+      'expenses': 'Expenses',
+      'income': 'Income',
+      'category': 'Category',
+      'amount': 'Amount',
+      'date': 'Date',
+      'description': 'Description',
+      'add_expense': 'Add Expense',
+      'add_income': 'Add Income',
+      'total_expense': 'Total Expense',
+      'total_income': 'Total Income',
+      'balance': 'Balance',
+      'calculator': 'Calculator',
+      'sip_calculator': 'SIP Calculator',
+      'emi_calculator': 'EMI Calculator',
+      'groups': 'Groups',
+      'split_bill': 'Split Bill',
+      'create_group': 'Create Group',
+      'join_group': 'Join Group',
+      'invite_code': 'Invite Code',
+      'kyc': 'KYC Verification',
+      'upload_document': 'Upload Document',
+      'upload_selfie': 'Upload Selfie',
+      'verify_email': 'Verify Email',
+      'settings': 'Settings',
+      'language': 'Language',
+      'theme': 'Theme',
+      'dark_mode': 'Dark Mode',
+      'light_mode': 'Light Mode',
+      'notifications': 'Notifications',
+      'about': 'About',
+      'help': 'Help',
+      'contact_us': 'Contact Us',
+      'error': 'Error',
+      'success': 'Success',
+      'loading': 'Loading...',
+      'retry': 'Retry',
+      'cancel': 'Cancel',
+      'save': 'Save',
+      'delete': 'Delete',
+      'edit': 'Edit',
+      'close': 'Close',
+    },
+    'hi': {
+      'app_title': 'फिनज़ो',
+      'login': 'लॉग इन करें',
+      'logout': 'लॉग आउट करें',
+      'expense': 'खर्च',
+      'expenses': 'खर्च',
+      // ... hindi translations
+    },
+    'ta': {
+      'app_title': 'ஃபின்சோ',
+      'login': 'உள்நுழைக',
+      'logout': 'வெளியேறுக',
+      // ... tamil translations
+    },
+    // ... other languages
+  };
+  
+  static String get(String key, String locale) {
+    return _localizations[locale]?[key] ?? 
+           _localizations['en']?[key] ?? 
+           key;
+  }
+}
+
+Usage in UI:
+
+Text(AppLocalizations.get('app_title', locale))
+
+Provider:
+
+class LanguageProvider with ChangeNotifier {
+  String _locale = 'en';
+  
+  String get locale => _locale;
+  
+  Future<void> setLocale(String newLocale) async {
+    _locale = newLocale;
+    
+    // Persist to storage
+    await SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('locale', newLocale);
+    });
+    
+    notifyListeners();
+  }
+  
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    _locale = prefs.getString('locale') ?? 'en';
+    notifyListeners();
+  }
+}
+
+On-Device Translation (Advanced):
+
+Uses google_mlkit_translation for:
+  • Real-time translation
+  • No internet required
+  • Automatic detection of input language
+  • Document translation
+
+Localization Best Practices:
+
+  ✓ All UI text in AppLocalizations
+  ✓ Never hardcode strings in widgets
+  ✓ Date/number formatting respects locale
+  ✓ RTL support for Arabic (future feature)
+  ✓ Pluralization support
+  ✓ Gender agreement in translations
+
+================================================================================
+STORAGE - SECURE & LOCAL
+================================================================================
+
+Secure Token Storage:
+
+class StorageService {
+  static final _secureStorage = FlutterSecureStorage();
+  
+  static Future<void> saveToken(String token) async {
+    await _secureStorage.write(
+      key: 'auth_token',
+      value: token,
+    );
+  }
+  
+  static Future<String?> getToken() async {
+    return await _secureStorage.read(key: 'auth_token');
+  }
+  
+  static Future<void> deleteToken() async {
+    await _secureStorage.delete(key: 'auth_token');
+  }
+}
+
+Why Secure Storage?
+
+Plain SharedPreferences:
+  ❌ Not encrypted
+  ❌ Accessible to other apps
+  ❌ Insecure for sensitive data
+
+FlutterSecureStorage:
+  ✓ Encrypted at rest
+  ✓ Platform-specific encryption
+    • Android: KeyStore
+    • iOS: Keychain
+  ✓ Not accessible to other apps
+  ✓ Safe for tokens, passwords, PII
+
+Local Cache (SharedPreferences):
+
+class CacheService {
+  static final _prefs = SharedPreferences.getInstance();
+  
+  static Future<void> setCategoryList(List<String> categories) async {
+    final prefs = await _prefs;
+    prefs.setStringList('categories', categories);
+  }
+  
+  static Future<List<String>> getCategoryList() async {
+    final prefs = await _prefs;
+    return prefs.getStringList('categories') ?? [];
+  }
+}
+
+Cache TTL:
+
+Implement simple TTL:
+
+class CacheEntry<T> {
+  final T data;
+  final DateTime timestamp;
+  final Duration ttl;
+  
+  bool get isExpired {
+    return DateTime.now().difference(timestamp) > ttl;
+  }
+}
+
+================================================================================
+NAVIGATION
+================================================================================
+
+Navigation Approaches:
+
+1. Named Routes:
+   MaterialApp(
+     routes: {
+       '/': (context) => SplashScreen(),
+       '/login': (context) => LoginScreen(),
+       '/home': (context) => HomeScreen(),
+       '/expenses': (context) => ExpenseListScreen(),
+     },
+   )
+   
+   Usage:
+   Navigator.pushNamed(context, '/expenses');
+
+2. Direct Navigation:
+   Navigator.push(
+     context,
+     MaterialPageRoute(
+       builder: (context) => ExpenseListScreen(),
+     ),
+   );
+
+3. Cupertino Navigation (iOS-style):
+   CupertinoPageRoute for iOS feel
+
+Navigation with Arguments:
+
+Navigator.pushNamed(
+  context,
+  '/expense-detail',
+  arguments: {'expenseId': 'exp123'},
+);
+
+// In destination screen:
+@override
+Widget build(BuildContext context) {
+  final args = ModalRoute.of(context)?.settings.arguments as Map;
+  final expenseId = args['expenseId'];
+}
+
+Deep Linking (Advanced):
+
+Define route patterns for deep links:
+'/expenses/:id' → ExpenseDetailScreen(id)
+'/groups/:code/join' → JoinGroupScreen(code)
+
+Handles coming from notifications or external links.
+
+================================================================================
+PERFORMANCE OPTIMIZATION
+================================================================================
+
+Build Optimization:
+
+const widgets:
+  // Avoid rebuilds for static widgets
+  class MyStatelessWidget extends StatelessWidget {
+    const MyStatelessWidget({Key? key}) : super(key: key);
+  }
+
+Repaint Boundary:
+  • Isolate expensive widgets
+  • Reduces rebuild scope
+  
+  RepaintBoundary(
+    child: ExpensiveChart(),
+  )
+
+Lazy Loading:
+
+  ListView.builder instead of ListView
+  └─→ Only builds visible items
+  └─→ Recycles offscreen items
+
+  PageView.builder for screens
+  └─→ Load screens on demand
+
+Image Optimization:
+
+  • Resize images on backend
+  • Use cached_network_image
+  • Compress before upload
+  • Serve from CDN
+
+Memory Management:
+
+  • Dispose resources in dispose()
+  • Clear large lists when done
+  • Use image.clear() for images
+  • Unsubscribe from streams
+
+Animations:
+
+  • Use AnimatedBuilder for smooth
+  • Avoid blocking main thread
+  • Use vsync for proper frame timing
+  • Keep animations 60fps
+
+Testing:
+
+Unit Tests:
+  • Models: serialization, formatting
+  • Providers: state changes
+  • Services: API mocking
+
+Widget Tests:
+  • Individual widgets
+  • Interactions (tap, scroll)
+  • State changes
+
+Integration Tests:
+  • Full user flows
+  • Multiple screens
+  • Navigation
+
+================================================================================
+DEPLOYMENT CHECKLIST
+================================================================================
+
+Pre-submission:
+
+iOS:
+  ✓ Update version in pubspec.yaml
+  ✓ Update build number
+  ✓ Update app icon & splash
+  ✓ Configure signing certificate
+  ✓ Test on iOS 15+
+  ✓ Verify permissions in Info.plist
+  ✓ Check for any hardcoded IPs (use env vars)
+
+Android:
+  ✓ Update version in pubspec.yaml
+  ✓ Update versionCode
+  ✓ Configure keystore for signing
+  ✓ Update app icon & splash
+  ✓ Test on Android 8+ (API 26+)
+  ✓ Check permissions in AndroidManifest.xml
+  ✓ Verify Firebase config (google-services.json)
+
+Common:
+  ✓ Remove debug print statements
+  ✓ Remove log statements
+  ✓ Test on real devices
+  ✓ Verify API endpoint is production
+  ✓ Check dark mode compatibility
+  ✓ Test landscape mode
+  ✓ Remove unused packages
+  ✓ Run analyzer: flutter analyze
+  ✓ Format code: dart format
+  ✓ Test all flows end-to-end
+
+App Store Submission:
+
+iOS:
+  • Sign in with Apple requirement (if using Google)
+  • Privacy policy URL required
+  • App description & keywords
+  • Screenshots (6 languages)
+  • Review guidelines compliance
+  • Contact info & support email
+
+Google Play:
+
+  • App description (80 characters max)
+  • Full description (4000 chars max)
+  • Short description (80 chars)
+  • Screenshots (minimum 2, up to 8)
+  • Feature graphic
+  • App icon & promo graphic
+  • Category & content rating
+  • Content rating questionnaire
+  • Privacy policy link
+  • Support email
+
+═══════════════════════════════════════════════════════════════════════════════
+End of Frontend System Guide
+For more details, refer to Flutter documentation and code comments
+═══════════════════════════════════════════════════════════════════════════════

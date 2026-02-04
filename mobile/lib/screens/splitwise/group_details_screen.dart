@@ -456,7 +456,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ],
                       ),
@@ -552,7 +552,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
 
                 const SizedBox(height: 20),
 
@@ -586,7 +586,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                 _useSimplifiedDebt = value;
                               });
                             },
-                            activeColor: primaryColor,
+                            activeThumbColor: primaryColor,
                           ),
                         ],
                       ),
@@ -701,7 +701,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
 
                 const SizedBox(height: 20),
               ],

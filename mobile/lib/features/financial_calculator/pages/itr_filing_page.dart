@@ -332,7 +332,7 @@ class ItrFilingPage extends StatelessWidget {
                 Container(
                   width: 32,
                   height: 32,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                       color: Colors.deepPurple, shape: BoxShape.circle),
                   alignment: Alignment.center,
                   child: const Text('3',

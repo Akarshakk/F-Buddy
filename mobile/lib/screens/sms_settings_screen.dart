@@ -5,7 +5,7 @@ import '../config/app_theme.dart';
 import 'transaction_history_screen.dart';
 
 class SmsSettingsScreen extends StatefulWidget {
-  const SmsSettingsScreen({Key? key}) : super(key: key);
+  const SmsSettingsScreen({super.key});
 
   @override
   State<SmsSettingsScreen> createState() => _SmsSettingsScreenState();
@@ -293,7 +293,7 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.message,
                               color: AppColors.primary,
                               size: 32,
@@ -311,7 +311,7 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                                       color: FinzoTheme.textPrimary(context),
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
                                     'Automatically track expenses from payment SMS',
                                     style: TextStyle(
@@ -334,7 +334,7 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                           ),
                           value: _isEnabled,
                           onChanged: _toggleSmsTracking,
-                          activeColor: AppColors.primary,
+                          activeThumbColor: AppColors.primary,
                         ),
                         
                         // Show permission warning if denied
@@ -441,7 +441,7 @@ class _SmsSettingsScreenState extends State<SmsSettingsScreen> {
                             ],
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.auto_awesome,
                           size: 48,
                           color: Colors.amber,

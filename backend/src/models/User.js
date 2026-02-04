@@ -20,7 +20,7 @@ const userFields = {
 
 // Hash password
 const hashPassword = async (password) => {
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(8);
   return await bcrypt.hash(password, salt);
 };
 

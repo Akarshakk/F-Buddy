@@ -179,7 +179,7 @@ class _SelfieScreenEnhancedState extends State<SelfieScreenEnhanced> with Single
                 color: AppColors.error.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.error, color: AppColors.error, size: 24),
+              child: const Icon(Icons.error, color: AppColors.error, size: 24),
             ),
             const SizedBox(width: 12),
             Text(
@@ -213,7 +213,7 @@ class _SelfieScreenEnhancedState extends State<SelfieScreenEnhanced> with Single
               ),
               child: Row(
                 children: [
-                  Icon(Icons.analytics, color: AppColors.error, size: 20),
+                  const Icon(Icons.analytics, color: AppColors.error, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Match Score: ${matchScore.toStringAsFixed(1)}%',

@@ -511,7 +511,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColorsDark.primary, width: 2),
+        borderSide: const BorderSide(color: AppColorsDark.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -540,7 +540,7 @@ class AppTheme {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColorsDark.primary,
-        side: BorderSide(color: AppColorsDark.primary),
+        side: const BorderSide(color: AppColorsDark.primary),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -583,7 +583,7 @@ class AppTheme {
     ),
     
     // Bottom Navigation
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColorsDark.surface,
       selectedItemColor: AppColorsDark.primary,
       unselectedItemColor: AppColorsDark.textSecondary,
@@ -592,14 +592,14 @@ class AppTheme {
     ),
     
     // FAB
-    floatingActionButtonTheme: FloatingActionButtonThemeData(
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: AppColorsDark.primary,
       foregroundColor: AppColorsDark.background,
       elevation: 2,
     ),
     
     // Color Scheme
-    colorScheme: ColorScheme.dark(
+    colorScheme: const ColorScheme.dark(
       primary: AppColorsDark.primary,
       secondary: AppColorsDark.secondary,
       surface: AppColorsDark.surface,
