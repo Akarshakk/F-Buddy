@@ -64,8 +64,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
+              FinzoColors.brandPrimary,
               FinzoColors.brandGradientStart,
-              FinzoColors.brandGradientEnd,
             ],
           ),
         ),
@@ -98,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         child: const Icon(
                           Icons.account_balance_wallet,
                           size: 50,
-                          color: FinzoColors.brandGradientStart,
+                          color: FinzoColors.brandPrimary,
                         ),
                       ),
                       const SizedBox(height: FinzoSpacing.xxl),

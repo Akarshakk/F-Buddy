@@ -164,8 +164,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> with Ticker
     final surfaceColor = FinzoTheme.surface(context);
     final l10n = context.l10n;
     
-    // Teal/Cyan theme for Finance Manager
-    const managerAccent = Color(0xFF0EA5E9);
+    // Brand copper/gold theme for Finance Manager
+    final managerAccent = FinzoColors.brandSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -190,8 +190,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> with Ticker
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+                gradient: LinearGradient(
+                  colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

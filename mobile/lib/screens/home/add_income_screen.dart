@@ -105,15 +105,15 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
               Container(
                 padding: const EdgeInsets.all(FinzoSpacing.xl),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [FinzoColors.success, Color(0xFF4ECDC4)],
+                  gradient: LinearGradient(
+                    colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(FinzoRadius.xl),
                   boxShadow: [
                     BoxShadow(
-                      color: FinzoColors.success.withOpacity(0.3),
+                      color: FinzoColors.brandSecondary.withOpacity(0.3),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -123,7 +123,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                   children: [
                     Text(
                       'Enter Income Amount',
-                      style: FinzoTypography.bodyMedium(color: Colors.white70),
+                      style: FinzoTypography.bodyMedium(color: Colors.white.withOpacity(0.9)),
                     ),
                     const SizedBox(height: FinzoSpacing.sm),
                     TextFormField(
@@ -131,12 +131,17 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       style: FinzoTypography.displayLarge(color: Colors.white),
+                      cursorColor: Colors.white,
                       decoration: InputDecoration(
-                        prefixText: '₹ ',
-                        prefixStyle: FinzoTypography.displayLarge(color: Colors.white),
-                        border: InputBorder.none,
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.15),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.lg, vertical: FinzoSpacing.md),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                          borderSide: BorderSide.none,
+                        ),
                         hintText: '0',
-                        hintStyle: FinzoTypography.displayLarge(color: Colors.white38),
+                        hintStyle: FinzoTypography.displayLarge(color: Colors.white.withOpacity(0.5)),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Please enter an amount';
@@ -175,16 +180,16 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? FinzoColors.success.withOpacity(0.15)
+                            ? FinzoColors.brandSecondary.withOpacity(0.15)
                             : FinzoTheme.surface(context),
                         borderRadius: BorderRadius.circular(FinzoRadius.lg),
                         border: Border.all(
-                          color: isSelected ? FinzoColors.success : FinzoTheme.divider(context),
+                          color: isSelected ? FinzoColors.brandSecondary : FinzoTheme.divider(context),
                           width: isSelected ? 2 : 1,
                         ),
                         boxShadow: isSelected ? [
                           BoxShadow(
-                            color: FinzoColors.success.withOpacity(0.3),
+                            color: FinzoColors.brandSecondary.withOpacity(0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -198,7 +203,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                           Text(
                             source['name'],
                             style: FinzoTypography.labelSmall(
-                              color: isSelected ? FinzoColors.success : FinzoTheme.textSecondary(context),
+                              color: isSelected ? FinzoColors.brandSecondary : FinzoTheme.textSecondary(context),
                             ).copyWith(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal),
                             textAlign: TextAlign.center,
                           ),
@@ -238,13 +243,13 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                   return Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [FinzoColors.success, Color(0xFF4ECDC4)],
+                      gradient: LinearGradient(
+                        colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)],
                       ),
                       borderRadius: BorderRadius.circular(FinzoRadius.md),
                       boxShadow: [
                         BoxShadow(
-                          color: FinzoColors.success.withOpacity(0.3),
+                          color: FinzoColors.brandSecondary.withOpacity(0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),

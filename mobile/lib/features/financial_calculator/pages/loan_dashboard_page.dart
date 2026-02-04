@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../../config/theme.dart';
+import '../../../../config/app_theme.dart';
 
 class LoanDashboardPage extends StatefulWidget {
   const LoanDashboardPage({super.key});
@@ -47,7 +47,7 @@ class _LoanDashboardPageState extends State<LoanDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColorsDark.surface : Colors.white;
+    final surfaceColor = FinzoTheme.surface(context);
 
     // Calculations
     final totalDebt =
@@ -65,11 +65,11 @@ class _LoanDashboardPageState extends State<LoanDashboardPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                  colors: [Colors.red.shade400, Colors.orange.shade400]),
+                  colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)]),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                    color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+                    color: FinzoColors.brandSecondary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
               ],
             ),
             child: Row(
@@ -134,7 +134,7 @@ class _LoanDashboardPageState extends State<LoanDashboardPage> {
                       icon: const Icon(Icons.add),
                       label: const Text('Add Loan'),
                       style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          ElevatedButton.styleFrom(backgroundColor: FinzoColors.brandSecondary, foregroundColor: Colors.white),
                     ),
                   ),
                 ],

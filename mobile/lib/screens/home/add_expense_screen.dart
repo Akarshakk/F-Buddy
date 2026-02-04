@@ -562,7 +562,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     icon: Icons.swap_horiz_rounded,
                     title: '💰 Track Debt / IOU',
                     subtitle: 'Track money you owe or are owed',
-                    gradientColors: [FinzoColors.success, const Color(0xFF4ECDC4)],
+                    gradientColors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const AddDebtScreen()));
                     },
@@ -776,8 +776,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               prefixText: '₹ ',
               prefixStyle: FinzoTypography.displayLarge(color: Colors.white),
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
               hintText: '0',
               hintStyle: FinzoTypography.displayLarge(color: Colors.white38),
+              errorStyle: const TextStyle(color: Colors.white70),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Please enter an amount';

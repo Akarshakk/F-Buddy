@@ -77,8 +77,8 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
 
   @override
   Widget build(BuildContext context) {
-    // Purple theme for SmartSplit
-    const splitAccent = Color(0xFF8B5CF6);
+    // Use consistent brand accent color across the app
+    final splitAccent = FinzoTheme.brandAccent(context);
     
     return Scaffold(
       backgroundColor: FinzoTheme.background(context),
@@ -105,14 +105,14 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                  colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(FinzoRadius.sm),
                 boxShadow: [
                   BoxShadow(
-                    color: splitAccent.withOpacity(0.3),
+                    color: FinzoColors.brandSecondary.withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -225,14 +225,14 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
             child: Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                  colors: [FinzoColors.brandPrimary, FinzoColors.brandSecondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: splitAccent.withOpacity(0.4),
+                    color: FinzoColors.brandSecondary.withOpacity(0.4),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),

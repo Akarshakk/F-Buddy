@@ -66,13 +66,10 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
       builder: (context, child) {
-        final color = _selectedType == DebtType.theyOweMe
-            ? FinzoColors.success
-            : FinzoColors.warning;
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: color,
+              primary: FinzoColors.brandSecondary,
               onPrimary: Colors.white,
               surface: FinzoTheme.surface(context),
               onSurface: FinzoTheme.textPrimary(context),
@@ -138,8 +135,7 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
     return '${date.day} ${months[date.month - 1]}, ${date.year}';
   }
 
-  Color get _typeColor =>
-      _selectedType == DebtType.theyOweMe ? FinzoColors.success : FinzoColors.warning;
+  Color get _typeColor => FinzoColors.brandSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +192,7 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                       icon: Icons.arrow_upward_rounded,
                       title: 'They Owe Me',
                       subtitle: 'Someone owes you money',
-                      color: FinzoColors.success,
+                      color: FinzoColors.brandSecondary,
                     ),
                   ),
                   const SizedBox(width: FinzoSpacing.md),
@@ -206,7 +202,7 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                       icon: Icons.arrow_downward_rounded,
                       title: 'I Owe',
                       subtitle: 'You owe someone money',
-                      color: FinzoColors.warning,
+                      color: FinzoColors.brandSecondary,
                     ),
                   ),
                 ],
@@ -220,16 +216,14 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                   padding: const EdgeInsets.all(FinzoSpacing.xl),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: _selectedType == DebtType.theyOweMe
-                          ? [FinzoColors.success, const Color(0xFF4ECDC4)]
-                          : [FinzoColors.warning, const Color(0xFFFFB347)],
+                      colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(FinzoRadius.xl),
                     boxShadow: [
                       BoxShadow(
-                        color: _typeColor.withOpacity(0.3),
+                        color: FinzoColors.brandSecondary.withOpacity(0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 8),
                       ),
@@ -239,7 +233,7 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                     children: [
                       Text(
                         _selectedType == DebtType.theyOweMe ? 'Amount to Receive' : 'Amount to Pay',
-                        style: FinzoTypography.bodyMedium(color: Colors.white70),
+                        style: FinzoTypography.bodyMedium(color: Colors.white.withOpacity(0.9)),
                       ),
                       const SizedBox(height: FinzoSpacing.sm),
                       TextFormField(
@@ -247,12 +241,17 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         style: FinzoTypography.displayLarge(color: Colors.white),
+                        cursorColor: Colors.white,
                         decoration: InputDecoration(
-                          prefixText: '₹ ',
-                          prefixStyle: FinzoTypography.displayLarge(color: Colors.white),
-                          border: InputBorder.none,
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.15),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: FinzoSpacing.lg, vertical: FinzoSpacing.md),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                            borderSide: BorderSide.none,
+                          ),
                           hintText: '0',
-                          hintStyle: FinzoTypography.displayLarge(color: Colors.white38),
+                          hintStyle: FinzoTypography.displayLarge(color: Colors.white.withOpacity(0.5)),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Please enter an amount';
@@ -362,14 +361,12 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: _selectedType == DebtType.theyOweMe
-                              ? [FinzoColors.success, const Color(0xFF4ECDC4)]
-                              : [FinzoColors.warning, const Color(0xFFFFB347)],
+                          colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)],
                         ),
                         borderRadius: BorderRadius.circular(FinzoRadius.md),
                         boxShadow: [
                           BoxShadow(
-                            color: _typeColor.withOpacity(0.3),
+                            color: FinzoColors.brandSecondary.withOpacity(0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),

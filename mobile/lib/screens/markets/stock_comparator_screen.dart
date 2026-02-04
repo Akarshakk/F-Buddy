@@ -473,7 +473,7 @@ class _StockComparatorScreenState extends State<StockComparatorScreen>
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.8,
+              childAspectRatio: 1.5,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),

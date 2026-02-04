@@ -115,8 +115,8 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
     final textPrimary = FinzoTheme.textPrimary(context);
     final textSecondary = FinzoTheme.textSecondary(context);
     
-    // Orange theme for Markets Lab
-    const marketAccent = Color(0xFFE87A2E);
+    // Brand copper/gold theme for Markets Lab (matching app theme)
+    final marketAccent = FinzoColors.brandSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -141,8 +141,8 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFE87A2E), Color(0xFFFF9F5A)],
+                gradient: LinearGradient(
+                  colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -244,8 +244,8 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                           borderRadius: BorderRadius.circular(FinzoRadius.lg),
                           boxShadow: FinzoShadows.medium,
                         ),
-                        child: const CircularProgressIndicator(
-                          color: Color(0xFFE87A2E),
+                        child: CircularProgressIndicator(
+                          color: FinzoColors.brandSecondary,
                           strokeWidth: 3,
                         ),
                       ),
@@ -284,8 +284,8 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                           const SizedBox(height: 24),
                           Container(
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFE87A2E), Color(0xFFFF9F5A)],
+                              gradient: LinearGradient(
+                                colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)],
                               ),
                               borderRadius: BorderRadius.circular(FinzoRadius.md),
                               boxShadow: [
@@ -379,15 +379,15 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE87A2E), Color(0xFFFF9F5A), Color(0xFFFFB366)],
+        gradient: LinearGradient(
+          colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.85), FinzoColors.brandSecondary.withOpacity(0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(FinzoRadius.lg),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE87A2E).withOpacity(0.4),
+            color: FinzoColors.brandSecondary.withOpacity(0.4),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -633,7 +633,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
   }
 
   Widget _buildProFeaturesBar(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
-    const marketAccent = Color(0xFFE87A2E);
+    final marketAccent = FinzoColors.brandSecondary;
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
