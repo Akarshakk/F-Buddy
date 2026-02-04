@@ -573,7 +573,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 90,
+            height: 95,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _marketOverview!.indices.length,
@@ -582,7 +582,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                 return Container(
                   width: 160,
                   margin: EdgeInsets.only(right: index < _marketOverview!.indices.length - 1 ? 12 : 0),
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     borderRadius: BorderRadius.circular(12),
@@ -593,30 +593,33 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         idx.name,
                         style: AppTextStyles.caption.copyWith(color: textSecondary),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         idx.formattedValue,
                         style: AppTextStyles.body1.copyWith(
                           fontWeight: FontWeight.bold,
                           color: textPrimary,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         '${idx.formattedChange} (${idx.formattedChangePercent})',
                         style: TextStyle(
                           color: idx.isPositive ? Colors.green : Colors.red,
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ],
                   ),
