@@ -14,6 +14,8 @@ const billRoutes = require('./routes/bill');
 const debtRoutes = require('./routes/debt');
 const groupRoutes = require('./routes/group');
 const smsRoutes = require('./routes/sms');
+// const marketRoutes = require('./routes/marketRoutes'); // [REMOVED]
+
 
 const app = express();
 app.set('etag', false); // Disable 304 responses
@@ -56,6 +58,7 @@ app.use('/api/bill', billRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/sms', smsRoutes);
+// app.use('/api/market', marketRoutes); // [REMOVED] TradingView Routes
 app.use('/api/kyc', require('./routes/kyc'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/statement', require('./routes/statement'));
