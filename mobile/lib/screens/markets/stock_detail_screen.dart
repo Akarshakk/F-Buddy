@@ -177,9 +177,9 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         actions: [
           // Candlestick chart button
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.candlestick_chart_rounded,
-              color: const Color(0xFFF59E0B),
+              color: Color(0xFFF59E0B),
             ),
             onPressed: () {
               Navigator.push(

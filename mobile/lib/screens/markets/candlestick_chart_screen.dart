@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../services/markets_service.dart';
-import '../../config/theme.dart';
 
 // Candlestick accent color (amber/gold for charts)
 const _candlestickAccent = Color(0xFFF59E0B);

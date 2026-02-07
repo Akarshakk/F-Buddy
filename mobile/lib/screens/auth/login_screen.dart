@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // Check KYC Status
       if (authProvider.user?.kycStatus != 'VERIFIED') {
         Navigator.of(context).pushReplacement(
-           MaterialPageRoute(builder: (_) => KycScreen()),
+           MaterialPageRoute(builder: (_) => const KycScreen()),
         );
       } else {
         Navigator.of(context).pushReplacementNamed('/home');

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../config/theme.dart' hide AppTextStyles;
 import '../../config/app_theme.dart';
 import '../../models/stock.dart';
 import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
-import '../../widgets/auto_translated_text.dart';
 import '../../widgets/animated_button.dart';
 import '../../l10n/app_localizations.dart';
 import 'stock_detail_screen.dart';
@@ -642,7 +640,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, color: marketAccent, size: 18),
+              const Icon(Icons.auto_awesome, color: marketAccent, size: 18),
               const SizedBox(width: 8),
               Text(
                 'Pro Tools',

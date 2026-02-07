@@ -243,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               onPressed: () {
                 if (!isVerified) {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => KycScreen()),
+                    MaterialPageRoute(builder: (_) => const KycScreen()),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
