@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:finzo/l10n/app_localizations.dart';
 import 'package:finzo/widgets/auto_translated_text.dart';
+import 'package:finzo/config/app_theme.dart';
 
 /// Financial Advisory page with Q&A, income inputs, and personalized allocation
 class FinancialAdvisoryPage extends StatefulWidget {
@@ -145,8 +146,8 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
                 child: ElevatedButton(
                   onPressed: _generatePlan,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC107),
-                    foregroundColor: Colors.black87,
+                    backgroundColor: FinzoColors.brandSecondary,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
@@ -166,7 +167,7 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFFFFC107), size: 22),
+        Icon(icon, color: FinzoColors.brandSecondary, size: 22),
         const SizedBox(width: 8),
         Text(title,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -215,12 +216,12 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isYes ? Colors.green.shade100 : Colors.red.shade100)
+              ? (isYes ? FinzoColors.brandSecondary.withOpacity(0.15) : Colors.red.shade100)
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
-                ? (isYes ? Colors.green : Colors.red)
+                ? (isYes ? FinzoColors.brandSecondary : Colors.red)
                 : Colors.grey.shade300,
           ),
         ),
@@ -228,7 +229,7 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
           label,
           style: TextStyle(
             color: isSelected
-                ? (isYes ? Colors.green.shade700 : Colors.red.shade700)
+                ? (isYes ? FinzoColors.brandSecondary : Colors.red.shade700)
                 : Colors.grey.shade600,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
@@ -279,13 +280,13 @@ class _FinancialAdvisoryPageState extends State<FinancialAdvisoryPage> {
 
     if (horizon <= 3 || score <= 3) {
       investorType = 'Short-Term';
-      typeColor = Colors.blue;
+      typeColor = FinzoColors.brandSecondary;
     } else if (horizon <= 7 || score <= 7) {
       investorType = 'Medium-Term';
-      typeColor = Colors.orange;
+      typeColor = FinzoColors.brandSecondary;
     } else {
       investorType = 'Long-Term';
-      typeColor = Colors.green;
+      typeColor = FinzoColors.brandSecondary;
     }
 
     Navigator.of(context).push(

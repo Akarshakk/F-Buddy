@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../../config/theme.dart';
+import '../../../../config/app_theme.dart';
 
 class TaxDashboardPage extends StatefulWidget {
   const TaxDashboardPage({super.key});
@@ -79,7 +79,7 @@ class _TaxDashboardPageState extends State<TaxDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColorsDark.surface : Colors.white;
+    final surfaceColor = FinzoTheme.surface(context);
 
     final estTax = _estimatedTax;
     final due = estTax - _taxPaid;
@@ -95,11 +95,11 @@ class _TaxDashboardPageState extends State<TaxDashboardPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                  colors: [Colors.blue.shade600, Colors.purple.shade600]),
+                  colors: [FinzoColors.brandSecondary, FinzoColors.brandSecondary.withOpacity(0.8)]),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                    color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+                    color: FinzoColors.brandSecondary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
               ],
             ),
             child: Row(
@@ -109,7 +109,7 @@ class _TaxDashboardPageState extends State<TaxDashboardPage> {
                     'Tax Liability', '₹${estTax.toStringAsFixed(0)}'),
                 _buildSummaryVal(
                     'Tax Due', '₹${due > 0 ? due.toStringAsFixed(0) : "0"}',
-                    color: due > 0 ? Colors.orangeAccent : Colors.white),
+                    color: due > 0 ? Colors.white70 : Colors.white),
               ],
             ),
           ),

@@ -59,14 +59,6 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final backgroundColor = isDark ? AppColorsDark.background : AppColors.background;
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final textSecondaryColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
     return Consumer<SplitWiseProvider>(
       builder: (context, provider, _) {
         final group = provider.groups.firstWhere(
@@ -75,12 +67,12 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
         return Scaffold(
-          backgroundColor: backgroundColor,
+          backgroundColor: FinzoTheme.background(context),
           appBar: AppBar(
-            title: const Text('Add Expense'),
-            backgroundColor: backgroundColor,
+            title: Text('Add Expense', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
+            backgroundColor: FinzoTheme.background(context),
             elevation: 0,
-            foregroundColor: primaryColor,
+            foregroundColor: FinzoTheme.textPrimary(context),
           ),
           body: SingleChildScrollView(
             child: Padding(
@@ -95,7 +87,16 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                       labelText: 'Description (Optional)',
                       hintText: 'e.g., Dinner',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
                       ),
                     ),
                   ),
@@ -107,7 +108,16 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                     decoration: InputDecoration(
                       labelText: 'Amount (₹)',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
                       ),
                     ),
                     keyboardType: TextInputType.number,
@@ -122,9 +132,8 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                   // Paid By Dropdown
                   Text(
                     'Paid by',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: textPrimaryColor,
+                    style: FinzoTypography.titleSmall(
+                      color: FinzoTheme.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -133,7 +142,12 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                     isExpanded: true,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -157,9 +171,8 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                   // Category
                   Text(
                     'Category',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: textPrimaryColor,
+                    style: FinzoTypography.titleSmall(
+                      color: FinzoTheme.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -168,7 +181,12 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                     isExpanded: true,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(FinzoRadius.md),
+                        borderSide: BorderSide(color: FinzoTheme.divider(context)),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -202,18 +220,17 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: surfaceColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: primaryColor.withOpacity(0.2)),
+                      color: FinzoTheme.surface(context),
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      border: Border.all(color: FinzoTheme.divider(context)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'How to split?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: textPrimaryColor,
+                          style: FinzoTypography.titleSmall(
+                            color: FinzoTheme.textPrimary(context),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -227,6 +244,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                               _calculateEqualSplits();
                             }
                           },
+                          activeColor: FinzoTheme.brandAccent(context),
                           title: const Text('Split Equally'),
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -236,6 +254,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                           onChanged: (value) {
                             setState(() => splitEqually = value ?? false);
                           },
+                          activeColor: FinzoTheme.brandAccent(context),
                           title: const Text('Custom Split'),
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -250,10 +269,8 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                     children: [
                       Text(
                         'Members',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: textPrimaryColor,
+                        style: FinzoTypography.titleMedium(
+                          color: FinzoTheme.textPrimary(context),
                         ),
                       ),
                       TextButton.icon(
@@ -280,15 +297,14 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                               ? Icons.check_box
                               : Icons.check_box_outline_blank,
                           size: 18,
-                          color: primaryColor,
+                          color: FinzoTheme.brandAccent(context),
                         ),
                         label: Text(
                           selectedMembers.length == group.members.length
                               ? 'Deselect All'
                               : 'Select All',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: primaryColor,
+                          style: FinzoTypography.labelSmall(
+                            color: FinzoTheme.brandAccent(context),
                           ),
                         ),
                       ),
@@ -301,9 +317,9 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: surfaceColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: primaryColor.withOpacity(0.15)),
+                          color: FinzoTheme.surface(context),
+                          borderRadius: BorderRadius.circular(FinzoRadius.md),
+                          border: Border.all(color: FinzoTheme.divider(context)),
                         ),
                         child: Row(
                           children: [
@@ -328,7 +344,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                                   }
                                 });
                               },
-                              activeColor: primaryColor,
+                              activeColor: FinzoTheme.brandAccent(context),
                             ),
                             Expanded(
                               flex: 2,
@@ -337,16 +353,14 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                                 children: [
                                   Text(
                                     member.name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: textPrimaryColor,
+                                    style: FinzoTypography.titleSmall(
+                                      color: FinzoTheme.textPrimary(context),
                                     ),
                                   ),
                                   Text(
                                     member.email,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: textSecondaryColor,
+                                    style: FinzoTypography.bodySmall(
+                                      color: FinzoTheme.textSecondary(context),
                                     ),
                                   ),
                                 ],
@@ -361,7 +375,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                                   decoration: InputDecoration(
                                     hintText: '₹0',
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(FinzoRadius.sm),
                                     ),
                                   ),
                                   controller: TextEditingController(
@@ -379,7 +393,7 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                                   decoration: InputDecoration(
                                     hintText: '₹0',
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(FinzoRadius.sm),
                                     ),
                                   ),
                                   keyboardType: TextInputType.number,
@@ -512,16 +526,16 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
+                        backgroundColor: FinzoTheme.brandAccent(context),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(FinzoRadius.md),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Add Expense',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: FinzoTypography.titleSmall(color: Colors.white),
                       ),
                     ),
                   ),

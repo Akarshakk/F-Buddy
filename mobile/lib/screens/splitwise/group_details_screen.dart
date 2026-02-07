@@ -21,14 +21,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
-    final secondaryColor = isDark ? AppColorsDark.secondary : AppColors.secondary;
-    final backgroundColor = isDark ? AppColorsDark.background : AppColors.background;
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final textPrimaryColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
     return Consumer<SplitWiseProvider>(
       builder: (context, provider, _) {
         final group = provider.groups.firstWhere(
@@ -50,22 +42,22 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           return Scaffold(
             appBar: AppBar(
               title: const Text('Group Details'),
-              backgroundColor: backgroundColor,
+              backgroundColor: FinzoTheme.background(context),
               elevation: 0,
             ),
             body: Center(
-              child: Text('Group not found', style: TextStyle(color: textSecondaryColor)),
+              child: Text('Group not found', style: TextStyle(color: FinzoTheme.textSecondary(context))),
             ),
           );
         }
 
         return Scaffold(
-          backgroundColor: backgroundColor,
+          backgroundColor: FinzoTheme.background(context),
           appBar: AppBar(
             title: Text(group.name),
-            backgroundColor: backgroundColor,
+            backgroundColor: FinzoTheme.background(context),
             elevation: 0,
-            foregroundColor: primaryColor,
+            foregroundColor: FinzoTheme.textPrimary(context),
             actions: [
               IconButton(
                 onPressed: () => _showShareDialog(group.inviteCode, group.name),
@@ -245,25 +237,24 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                   padding: const EdgeInsets.all(16),
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: primaryColor.withOpacity(0.2)),
+                    color: FinzoTheme.surface(context),
+                    borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                    border: Border.all(color: FinzoTheme.divider(context)),
+                    boxShadow: FinzoShadows.small,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Group Info',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimaryColor,
+                        style: FinzoTypography.titleMedium(
+                          color: FinzoTheme.textPrimary(context),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         group.description.isEmpty ? 'No description' : group.description,
-                        style: TextStyle(color: textSecondaryColor),
+                        style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -271,14 +262,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         children: [
                           Text(
                             'Total Expenses',
-                            style: TextStyle(color: textSecondaryColor),
+                            style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
                           ),
                           Text(
                             '₹${group.getTotalExpenses().toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: primaryColor,
-                            ),
+                            style: FinzoTypography.titleMedium(
+                              color: FinzoTheme.brandAccent(context),
+                            ).copyWith(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -310,19 +300,18 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: surfaceColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: primaryColor.withOpacity(0.2)),
+                        color: FinzoTheme.surface(context),
+                        borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                        border: Border.all(color: FinzoTheme.divider(context)),
+                        boxShadow: FinzoShadows.small,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Your Statistics',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: textPrimaryColor,
+                            style: FinzoTypography.titleMedium(
+                              color: FinzoTheme.textPrimary(context),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -332,13 +321,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: balance >= 0
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
+                                  ? FinzoColors.success.withOpacity(0.1)
+                                  : FinzoColors.error.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(FinzoRadius.md),
                               border: Border.all(
                                 color: balance >= 0
-                                    ? Colors.green.withOpacity(0.3)
-                                    : Colors.red.withOpacity(0.3),
+                                    ? FinzoColors.success.withOpacity(0.3)
+                                    : FinzoColors.error.withOpacity(0.3),
                               ),
                             ),
                             child: Row(
@@ -349,18 +338,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                   children: [
                                     Text(
                                       balance >= 0 ? 'You are owed' : 'You owe',
-                                      style: TextStyle(
-                                        color: textSecondaryColor,
-                                        fontSize: 12,
+                                      style: FinzoTypography.labelMedium(
+                                        color: FinzoTheme.textSecondary(context),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       '₹${balance.abs().toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: balance >= 0 ? Colors.green : Colors.red,
+                                      style: FinzoTypography.headlineMedium(
+                                        color: balance >= 0 ? FinzoColors.success : FinzoColors.error,
                                       ),
                                     ),
                                   ],
@@ -369,7 +355,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                   balance >= 0
                                       ? Icons.arrow_downward
                                       : Icons.arrow_upward,
-                                  color: balance >= 0 ? Colors.green : Colors.red,
+                                  color: balance >= 0 ? FinzoColors.success : FinzoColors.error,
                                   size: 32,
                                 ),
                               ],
@@ -382,25 +368,19 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                             children: [
                               Expanded(
                                 child: _buildStatCard(
+                                  context,
                                   'You Paid',
                                   '₹${totalSpent.toStringAsFixed(0)}',
                                   Icons.payment,
-                                  primaryColor,
-                                  surfaceColor,
-                                  textPrimaryColor,
-                                  textSecondaryColor,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _buildStatCard(
+                                  context,
                                   'Members',
                                   '${group.members.length}',
                                   Icons.people,
-                                  secondaryColor,
-                                  surfaceColor,
-                                  textPrimaryColor,
-                                  textSecondaryColor,
                                 ),
                               ),
                             ],
@@ -411,10 +391,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                           if (categoryTotals.isNotEmpty) ...[
                             Text(
                               'Expense Categories',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: textPrimaryColor,
+                              style: FinzoTypography.titleSmall(
+                                color: FinzoTheme.textPrimary(context),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -430,17 +408,14 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                       children: [
                                         Text(
                                           entry.key,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: textSecondaryColor,
+                                          style: FinzoTypography.labelSmall(
+                                            color: FinzoTheme.textSecondary(context),
                                           ),
                                         ),
                                         Text(
                                           '₹${entry.value.toStringAsFixed(0)} (${percentage.toStringAsFixed(0)}%)',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: textPrimaryColor,
+                                          style: FinzoTypography.labelMedium(
+                                            color: FinzoTheme.textPrimary(context),
                                           ),
                                         ),
                                       ],
@@ -448,8 +423,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                     const SizedBox(height: 4),
                                     LinearProgressIndicator(
                                       value: percentage / 100,
-                                      backgroundColor: primaryColor.withOpacity(0.1),
-                                      valueColor: AlwaysStoppedAnimation(primaryColor),
+                                      backgroundColor: FinzoTheme.brandAccent(context).withOpacity(0.1),
+                                      valueColor: AlwaysStoppedAnimation(FinzoTheme.brandAccent(context)),
                                       minHeight: 6,
                                       borderRadius: BorderRadius.circular(3),
                                     ),
@@ -473,10 +448,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     children: [
                       Text(
                         'Members (${group.members.length})',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimaryColor,
+                        style: FinzoTypography.titleMedium(
+                          color: FinzoTheme.textPrimary(context),
                         ),
                       ),
                       ElevatedButton.icon(
@@ -484,7 +457,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         icon: const Icon(Icons.person_add, size: 18),
                         label: const Text('Add'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: secondaryColor,
+                          backgroundColor: FinzoTheme.brandAccent(context),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -502,9 +475,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: surfaceColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: primaryColor.withOpacity(0.15)),
+                      color: FinzoTheme.surface(context),
+                      borderRadius: BorderRadius.circular(FinzoRadius.md),
+                      border: Border.all(color: FinzoTheme.divider(context)),
+                      boxShadow: FinzoShadows.small,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -515,16 +489,14 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                             children: [
                               Text(
                                 member.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: textPrimaryColor,
+                                style: FinzoTypography.titleSmall(
+                                  color: FinzoTheme.textPrimary(context),
                                 ),
                               ),
                               Text(
                                 member.email,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: textSecondaryColor,
+                                style: FinzoTypography.bodySmall(
+                                  color: FinzoTheme.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -535,9 +507,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                           children: [
                             Text(
                               balance >= 0 ? 'Gets back' : 'Owes',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: textSecondaryColor,
+                              style: FinzoTypography.labelSmall(
+                                color: FinzoTheme.textSecondary(context),
                               ),
                             ),
                             Text(
@@ -564,19 +535,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     children: [
                       Text(
                         'Settle Up',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimaryColor,
+                        style: FinzoTypography.titleMedium(
+                          color: FinzoTheme.textPrimary(context),
                         ),
                       ),
                       Row(
                         children: [
                           Text(
                             'Simplified',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: textSecondaryColor,
+                            style: FinzoTypography.labelSmall(
+                              color: FinzoTheme.textSecondary(context),
                             ),
                           ),
                           Switch(
@@ -586,7 +554,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                 _useSimplifiedDebt = value;
                               });
                             },
-                            activeThumbColor: primaryColor,
+                            activeColor: FinzoTheme.brandAccent(context),
                           ),
                         ],
                       ),
@@ -594,7 +562,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                ..._buildSettlements(group, textPrimaryColor, textSecondaryColor, surfaceColor, primaryColor),
+                ..._buildSettlements(context, group),
 
                 const SizedBox(height: 20),
 
@@ -606,10 +574,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     children: [
                       Text(
                         'Expenses (${group.expenses.length})',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimaryColor,
+                        style: FinzoTypography.titleMedium(
+                          color: FinzoTheme.textPrimary(context),
                         ),
                       ),
                       ElevatedButton.icon(
@@ -625,7 +591,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Expense'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                          backgroundColor: FinzoTheme.brandAccent(context),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -642,7 +608,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     child: Center(
                       child: Text(
                         'No expenses yet',
-                        style: TextStyle(color: textSecondaryColor),
+                        style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
                       ),
                     ),
                   )
@@ -652,9 +618,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: surfaceColor,
+                        color: FinzoTheme.surface(context),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: primaryColor.withOpacity(0.15)),
+                        border: Border.all(color: FinzoTheme.brandAccent(context).withOpacity(0.15)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,25 +633,24 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                 children: [
                                   Text(
                                     expense.description,
-                                    style: TextStyle(
+                                    style: FinzoTypography.bodyMedium().copyWith(
                                       fontWeight: FontWeight.w600,
-                                      color: textPrimaryColor,
+                                      color: FinzoTheme.textPrimary(context),
                                     ),
                                   ),
                                   Text(
                                     expense.paidByName,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: textSecondaryColor,
+                                    style: FinzoTypography.bodySmall().copyWith(
+                                      color: FinzoTheme.textSecondary(context),
                                     ),
                                   ),
                                 ],
                               ),
                               Text(
                                 '₹${expense.amount.toStringAsFixed(2)}',
-                                style: TextStyle(
+                                style: FinzoTypography.bodyMedium().copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: primaryColor,
+                                  color: FinzoTheme.brandAccent(context),
                                 ),
                               ),
                             ],
@@ -693,9 +658,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'Split: ${expense.splits.map((s) => '${s.memberId} (₹${s.amount})').join(', ')}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: textSecondaryColor,
+                            style: FinzoTypography.labelSmall().copyWith(
+                              color: FinzoTheme.textSecondary(context),
                             ),
                           ),
                         ],
@@ -869,24 +833,19 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   }
 
   List<Widget> _buildSettlements(
+    BuildContext context,
     Group group,
-    Color textPrimaryColor,
-    Color textSecondaryColor,
-    Color surfaceColor,
-    Color primaryColor,
   ) {
     if (_useSimplifiedDebt) {
-      return _buildSimplifiedSettlements(group, textPrimaryColor, textSecondaryColor, surfaceColor);
+      return _buildSimplifiedSettlements(context, group);
     } else {
-      return _buildDetailedSettlements(group, textPrimaryColor, textSecondaryColor, surfaceColor);
+      return _buildDetailedSettlements(context, group);
     }
   }
 
   List<Widget> _buildSimplifiedSettlements(
+    BuildContext context,
     Group group,
-    Color textPrimaryColor,
-    Color textSecondaryColor,
-    Color surfaceColor,
   ) {
     // Calculate net balance for each member
     Map<String, double> balances = {};
@@ -948,15 +907,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(12),
+              color: FinzoTheme.surface(context),
+              borderRadius: BorderRadius.circular(FinzoRadius.lg),
+              border: Border.all(color: FinzoTheme.divider(context)),
             ),
             child: Center(
               child: Text(
                 '🎉 All settled up!',
-                style: TextStyle(
-                  color: textSecondaryColor,
-                  fontSize: 14,
+                style: FinzoTypography.bodyMedium(
+                  color: FinzoTheme.textSecondary(context),
                 ),
               ),
             ),
@@ -1024,7 +983,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: surfaceColor,
+            color: FinzoTheme.surface(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.orange.withOpacity(0.3)),
           ),
@@ -1046,7 +1005,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
               Expanded(
                 child: RichText(
                   text: TextSpan(
-                    style: TextStyle(color: textPrimaryColor, fontSize: 14),
+                    style: TextStyle(color: FinzoTheme.textPrimary(context), fontSize: 14),
                     children: [
                       TextSpan(
                         text: settlement['from'],
@@ -1084,10 +1043,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   }
 
   List<Widget> _buildDetailedSettlements(
+    BuildContext context,
     Group group,
-    Color textPrimaryColor,
-    Color textSecondaryColor,
-    Color surfaceColor,
   ) {
     // Show all individual debts
     List<Widget> widgets = [];
@@ -1101,21 +1058,21 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: surfaceColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                color: FinzoTheme.surface(context),
+                borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                border: Border.all(color: FinzoColors.error.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: FinzoColors.error.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.arrow_upward,
-                      color: Colors.red,
+                      color: FinzoColors.error,
                       size: 20,
                     ),
                   ),
@@ -1123,18 +1080,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                   Expanded(
                     child: Text(
                       '${member.name} owes to group',
-                      style: TextStyle(
-                        color: textPrimaryColor,
-                        fontSize: 14,
+                      style: FinzoTypography.bodyMedium(
+                        color: FinzoTheme.textPrimary(context),
                       ),
                     ),
                   ),
                   Text(
                     '₹${member.balance.abs().toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                      fontSize: 16,
+                    style: FinzoTypography.titleMedium(
+                      color: FinzoColors.error,
                     ),
                   ),
                 ],
@@ -1150,21 +1104,21 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: surfaceColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                color: FinzoTheme.surface(context),
+                borderRadius: BorderRadius.circular(FinzoRadius.lg),
+                border: Border.all(color: FinzoColors.success.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: FinzoColors.success.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.arrow_downward,
-                      color: Colors.green,
+                      color: FinzoColors.success,
                       size: 20,
                     ),
                   ),
@@ -1172,18 +1126,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                   Expanded(
                     child: Text(
                       'Group owes ${member.name}',
-                      style: TextStyle(
-                        color: textPrimaryColor,
-                        fontSize: 14,
+                      style: FinzoTypography.bodyMedium(
+                        color: FinzoTheme.textPrimary(context),
                       ),
                     ),
                   ),
                   Text(
                     '₹${member.balance.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                      fontSize: 16,
+                    style: FinzoTypography.titleMedium(
+                      color: FinzoColors.success,
                     ),
                   ),
                 ],
@@ -1201,15 +1152,14 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: surfaceColor,
+              color: FinzoTheme.surface(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
               child: Text(
                 '🎉 All settled up!',
-                style: TextStyle(
-                  color: textSecondaryColor,
-                  fontSize: 14,
+                style: FinzoTypography.bodyMedium().copyWith(
+                  color: FinzoTheme.textSecondary(context),
                 ),
               ),
             ),
@@ -1222,40 +1172,34 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   }
 
   Widget _buildStatCard(
+    BuildContext context,
     String label,
     String value,
     IconData icon,
-    Color color,
-    Color surfaceColor,
-    Color textPrimaryColor,
-    Color textSecondaryColor,
   ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: FinzoTheme.brandAccent(context).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(FinzoRadius.md),
+        border: Border.all(color: FinzoTheme.brandAccent(context).withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 20),
+          Icon(icon, color: FinzoTheme.brandAccent(context), size: 20),
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
-              color: textSecondaryColor,
-              fontSize: 11,
+            style: FinzoTypography.labelSmall(
+              color: FinzoTheme.textSecondary(context),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: textPrimaryColor,
+            style: FinzoTypography.titleMedium(
+              color: FinzoTheme.textPrimary(context),
             ),
           ),
         ],

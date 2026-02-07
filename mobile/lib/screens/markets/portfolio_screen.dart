@@ -3,6 +3,7 @@ import '../../models/paper_portfolio.dart';
 import '../../models/stock.dart';
 import '../../services/markets_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../config/app_theme.dart';
 import 'stock_detail_screen.dart';
 
 class PortfolioScreen extends StatefulWidget {
@@ -482,6 +483,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
   Widget _buildSummaryCard(ColorScheme colorScheme) {
     final portfolio = _portfolio!;
     final isProfitable = portfolio.totalPnl >= 0;
+    // Use dark text on the copper/gold background for visibility
+    const textColorPrimary = Color(0xFF1A1A2E);  // Deep navy for main text
+    const textColorSecondary = Color(0xFF3D3D5C);  // Slightly lighter for labels
 
     return Card(
       elevation: 4,
@@ -492,8 +496,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colorScheme.primaryContainer,
-              colorScheme.primaryContainer.withOpacity(0.7),
+              FinzoColors.brandSecondary,
+              FinzoColors.brandSecondary.withOpacity(0.85),
             ],
           ),
         ),
@@ -509,12 +513,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
+                    color: textColorPrimary,
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.white.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -522,7 +527,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.amber,
+                      color: textColorPrimary,
                     ),
                   ),
                 ),
@@ -534,9 +539,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
+                color: textColorPrimary,
               ),
             ),
-            const Divider(height: 32),
+            Divider(height: 32, color: textColorPrimary.withOpacity(0.2)),
             Row(
               children: [
                 Expanded(
@@ -544,7 +550,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                     'Available Cash',
                     '₹${_formatCurrency(portfolio.virtualBalance)}',
                     Icons.account_balance_wallet,
-                    Colors.blue,
+                    Colors.blue.shade800,
                   ),
                 ),
                 Expanded(
@@ -552,7 +558,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                     'Invested',
                     '₹${_formatCurrency(portfolio.totalInvested)}',
                     Icons.trending_up,
-                    Colors.orange,
+                    Colors.orange.shade800,
                   ),
                 ),
               ],
@@ -565,7 +571,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                     'Current Value',
                     '₹${_formatCurrency(portfolio.currentPortfolioValue)}',
                     Icons.pie_chart,
-                    Colors.purple,
+                    Colors.purple.shade800,
                   ),
                 ),
                 Expanded(
@@ -573,7 +579,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                     'Total P&L',
                     '${isProfitable ? '+' : ''}₹${_formatCurrency(portfolio.totalPnl)}',
                     isProfitable ? Icons.arrow_upward : Icons.arrow_downward,
-                    isProfitable ? Colors.green : Colors.red,
+                    isProfitable ? Colors.green.shade800 : Colors.red.shade800,
                   ),
                 ),
               ],
@@ -584,9 +590,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
                 value: ((portfolio.totalPnlPercent.abs()) / 100).clamp(0.0, 1.0),
-                backgroundColor: Colors.grey.shade300,
+                backgroundColor: Colors.white.withOpacity(0.3),
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  isProfitable ? Colors.green : Colors.red,
+                  isProfitable ? Colors.green.shade700 : Colors.red.shade700,
                 ),
                 minHeight: 8,
               ),
@@ -598,6 +604,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  color: isProfitable ? Colors.green.shade800 : Colors.red.shade800,
                   color: isProfitable ? Colors.green : Colors.red,
                 ),
               ),
@@ -609,6 +616,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
   }
 
   Widget _buildStatColumn(String label, String value, IconData icon, Color color) {
+    const textColorSecondary = Color(0xFF3D3D5C);  // Dark text for visibility on copper background
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -618,9 +626,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
             const SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade600,
+                color: textColorSecondary,
               ),
             ),
           ],
@@ -628,9 +636,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
       ],
