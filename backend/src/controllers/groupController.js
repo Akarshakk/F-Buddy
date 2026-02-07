@@ -1,5 +1,7 @@
 const Group = require('../models/Group');
 const User = require('../models/User');
+const Income = require('../models/Income');
+const GroupChat = require('../models/GroupChat');
 
 // @desc    Create a new group
 // @route   POST /api/groups
@@ -385,6 +387,21 @@ exports.settleUp = async (req, res) => {
 
         const updatedGroup = await Group.updateById(req.params.id, { members: group.members });
 
+        // Create income record for the recipient (toUserId) - they received money
+        const fromMember = group.members[fromIndex];
+        const toMember = group.members[toIndex];
+        const now = new Date();
+
+        await Income.create({
+            user: toUserId,
+            amount: amount,
+            description: `Settlement received from ${fromMember.name} in ${group.name}`,
+            source: 'group_settlement',
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+            date: now
+        });
+
         res.json({
             success: true,
             data: { group: updatedGroup },
@@ -403,7 +420,7 @@ exports.settleUp = async (req, res) => {
 // @access  Private
 exports.addExpense = async (req, res) => {
     try {
-        const { paidBy, paidByName, amount, description, splits, category } = req.body;
+        const { paidBy, paidByName, amount, description, splits, category, date } = req.body;
         const group = await Group.findById(req.params.id);
 
         if (!group) {
@@ -428,7 +445,8 @@ exports.addExpense = async (req, res) => {
             amount,
             description,
             splits,
-            category
+            category,
+            date
         });
 
         res.json({
@@ -505,6 +523,94 @@ exports.deleteGroupExpense = async (req, res) => {
             success: true,
             data: { group: updatedGroup },
             message: 'Expense deleted successfully'
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Send chat message to group
+// @route   POST /api/groups/:id/chat
+// @access  Private
+exports.sendMessage = async (req, res) => {
+    try {
+        const { message } = req.body;
+        const group = await Group.findById(req.params.id);
+
+        if (!group) {
+            return res.status(404).json({
+                success: false,
+                message: 'Group not found'
+            });
+        }
+
+        // Verify user is a member
+        const isMember = group.members.some(m => m.userId === req.user.id);
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not a member of this group'
+            });
+        }
+
+        const chatMessage = await GroupChat.create({
+            groupId: req.params.id,
+            userId: req.user.id,
+            userName: req.user.name,
+            message: message
+        });
+
+        res.status(201).json({
+            success: true,
+            data: { message: chatMessage }
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Get chat messages for group
+// @route   GET /api/groups/:id/chat
+// @access  Private
+exports.getMessages = async (req, res) => {
+    try {
+        const { after, limit } = req.query;
+        const group = await Group.findById(req.params.id);
+
+        if (!group) {
+            return res.status(404).json({
+                success: false,
+                message: 'Group not found'
+            });
+        }
+
+        // Verify user is a member
+        const isMember = group.members.some(m => m.userId === req.user.id);
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not a member of this group'
+            });
+        }
+
+        let messages;
+        if (after) {
+            // Polling mode - get only new messages
+            messages = await GroupChat.getNewMessages(req.params.id, after);
+        } else {
+            // Initial load - get recent messages
+            messages = await GroupChat.getByGroupId(req.params.id, parseInt(limit) || 50);
+        }
+
+        res.json({
+            success: true,
+            data: { messages }
         });
     } catch (error) {
         res.status(400).json({

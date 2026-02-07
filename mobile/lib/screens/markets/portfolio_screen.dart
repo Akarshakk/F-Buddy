@@ -605,7 +605,6 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: isProfitable ? Colors.green.shade800 : Colors.red.shade800,
-                  color: isProfitable ? Colors.green : Colors.red,
                 ),
               ),
             ),

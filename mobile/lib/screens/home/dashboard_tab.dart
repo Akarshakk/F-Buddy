@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../config/app_theme.dart';
 import '../../models/category.dart';
 import '../../models/expense.dart';
+import '../../models/group.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
@@ -373,7 +374,7 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                 // Latest Expenses - animated
                 _buildAnimatedCard(
                   index: 4,
-                  child: _buildLatestExpensesSection(),
+                  child: _buildCashFlowSection(),
                 ),
                 const SizedBox(height: 80), // Space for FAB
               ],
@@ -483,6 +484,31 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
         // Calculate total and recalculate percentages to ensure they add up to 100%
         final total = categoryData.fold<double>(0, (sum, item) => sum + item.amount);
         
+        // Group small categories (< 5%) into "Other" to prevent visual clutter
+        List<CategoryData> processedData = [];
+        double otherAmount = 0;
+        int otherCount = 0;
+        
+        for (var item in categoryData) {
+          final percentage = (item.amount / total) * 100;
+          if (percentage >= 5) {
+            processedData.add(item);
+          } else {
+            otherAmount += item.amount;
+            otherCount += item.count;
+          }
+        }
+        
+        // Add "Other" category if there are grouped items
+        if (otherAmount > 0) {
+          processedData.add(CategoryData(
+            category: 'other',
+            amount: otherAmount,
+            count: otherCount,
+            percentage: (otherAmount / total) * 100,
+          ));
+        }
+        
         // Calculate accurate percentages
         List<double> calculateAccuratePercentages(List<CategoryData> data, double total) {
           if (total == 0) return List.filled(data.length, 0.0);
@@ -509,10 +535,10 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
           return roundedPercentages;
         }
         
-        final accuratePercentages = calculateAccuratePercentages(categoryData, total);
+        final accuratePercentages = calculateAccuratePercentages(processedData, total);
         
-        final selectedData = _touchedIndex >= 0 && _touchedIndex < categoryData.length 
-            ? categoryData[_touchedIndex] 
+        final selectedData = _touchedIndex >= 0 && _touchedIndex < processedData.length 
+            ? processedData[_touchedIndex] 
             : null;
         final selectedPercentage = _touchedIndex >= 0 && _touchedIndex < accuratePercentages.length
             ? accuratePercentages[_touchedIndex]
@@ -605,14 +631,14 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                               
                               setState(() => _touchedIndex = touchedIndex);
                               
-                              // Show popup on tap (not on hover/drag)
-                              if (event is FlTapUpEvent && touchedIndex >= 0 && touchedIndex < categoryData.length) {
+                              if (event is FlTapUpEvent && touchedIndex >= 0 && touchedIndex < processedData.length) {
                                 HapticFeedback.mediumImpact();
-                                final selectedCategory = categoryData[touchedIndex];
+                                final selectedCategoryData = processedData[touchedIndex];
                                 _showCategoryExpensesPopup(
                                   context,
-                                  selectedCategory.category,
-                                  Category.getByName(selectedCategory.category),
+                                  selectedCategoryData.category,
+                                  Category.getByName(selectedCategoryData.category),
+                                  selectedCategoryData,
                                 );
                               }
                             },
@@ -620,7 +646,7 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                           borderData: FlBorderData(show: false),
                           sectionsSpace: 4, // More space between sections
                           centerSpaceRadius: 55,
-                          sections: categoryData.asMap().entries.map((entry) {
+                          sections: processedData.asMap().entries.map((entry) {
                             final index = entry.key;
                             final data = entry.value;
                             final isTouched = index == _touchedIndex;
@@ -685,7 +711,7 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  '${categoryData.length}',
+                                  '${processedData.length}',
                                   style: FinzoTypography.headlineMedium().copyWith(
                                     color: FinzoTheme.textPrimary(context),
                                     fontWeight: FontWeight.w800,
@@ -737,10 +763,10 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
   }
 
   // Show 3D animated popup with category expenses
-  void _showCategoryExpensesPopup(BuildContext context, String categoryName, Category category) {
+  void _showCategoryExpensesPopup(BuildContext context, String categoryName, Category category, CategoryData categoryData) {
     final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
     
-    // Filter expenses by category
+    // Filter expenses by category for the list
     final categoryExpenses = expenseProvider.expenses
         .where((e) => e.category.toLowerCase() == categoryName.toLowerCase())
         .toList();
@@ -764,6 +790,8 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
           categoryName: categoryName,
           expenses: allExpenses,
           animation: animation,
+          totalAmount: categoryData.amount,
+          expenseCount: categoryData.count,
         );
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
@@ -1110,10 +1138,47 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
     return max == 0 ? 1000 : max * 1.2;
   }
 
-  Widget _buildLatestExpensesSection() {
-    return Consumer<ExpenseProvider>(
-      builder: (context, expenseProvider, _) {
+  Widget _buildCashFlowSection() {
+    return Consumer2<ExpenseProvider, IncomeProvider>(
+      builder: (context, expenseProvider, incomeProvider, _) {
+        // 1. Fetch Lists
         final expenses = expenseProvider.latestExpenses;
+        final incomes = incomeProvider.incomes; // Taking all incomes to sort, or we could limit if API supported
+
+        // 2. Merge into common structure
+        List<_TransactionItem> transactions = [];
+
+        for (var e in expenses) {
+          transactions.add(_TransactionItem(
+            id: e.id,
+            amount: e.amount,
+            isExpense: true,
+            date: e.date,
+            title: e.category,
+            subtitle: e.description.isNotEmpty ? e.description : e.merchant,
+            categoryColor: _getCategoryColor(e.category),
+            icon: _getCategoryIcon(e.category),
+          ));
+        }
+
+        for (var i in incomes) {
+          transactions.add(_TransactionItem(
+            id: i.id,
+            amount: i.amount,
+            isExpense: false, // Income
+            date: i.date,
+            title: i.source,
+            subtitle: i.description,
+            categoryColor: FinzoColors.success,
+            icon: Icons.account_balance_wallet,
+          ));
+        }
+
+        // 3. Sort by Date Descending
+        transactions.sort((a, b) => b.date.compareTo(a.date));
+
+        // 4. Take Top 10
+        final latestTransactions = transactions.take(10).toList();
 
         return Container(
           padding: const EdgeInsets.all(FinzoSpacing.md),
@@ -1130,10 +1195,11 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Latest Expenses', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
+                  Text('CashFlow', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
                   TextButton(
                     onPressed: () {
-                      // Navigate to expenses tab
+                      // Navigate to Transaction History / All Expenses
+                      // For now, we can keep it as is or redirect to a new screen if exists
                     },
                     child: Text(
                       'See All',
@@ -1142,17 +1208,17 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                   ),
                 ],
               ),
-              if (expenses.isEmpty)
+              if (latestTransactions.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.lg),
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.receipt_long,
+                        Icon(Icons.swap_horiz, // Changed icon to represent flow
                             size: 48, color: FinzoTheme.textTertiary(context)),
                         const SizedBox(height: FinzoSpacing.sm),
                         Text(
-                          'No expenses yet',
+                          'No transactions yet',
                           style: FinzoTypography.bodyMedium().copyWith(
                             color: FinzoTheme.textSecondary(context),
                           ),
@@ -1165,9 +1231,9 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (int i = 0; i < expenses.length; i++) ...[
-                      ExpenseCard(expense: expenses[i]),
-                      if (i < expenses.length - 1) Divider(height: 1, color: FinzoTheme.divider(context)),
+                    for (int i = 0; i < latestTransactions.length; i++) ...[
+                      _buildTransactionCard(latestTransactions[i]),
+                      if (i < latestTransactions.length - 1) Divider(height: 1, color: FinzoTheme.divider(context)),
                     ],
                   ],
                 ),
@@ -1176,6 +1242,111 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
         );
       },
     );
+  }
+
+  Widget _buildTransactionCard(_TransactionItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      child: Row(
+        children: [
+          // Icon Container
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: item.categoryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              item.icon,
+              color: item.categoryColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          // Title & Subtitle
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: FinzoTypography.bodyLarge(color: FinzoTheme.textPrimary(context))
+                      .copyWith(fontWeight: FontWeight.w600),
+                ),
+                 const SizedBox(height: 4),
+                 Text(
+                    item.subtitle,
+                    style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                 ),
+              ],
+            ),
+          ),
+          
+          // Amount & Date
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${item.isExpense ? "-" : "+"}₹${item.amount.toStringAsFixed(0)}',
+                style: FinzoTypography.bodyLarge(
+                  // Red for Expense, Green for Income
+                  color: item.isExpense ? FinzoColors.error : FinzoColors.success,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _formatDate(item.date),
+                style: FinzoTypography.labelSmall(color: FinzoTheme.textTertiary(context)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    final dateToCheck = DateTime(date.year, date.month, date.day);
+
+    if (dateToCheck == today) return 'Today';
+    if (dateToCheck == yesterday) return 'Yesterday';
+    return DateFormat('d MMM').format(date);
+  }
+
+  // Helper getters for colors/icons if not already available in class scope
+  Color _getCategoryColor(String category) {
+     // This logic likely exists in ExpenseCard or similar, duplicating simple version here or referencing existing
+     // Assuming basic mapping for now:
+     switch (category.toLowerCase()) {
+       case 'food': return Colors.orange;
+       case 'transport': return Colors.blue;
+       case 'shopping': return Colors.purple;
+       case 'bills': return Colors.red;
+       case 'entertainment': return Colors.pink;
+       case 'health': return Colors.teal;
+       case 'education': return Colors.indigo;
+       default: return FinzoTheme.brandAccent(context);
+     }
+  }
+
+  IconData _getCategoryIcon(String category) {
+     switch (category.toLowerCase()) {
+       case 'food': return Icons.restaurant;
+       case 'transport': return Icons.directions_car;
+       case 'shopping': return Icons.shopping_bag;
+       case 'bills': return Icons.receipt;
+       case 'entertainment': return Icons.movie;
+       case 'health': return Icons.medical_services;
+       case 'education': return Icons.school;
+       default: return Icons.category;
+     }
   }
 
   Widget _buildWeekSelector(AnalyticsProvider analytics) {
@@ -1410,11 +1581,17 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
           );
         }
 
-        // Calculate total spent by user across all groups
-        double totalSpent = 0;
+        // Calculate total share of user across all groups
+        double totalShare = 0;
         for (var group in groups) {
-          final userExpenses = group.expenses.where((e) => e.paidBy == userId);
-          totalSpent += userExpenses.fold(0.0, (sum, e) => sum + e.amount);
+          for (var expense in group.expenses) {
+            // Find user's split in this expense
+            final userSplit = expense.splits.firstWhere(
+              (s) => s.memberId == userId,
+              orElse: () => GroupExpenseSplit(memberId: '', memberName: '', amount: 0),
+            );
+            totalShare += userSplit.amount;
+          }
         }
 
         return Container(
@@ -1473,14 +1650,14 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                               color: FinzoTheme.brandAccent(context), size: 20),
                           const SizedBox(height: FinzoSpacing.sm),
                           Text(
-                            'Total Spent',
+                            'Your Share',
                             style: FinzoTypography.labelSmall().copyWith(
                               color: FinzoTheme.textSecondary(context),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '₹${NumberFormat('#,##,###').format(totalSpent)}',
+                            '₹${NumberFormat('#,##,###').format(totalShare)}',
                             style: FinzoTypography.titleMedium().copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -1536,10 +1713,15 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                 ),
                 const SizedBox(height: FinzoSpacing.sm),
                 ...groups.take(3).map((group) {
-                  final userExpenses =
-                      group.expenses.where((e) => e.paidBy == userId);
-                  final groupTotal =
-                      userExpenses.fold(0.0, (sum, e) => sum + e.amount);
+                  double groupShare = 0;
+                   for (var expense in group.expenses) {
+                      final userSplit = expense.splits.firstWhere(
+                        (s) => s.memberId == userId,
+                        orElse: () => GroupExpenseSplit(memberId: '', memberName: '', amount: 0),
+                      );
+                      groupShare += userSplit.amount;
+                   }
+
                   final userMember = group.members.firstWhere(
                     (m) => m.userId == userId,
                     orElse: () => group.members.first,
@@ -1596,7 +1778,7 @@ class _DashboardTabState extends State<DashboardTab> with TickerProviderStateMix
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              '₹${groupTotal.toStringAsFixed(0)}',
+                              '₹${groupShare.toStringAsFixed(0)}',
                               style: FinzoTypography.labelMedium().copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: FinzoTheme.brandAccent(context),
@@ -1631,12 +1813,16 @@ class _CategoryExpensesPopup extends StatefulWidget {
   final String categoryName;
   final List<Expense> expenses;
   final Animation<double> animation;
+  final double totalAmount;
+  final int expenseCount;
 
   const _CategoryExpensesPopup({
     required this.category,
     required this.categoryName,
     required this.expenses,
     required this.animation,
+    required this.totalAmount,
+    required this.expenseCount,
   });
 
   @override
@@ -1693,7 +1879,7 @@ class _CategoryExpensesPopupState extends State<_CategoryExpensesPopup>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final total = widget.expenses.fold<double>(0, (sum, e) => sum + e.amount);
+    final total = widget.totalAmount;
     
     return AnimatedBuilder(
       animation: Listenable.merge([_flipController, widget.animation]),
@@ -1839,7 +2025,7 @@ class _CategoryExpensesPopupState extends State<_CategoryExpensesPopup>
               ),
               const SizedBox(width: FinzoSpacing.md),
               _buildStatChip(
-                '${widget.expenses.length}',
+                '${widget.expenseCount}',
                 'Expenses',
               ),
             ],
@@ -2065,4 +2251,26 @@ class _CategoryExpensesPopupState extends State<_CategoryExpensesPopup>
       ),
     );
   }
+}
+
+class _TransactionItem {
+  final String id;
+  final double amount;
+  final bool isExpense;
+  final DateTime date;
+  final String title;
+  final String subtitle;
+  final Color categoryColor;
+  final IconData icon;
+
+  _TransactionItem({
+    required this.id,
+    required this.amount,
+    required this.isExpense,
+    required this.date,
+    required this.title,
+    required this.subtitle,
+    required this.categoryColor,
+    required this.icon,
+  });
 }

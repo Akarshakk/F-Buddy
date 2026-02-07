@@ -212,7 +212,7 @@ class _FeatureSelectionScreenState extends State<FeatureSelectionScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user?.name ?? 'User',
+                  user?.name?.split(' ').first ?? 'User',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
@@ -309,7 +309,7 @@ class _FeatureSelectionScreenState extends State<FeatureSelectionScreen>
           Text(
             context.l10n.t('select_how_to_manage'),
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 13,
               fontWeight: FontWeight.w400,
               color: FinzoTheme.textSecondary(context),
               height: 1.4,

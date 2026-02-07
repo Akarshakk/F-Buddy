@@ -183,6 +183,94 @@ class ApiService {
       return {'success': false, 'message': 'Upload error: ${e.toString()}'};
     }
   }
+  // Create Razorpay Order
+  static Future<Map<String, dynamic>> createOrder({
+    required double amount,
+    required String currency,
+    required String receipt,
+    Map<String, dynamic>? notes,
+  }) async {
+    return await post(
+      '/payment/create-order',
+      body: {
+        'amount': amount,
+        'currency': currency,
+        'receipt': receipt,
+        'notes': notes,
+      },
+    );
+  }
+
+  // Verify Razorpay Payment
+  static Future<Map<String, dynamic>> verifyPayment({
+    required String orderId,
+    required String paymentId,
+    required String signature,
+    required String groupId,
+    required String fromUserId,
+    required String toUserId,
+    required double amount,
+  }) async {
+    return await post(
+      '/payment/verify',
+      body: {
+        'razorpay_order_id': orderId,
+        'razorpay_payment_id': paymentId,
+        'razorpay_signature': signature,
+        'groupId': groupId,
+        'fromUserId': fromUserId,
+        'toUserId': toUserId,
+        'amount': amount,
+      },
+    );
+  }
+
+  // Get Razorpay Key
+  static Future<String?> getRazorpayKey() async {
+    final response = await get('/payment/key');
+    if (response['success']) {
+      return response['key'];
+    }
+    return null;
+  }
+  // Scan bill (OCR)
+  static Future<Map<String, dynamic>?> scanBill(dynamic imageFile) async {
+    try {
+      // RAG Service URL (Port 5002)
+      // For emulator: 10.0.2.2:5002, Device: 192.168.x.x:5002
+      // Using ApiConstants.baseUrl but replacing port if needed 
+      // OR just defining ragUrl. For now, we'll try to use the same host.
+      String ragUrl = ApiConstants.baseUrl.replaceAll('5001', '5002').replaceAll('/api', '/scan-bill');
+      
+      // If baseUrl doesn't have port, constructing it manually
+      if (!ragUrl.contains('5002')) {
+        ragUrl = 'http://192.168.1.5:5002/scan-bill'; // Fallback/Dev
+      }
+
+      var request = http.MultipartRequest('POST', Uri.parse(ragUrl));
+      
+      if (imageFile is File) {
+         request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      } else if (imageFile != null) {
+        // XFile or generic
+         final bytes = await imageFile.readAsBytes();
+         request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: 'bill.jpg'));
+      } else {
+        return {'success': false, 'message': 'No image provided'};
+      }
+
+      print('[API] Scanning Bill at $ragUrl');
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      print('[API] Scan Response: ${response.body}');
+      return _handleResponse(response);
+    } catch (e) {
+      print('[API] Scan Error: $e');
+      return {'success': false, 'message': 'Scan failed: $e'};
+    }
+  }
 }
+
 
 

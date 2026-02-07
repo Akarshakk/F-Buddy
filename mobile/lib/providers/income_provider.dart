@@ -61,6 +61,8 @@ class IncomeProvider extends ChangeNotifier {
 
       if (response['success'] == true) {
         final List<dynamic> incomeList = response['data']['incomes'] ?? [];
+        // Populate _incomes list for CashFlow section
+        _incomes = incomeList.map((i) => Income.fromJson(i)).toList();
         if (incomeList.isNotEmpty) {
           _currentMonthIncome = Income.fromJson(incomeList.first);
         }

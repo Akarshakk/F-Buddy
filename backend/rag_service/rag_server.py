@@ -7,6 +7,7 @@ Processes DOCX files uploaded by admin for financial advisory
 import os
 import uuid
 import re
+import json
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -399,6 +400,109 @@ def get_stats():
         })
         
     except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+class GeminiOCR:
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+
+    def extract_bill_info(self, image_bytes):
+        """
+        Extracts bill info using Gemini (Multimodal) with prompts/rules 
+        ported from the Personal Finance feature (billController.js).
+        """
+        if not self.api_key:
+            return {"merchant": "Demo Merchant", "amount": "0.00", "date": datetime.now().strftime("%Y-%m-%d"), "status": "demo_no_key"}
+
+        try:
+            genai.configure(api_key=self.api_key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            prompt = """
+            Extract bill info from this image. Return ONLY JSON, nothing else.
+
+            RULES:
+            - merchant: Store/restaurant name (MAX 25 chars, just the name, no address). Look for the largest, boldest text at the top.
+            - amount: Final total (number only, after taxes, look for "Bill Total", "Grand Total", "Total Rs"). Do NOT include currency symbols.
+            - category: One of: restaurants, food, drinks, transport, fuel, clothes, education, health, hotel, fun, personal, pets, others.
+            - date: YYYY-MM-DD format or null.
+
+            CATEGORY HINTS:
+            - restaurants: dine-in, menu items, FSSAI, Table No, kitchen, cafe, dhaba
+            - food: Zomato, Swiggy, grocery, supermarket
+            - drinks: bar, pub, wine, beer, alcohol
+            - transport: uber, ola, taxi, fuel, flight, train
+            - fuel: petrol, diesel, cng, gas station
+            - clothes: apparel, fashion, zudio, trends
+            - education: school, college, books, stationery
+            - health: hospital, pharmacy, medicine, gym
+            - hotel: oyo, stay, room, resort
+            - fun: movie, cinema, game, netflix
+            - personal: salon, spa, grooming
+            - pets: vet, pet food
+            - others: shopping, electronics, recharge, bill
+
+            RESPOND WITH ONLY JSON:
+            {"merchant":"Name","amount":123.45,"category":"restaurants","date":"2025-12-31"}
+            """
+
+            content = [prompt, {"mime_type": "image/jpeg", "data": image_bytes}]
+            
+            response = model.generate_content(content)
+            
+            # Clean response text
+            text = response.text.strip().replace('```json', '').replace('```', '')
+            parsed = json.loads(text)
+            
+            return {
+                "merchant": parsed.get("merchant", "Not Avl"),
+                "amount": parsed.get("amount", "0.00"),
+                "date": parsed.get("date", "Not Mentioned"),
+                "category": parsed.get("category", "others"),
+                "status": "success",
+                "raw_data": parsed
+            }
+
+        except Exception as e:
+            print(f"❌ Gemini extraction error: {e}")
+            # Fallback for error
+            return {"error": str(e), "status": "error"}
+
+@app.route('/scan-bill', methods=['POST'])
+def scan_bill():
+    """Scan bill image using Gemini OCR (Personal Finance Logic)"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+        # Read file bytes directly
+        image_bytes = file.read()
+        
+        # Initialize OCR
+        ocr = GeminiOCR()
+        result = ocr.extract_bill_info(image_bytes)
+        
+        if result.get("status") == "error":
+            return jsonify({
+                'success': False, 
+                'message': result.get("error", "Unknown error")
+            }), 500
+            
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+
+    except Exception as e:
+        print(f"❌ Scan error: {str(e)}")
         return jsonify({
             'success': False,
             'message': str(e)
