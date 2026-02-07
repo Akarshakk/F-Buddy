@@ -417,7 +417,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Practice trading with ₹10 Lakh virtual money. No real money involved!',
+                  'Practice trading with ₹1 Lakh virtual money. No real money involved!',
                   style: FinzoTypography.bodySmall().copyWith(
                     color: Colors.white.withOpacity(0.9),
                   ),

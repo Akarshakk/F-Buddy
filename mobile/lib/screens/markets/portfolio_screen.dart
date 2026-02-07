@@ -65,7 +65,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
       builder: (context) => AlertDialog(
         title: const Text('Reset Portfolio?'),
         content: const Text(
-          'This will reset your virtual portfolio to ₹10,00,000 and remove all holdings. '
+          'This will reset your virtual portfolio to ₹1,00,000 and remove all holdings. '
           'This action cannot be undone.',
         ),
         actions: [
