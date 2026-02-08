@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finzo – Chart (Yahoo Finance)</title>
+  <style>
+    body { margin: 0; font-family: system-ui; background: #131722; color: #d1d4dc; }
+    #toolbar { padding: 8px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    #toolbar input, #toolbar select { padding: 6px 10px; border: 1px solid #363c4e; border-radius: 4px; background: #1e222d; color: #d1d4dc; }
+    #toolbar button { padding: 6px 14px; background: #2962ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    #chart { width: 100vw; height: calc(100vh - 48px); }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <input type="text" id="symbol" value="RELIANCE.NS" placeholder="Symbol (e.g. RELIANCE.NS)" />
+    <select id="resolution">
+      <option value="1D">1D</option>
+      <option value="1W">1W</option>
+      <option value="1M">1M</option>
+      <option value="60">60m</option>
+      <option value="15">15m</option>
+    </select>
+    <button id="load">Load</button>
+    <span id="status"></span>
+  </div>
+  <div id="chart"></div>
+
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script>
+    (function () {
+      var API_BASE = 'http://localhost:5001/api/markets';
+      var m = /[?&]api=([^&]+)/.exec(location.search);
+      if (m) API_BASE = m[1].replace(/\/$/, '') + (m[1].indexOf('/api') !== -1 ? '' : '/api/markets');
+
+      var chart = null;
+      var candleSeries = null;
+
+      function getBars(symbol, resolution, from, to) {
+        var url = API_BASE + '/chart/bars?symbol=' + encodeURIComponent(symbol) +
+          '&resolution=' + encodeURIComponent(resolution) + '&from=' + from + '&to=' + to;
+        return fetch(url).then(function (r) { return r.json(); });
+      }
+
+      function loadChart() {
+        var symbol = document.getElementById('symbol').value.trim() || 'RELIANCE.NS';
+        var resolution = document.getElementById('resolution').value;
+        document.getElementById('status').textContent = 'Loading…';
+
+        var to = Math.floor(Date.now() / 1000);
+        var from = to - (resolution === '1D' || resolution === '1W' || resolution === '1M' ? 86400 * 365 : 86400 * 60);
+
+        getBars(symbol, resolution, from, to).then(function (json) {
+          document.getElementById('status').textContent = '';
+          if (!json.success || !json.data || json.data.length === 0) {
+            document.getElementById('status').textContent = 'No data';
+            return;
+          }
+          var bars = json.data.map(function (b) {
+            return { time: b.time, open: b.open, high: b.high, low: b.low, close: b.close };
+          });
+
+          var container = document.getElementById('chart');
+          if (!chart) {
+            chart = LightweightCharts.createChart(container, {
+              layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc' },
+              grid: { vertLines: { color: '#363c4e' }, horzLines: { color: '#363c4e' } },
+              width: container.clientWidth,
+              height: container.clientHeight,
+              timeScale: { timeVisible: true, secondsVisible: false }
+            });
+            candleSeries = chart.addCandlestickSeries({
+              upColor: '#26a69a',
+              downColor: '#ef5350',
+              borderVisible: false
+            });
+            window.addEventListener('resize', function () {
+              chart.applyOptions({ width: document.getElementById('chart').clientWidth });
+            });
+          }
+          candleSeries.setData(bars);
+          chart.timeScale().fitContent();
+        }).catch(function (err) {
+          document.getElementById('status').textContent = 'Error: ' + (err.message || 'Failed');
+        });
+      }
+
+      document.getElementById('load').addEventListener('click', loadChart);
+      loadChart();
+    })();
+  </script>
+</body>
+</html>

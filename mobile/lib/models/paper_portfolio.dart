@@ -3,6 +3,7 @@ class PaperPortfolio {
   final String id;
   final double virtualBalance;
   final List<Holding> holdings;
+  final List<PendingOrder> pendingOrders; // NEW
   final double totalInvested;
   final double currentPortfolioValue;
   final double totalPnl;
@@ -15,6 +16,7 @@ class PaperPortfolio {
     required this.id,
     required this.virtualBalance,
     required this.holdings,
+    this.pendingOrders = const [],
     required this.totalInvested,
     required this.currentPortfolioValue,
     required this.totalPnl,
@@ -30,6 +32,9 @@ class PaperPortfolio {
       virtualBalance: (json['virtualBalance'] ?? 0).toDouble(),
       holdings: (json['holdings'] as List? ?? [])
           .map((e) => Holding.fromJson(e))
+          .toList(),
+      pendingOrders: (json['pendingOrders'] as List? ?? [])
+          .map((e) => PendingOrder.fromJson(e))
           .toList(),
       totalInvested: (json['totalInvested'] ?? 0).toDouble(),
       currentPortfolioValue: (json['currentPortfolioValue'] ?? 0).toDouble(),
@@ -61,6 +66,42 @@ class PaperPortfolio {
     return num.toStringAsFixed(2);
   }
 }
+
+/// Pending Stock Order
+class PendingOrder {
+  final String id;
+  final String symbol;
+  final String stockName;
+  final String type; // BUY or SELL
+  final int quantity;
+  final String status;
+  final String createdAt;
+
+  PendingOrder({
+    required this.id,
+    required this.symbol,
+    required this.stockName,
+    required this.type,
+    required this.quantity,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory PendingOrder.fromJson(Map<String, dynamic> json) {
+    return PendingOrder(
+      id: json['_id'] ?? json['id'] ?? '',
+      symbol: json['symbol'] ?? '',
+      stockName: json['stockName'] ?? '',
+      type: json['type'] ?? '',
+      quantity: json['quantity'] ?? 0,
+      status: json['status'] ?? 'PENDING',
+      createdAt: json['createdAt'] ?? '',
+    );
+  }
+
+  bool get isBuy => type.toUpperCase() == 'BUY';
+}
+
 
 /// Individual stock holding
 class Holding {

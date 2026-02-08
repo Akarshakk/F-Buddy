@@ -5,6 +5,7 @@ import '../../models/stock.dart';
 import '../../services/markets_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../config/app_theme.dart';
+import '../../services/portfolio_report_service.dart';
 import 'stock_detail_screen.dart';
 
 class PortfolioScreen extends StatefulWidget {
@@ -240,12 +241,92 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
           children: [
             // Portfolio Summary Card
             _buildSummaryCard(colorScheme),
+            const SizedBox(height: 16),
+            // Generate Report Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _portfolio == null ? null : () => _generateReport(),
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                label: const Text('Generate Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: FinzoColors.brandSecondary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
+            // Pending Orders Section
+            _buildPendingOrdersSection(colorScheme),
             // Holdings List
             _buildHoldingsList(colorScheme),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPendingOrdersSection(ColorScheme colorScheme) {
+    final pending = _portfolio?.pendingOrders ?? [];
+    if (pending.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.access_time_filled, color: Colors.orange, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Pending Orders',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...pending.map((order) => Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                order.isBuy ? Icons.add_shopping_cart : Icons.sell,
+                color: order.isBuy ? Colors.green : Colors.red,
+              ),
+            ),
+            title: Text(
+              '${order.type} ${order.symbol}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              '${order.quantity} shares • Market Closed',
+               style: const TextStyle(fontSize: 12),
+            ),
+            trailing: Container(
+               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+               decoration: BoxDecoration(
+                 color: Colors.blue.withOpacity(0.1),
+                 borderRadius: BorderRadius.circular(8),
+               ),
+               child: const Text('Queued', style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        )).toList(),
+        const Divider(height: 32),
+      ],
     );
   }
 
@@ -869,6 +950,22 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
       return '${(amount / 1000).toStringAsFixed(1)}K';
     }
     return amount.toStringAsFixed(2);
+  }
+
+  Future<void> _generateReport() async {
+    if (_portfolio == null) return;
+    try {
+      await PortfolioReportService.generateAndPrintReport(_portfolio!);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating report: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 /// Bottom sheet for adding stocks to watchlist
