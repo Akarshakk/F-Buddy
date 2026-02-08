@@ -19,8 +19,14 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import google.generativeai as genai
 from werkzeug.utils import secure_filename
 
-# Load environment variables
-load_dotenv()
+# Aggressively clear system-level Gemini/Google keys that might be stale
+import os
+for k in ['GEMINI_API_KEY', 'GOOGLE_API_KEY']:
+    if k in os.environ:
+        del os.environ[k]
+
+# Load environment variables from .env
+load_dotenv(override=True)
 
 # Configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
@@ -139,9 +145,15 @@ def init_clients():
         print("✅ Loaded embedding model")
         
         # Initialize Gemini
-        genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel("gemini-2.5-flash")
-        print("✅ Initialized Gemini model")
+        current_gemini_key = os.getenv("GEMINI_API_KEY")
+        if not current_gemini_key:
+            raise ValueError("GEMINI_API_KEY not found in environment")
+            
+        print(f"🔑 Initializing Gemini with Key Prefix: {current_gemini_key[:10]}...")
+        genai.configure(api_key=current_gemini_key)
+        # Re-initialize the global gemini_model to use a supported 2.x model
+        gemini_model = genai.GenerativeModel("gemini-2.5-flash-lite")
+        print("✅ Initialized Gemini model (gemini-2.5-flash-lite)")
         
     except Exception as e:
         print(f"❌ Error initializing clients: {str(e)}")
@@ -286,6 +298,10 @@ def chat():
         
         query = data['query']
         
+        # Ensure clients are initialized (this will now use the override/clearing logic)
+        if pc_client is None:
+            init_clients()
+        
         # Retrieve relevant chunks from Pinecone
         print(f"🔍 Searching for: {query}")
         query_vec = embeddings.embed_query(query)
@@ -358,8 +374,6 @@ Answer directly:
 """
 
         print(f"🤖 Generating answer with Gemini (document context: {has_document_context})...")
-        # Re-configure API key before each request (ensures it's set)
-        genai.configure(api_key=GEMINI_API_KEY)
         response = gemini_model.generate_content(prompt)
         answer = response.text
         
@@ -516,6 +530,43 @@ if __name__ == '__main__':
     # Initialize clients on startup
     try:
         init_clients()
+        
+        # Check if context.pdf in uploads needs to be ingested
+        context_path = os.path.join(UPLOAD_FOLDER, 'context.pdf')
+        if os.path.exists(context_path):
+            print("\n🧐 Found context.pdf in uploads. Checking index...")
+            stats = index.describe_index_stats()
+            # If index is empty or very small, let's ingest the context.pdf
+            if stats.get('total_vector_count', 0) < 50:
+                print("🚀 Auto-ingesting context.pdf...")
+                with open(context_path, 'rb') as f:
+                    from flask import Request
+                    # Simulate a file upload for the existing function
+                    # Or just call the logic directly. Let's keep it simple.
+                    pass 
+                # Actually, let's just use the logic directly
+                try:
+                    loader = PyPDFLoader(context_path)
+                    docs = loader.load()
+                    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+                    chunks = splitter.split_documents(docs)
+                    vectors_to_upsert = []
+                    for doc in chunks:
+                        text = sanitize_text(doc.page_content)
+                        if not text: continue
+                        embedding = embeddings.embed_query(text)
+                        vectors_to_upsert.append({
+                            "id": str(uuid.uuid4()),
+                            "values": embedding,
+                            "metadata": {"text": text, "source": "context.pdf", "uploaded_at": datetime.now().isoformat()}
+                        })
+                    batch_size = 100
+                    for i in range(0, len(vectors_to_upsert), batch_size):
+                        index.upsert(vectors=vectors_to_upsert[i:i + batch_size])
+                    print(f"✅ Auto-ingested {len(vectors_to_upsert)} chunks from context.pdf")
+                except Exception as e:
+                    print(f"❌ Auto-ingestion failed: {e}")
+        
         print("\n✅ RAG Service ready!")
     except Exception as e:
         print(f"\n❌ Failed to initialize: {e}")

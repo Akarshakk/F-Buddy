@@ -66,9 +66,9 @@ const cache = {
 };
 
 const CACHE_DURATION = {
-  STOCKS_LIST: 5 * 60 * 1000,
-  STOCK_DETAIL: 2 * 60 * 1000,
-  MARKET_OVERVIEW: 3 * 60 * 1000
+  STOCKS_LIST: 2 * 1000, // 2 seconds (aggressive for 1s poll)
+  STOCK_DETAIL: 1 * 1000, // 1 second (very aggressive)
+  MARKET_OVERVIEW: 5 * 1000 // Keep overview slightly longer to reduce load
 };
 
 const isCacheValid = (cacheEntry, duration) => {

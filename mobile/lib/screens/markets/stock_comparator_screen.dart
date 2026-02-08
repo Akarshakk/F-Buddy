@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../services/markets_service.dart';
 import '../../config/theme.dart';
 import '../../models/stock.dart';
+import '../../widgets/trading_view_chart.dart';
 
 class StockComparatorScreen extends StatefulWidget {
   const StockComparatorScreen({super.key});
@@ -21,21 +22,9 @@ class _StockComparatorScreenState extends State<StockComparatorScreen>
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _animController;
 
-  // Popular stocks for quick selection
-  final List<Map<String, String>> _popularStocks = [
-    {'symbol': 'RELIANCE', 'name': 'Reliance Industries', 'sector': 'Energy'},
-    {'symbol': 'TCS', 'name': 'Tata Consultancy', 'sector': 'IT'},
-    {'symbol': 'HDFCBANK', 'name': 'HDFC Bank', 'sector': 'Banking'},
-    {'symbol': 'INFY', 'name': 'Infosys', 'sector': 'IT'},
-    {'symbol': 'ICICIBANK', 'name': 'ICICI Bank', 'sector': 'Banking'},
-    {'symbol': 'SBIN', 'name': 'State Bank of India', 'sector': 'Banking'},
-    {'symbol': 'WIPRO', 'name': 'Wipro', 'sector': 'IT'},
-    {'symbol': 'ITC', 'name': 'ITC Ltd', 'sector': 'FMCG'},
-    {'symbol': 'TATAMOTORS', 'name': 'Tata Motors', 'sector': 'Auto'},
-    {'symbol': 'LT', 'name': 'Larsen & Toubro', 'sector': 'Infra'},
-    {'symbol': 'MARUTI', 'name': 'Maruti Suzuki', 'sector': 'Auto'},
-    {'symbol': 'ASIANPAINT', 'name': 'Asian Paints', 'sector': 'Paints'},
-  ];
+  // Dynamic popular stocks
+  List<Stock> _popularStocks = [];
+  bool _isLoadingPopular = true;
 
   @override
   void initState() {
@@ -44,6 +33,22 @@ class _StockComparatorScreenState extends State<StockComparatorScreen>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
+    _loadPopularStocks();
+  }
+
+  Future<void> _loadPopularStocks() async {
+    try {
+      final stocks = await MarketsService.getStocks();
+      if (mounted) {
+        setState(() {
+          _popularStocks = stocks.take(12).toList(); // Take top 12
+          _isLoadingPopular = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading popular stocks: $e');
+      if (mounted) setState(() => _isLoadingPopular = false);
+    }
   }
 
   @override
@@ -468,120 +473,123 @@ class _StockComparatorScreenState extends State<StockComparatorScreen>
           const SizedBox(height: 16),
           
           // Stock Grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.5,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: _popularStocks.length,
-            itemBuilder: (context, index) {
-              final stock = _popularStocks[index];
-              final isSelected = _selectedSymbols.contains(stock['symbol']);
-              final selectedIndex = _selectedSymbols.indexOf(stock['symbol']!);
-              final colors = [
-                const Color(0xFF6366F1),
-                const Color(0xFFF59E0B),
-                const Color(0xFFEF4444),
-              ];
-
-              return GestureDetector(
-                onTap: () => _toggleStock(stock['symbol']!),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? colors[selectedIndex].withOpacity(0.15)
-                        : surfaceColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected
-                          ? colors[selectedIndex]
-                          : Colors.transparent,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isSelected
-                            ? colors[selectedIndex].withOpacity(0.2)
-                            : Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+          _isLoadingPopular 
+              ? const Center(child: CircularProgressIndicator())
+              : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.5,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? colors[selectedIndex]
-                                  : (isDark ? Colors.grey[800] : Colors.grey[200]),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: isSelected
-                                  ? const Icon(Icons.check, color: Colors.white, size: 18)
-                                  : Text(
-                                      stock['symbol']![0],
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white : Colors.black87,
-                                      ),
-                                    ),
-                            ),
+                  itemCount: _popularStocks.length,
+                  itemBuilder: (context, index) {
+                    final stock = _popularStocks[index];
+                    final isSelected = _selectedSymbols.contains(stock.symbol);
+                    final selectedIndex = _selectedSymbols.indexOf(stock.symbol);
+                    final colors = [
+                      const Color(0xFF6366F1),
+                      const Color(0xFFF59E0B),
+                      const Color(0xFFEF4444),
+                    ];
+
+                    return GestureDetector(
+                      onTap: () => _toggleStock(stock.symbol),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isSelected && selectedIndex != -1
+                              ? colors[selectedIndex].withOpacity(0.15)
+                              : surfaceColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected && selectedIndex != -1
+                                ? colors[selectedIndex]
+                                : Colors.transparent,
+                            width: 2,
                           ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: (isDark ? Colors.grey[800] : Colors.grey[200]),
-                              borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isSelected && selectedIndex != -1
+                                  ? colors[selectedIndex].withOpacity(0.2)
+                                  : Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                            child: Text(
-                              stock['sector']!,
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: isSelected && selectedIndex != -1
+                                        ? colors[selectedIndex]
+                                        : (isDark ? Colors.grey[800] : Colors.grey[200]),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(
+                                    child: isSelected
+                                        ? const Icon(Icons.check, color: Colors.white, size: 18)
+                                        : Text(
+                                            stock.symbol[0],
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark ? Colors.white : Colors.black87,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: (isDark ? Colors.grey[800] : Colors.grey[200]),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '₹${stock.price.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: textSecondary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              stock.symbol,
                               style: TextStyle(
-                                fontSize: 9,
-                                color: textSecondary,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: isSelected && selectedIndex != -1 ? colors[selectedIndex] : textPrimary,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        stock['symbol']!,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: isSelected ? colors[selectedIndex] : textPrimary,
+                            Text(
+                              stock.name,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        stock['name']!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: textSecondary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ],
       ),
     );
@@ -688,6 +696,30 @@ class _StockComparatorScreenState extends State<StockComparatorScreen>
             ),
             
             const SizedBox(height: 20),
+
+            // Professional Comparison Chart
+            Container(
+              height: 300,
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: TradingViewChart(
+                  symbol: stocks[0].symbol, // Master symbol
+                  comparisonSymbols: stocks.map((s) => s.symbol).toList(),
+                  interval: '1D',
+                  theme: isDark ? 'dark' : 'light',
+                  height: 300,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
             
             // Comparison Metrics
             _buildMetricCard('Price Comparison', [
@@ -710,8 +742,8 @@ class _StockComparatorScreenState extends State<StockComparatorScreen>
             const SizedBox(height: 12),
             
             _buildMetricCard('Market Data', [
-              _buildMetricRow('Volume', stocks.map((s) => _formatVolume(s.volume)).toList(), colors, stocks.map((s) => s.volume.toDouble()).toList(), true),
-              _buildMetricRow('Market Cap', stocks.map((s) => s.marketCap).toList(), colors, null, null),
+              _buildMetricRow('Volume', stocks.map((s) => _formatLargeNumber(s.volume)).toList(), colors, stocks.map((s) => s.volume.toDouble()).toList(), true),
+              _buildMetricRow('Market Cap', stocks.map((s) => _formatLargeNumber(s.marketCap)).toList(), colors, null, null),
             ], isDark, surfaceColor, textPrimary, textSecondary),
           ],
         ),
@@ -817,14 +849,23 @@ class _StockComparatorScreenState extends State<StockComparatorScreen>
     );
   }
 
-  String _formatVolume(int volume) {
-    if (volume >= 10000000) {
-      return '${(volume / 10000000).toStringAsFixed(1)}Cr';
-    } else if (volume >= 100000) {
-      return '${(volume / 100000).toStringAsFixed(1)}L';
-    } else if (volume >= 1000) {
-      return '${(volume / 1000).toStringAsFixed(1)}K';
+  String _formatLargeNumber(dynamic value) {
+    if (value == null) return '0';
+    
+    double numValue;
+    if (value is num) {
+      numValue = value.toDouble();
+    } else {
+      numValue = double.tryParse(value.toString()) ?? 0;
     }
-    return volume.toString();
+
+    if (numValue >= 10000000) {
+      return '${(numValue / 10000000).toStringAsFixed(2)} Cr';
+    } else if (numValue >= 100000) {
+      return '${(numValue / 100000).toStringAsFixed(2)} L';
+    } else if (numValue >= 1000) {
+      return '${(numValue / 1000).toStringAsFixed(1)} K';
+    }
+    return numValue.toStringAsFixed(0);
   }
 }

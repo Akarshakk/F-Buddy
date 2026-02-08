@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import '../../config/theme.dart' hide AppTextStyles;
 import '../../config/app_theme.dart';
 import '../../models/stock.dart';
@@ -61,31 +62,47 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
     // Use addPostFrameCallback to ensure widget is fully mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      // Start silent refresh timer (1 second)
+      _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        _loadData(silent: true);
+      });
     });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _refreshTimer?.cancel(); // Cancel the periodic timer
     _searchController.dispose();
     _entranceController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
+  Timer? _refreshTimer;
+
+  Future<void> _loadData({bool silent = false}) async {
     if (!mounted) return;
     
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-      _errorMessage = '';
-    });
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+        _errorMessage = '';
+      });
+    }
     
     try {
-      final results = await Future.wait([
-        MarketsService.getMarketOverview(),
-        MarketsService.getStocks(),
-        MarketsService.getPortfolio(),
-      ]).timeout(const Duration(seconds: 15));
+      // Fetch independently to allow partial success
+      final overviewFuture = MarketsService.getMarketOverview()
+          .catchError((e) { print('Overview error: $e'); return null; });
+      
+      final stocksFuture = MarketsService.getStocks()
+          .catchError((e) { print('Stocks error: $e'); return <Stock>[]; });
+          
+      final portfolioFuture = MarketsService.getPortfolio()
+          .catchError((e) { print('Portfolio error: $e'); return null; });
+
+      final results = await Future.wait([overviewFuture, stocksFuture, portfolioFuture]);
       
       if (mounted) {
         setState(() {
@@ -96,12 +113,57 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
         });
       }
     } catch (e) {
+      print('LoadData Fatal Error: $e');
       if (mounted) {
         setState(() {
           _hasError = true;
           _errorMessage = e.toString();
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _resetPortfolio() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Portfolio?'),
+        content: const Text(
+          'This will clear all your trades and reset your balance to ₹1,00,000. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (!mounted) return;
+      setState(() => _isLoading = true);
+      
+      final result = await MarketsService.resetPortfolio();
+      
+      if (mounted) {
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Portfolio reset successfully'), backgroundColor: Colors.green),
+          );
+          _loadData(); // Reload all data
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed: ${result['message']}'), backgroundColor: Colors.red),
+          );
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -181,7 +243,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
         actions: [
           _buildAppBarAction(
             icon: Icons.account_balance_wallet_rounded,
-            color: marketAccent,
+            color: Colors.orange,
             onPressed: () {
               HapticFeedback.lightImpact();
               Navigator.push(
@@ -200,7 +262,14 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                 ),
               ).then((_) => _loadData());
             },
-            tooltip: 'Portfolio',
+            tooltip: 'View Portfolio',
+          ),
+          const SizedBox(width: 8),
+          _buildAppBarAction(
+            icon: Icons.refresh_rounded,
+            color: primaryColor,
+            onPressed: _loadData,
+            tooltip: 'Refresh Data',
           ),
           _buildAppBarAction(
             icon: Icons.history_rounded,
@@ -224,6 +293,26 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
               );
             },
             tooltip: 'Trade History',
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: textPrimary),
+            onSelected: (value) {
+              if (value == 'reset') {
+                _resetPortfolio();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'reset',
+                child: Row(
+                  children: [
+                    Icon(Icons.restart_alt, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Reset Portfolio', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -323,8 +412,8 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                             // Virtual Money Banner
                             _buildVirtualMoneyBanner(isDark, primaryColor),
                             
-                            // Portfolio Summary Card
-                            if (_portfolio != null) _buildPortfolioCard(isDark, surfaceColor, textPrimary, textSecondary),
+                            // Portfolio Card
+                            _buildPortfolioCard(isDark, surfaceColor, textPrimary, textSecondary),
                             
                             // Market Indices
                             if (_marketOverview != null) _buildIndicesSection(isDark, surfaceColor, textPrimary, textSecondary),
@@ -465,59 +554,75 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Net Worth',
-                        style: AppTextStyles.caption.copyWith(color: textSecondary),
+                _portfolio == null
+                  ? Center(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 10),
+                          CircularProgressIndicator(color: Colors.orange.withOpacity(0.5)),
+                          const SizedBox(height: 10),
+                          Text('Loading portfolio...', style: AppTextStyles.caption.copyWith(color: textSecondary)),
+                        ],
                       ),
-                      Text(
-                        _portfolio!.formattedNetWorth,
-                        style: AppTextStyles.heading2.copyWith(color: textPrimary),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _portfolio!.isProfitable 
-                        ? Colors.green.withOpacity(0.1) 
-                        : Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _portfolio!.isProfitable ? Icons.trending_up : Icons.trending_down,
-                        color: _portfolio!.isProfitable ? Colors.green : Colors.red,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _portfolio!.formattedPnlPercent,
-                        style: TextStyle(
-                          color: _portfolio!.isProfitable ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.bold,
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Net Worth',
+                                    style: AppTextStyles.caption.copyWith(color: textSecondary),
+                                  ),
+                                  Text(
+                                    _portfolio!.formattedNetWorth,
+                                    style: AppTextStyles.heading2.copyWith(color: textPrimary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _portfolio!.isProfitable 
+                                    ? Colors.green.withOpacity(0.1) 
+                                    : Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _portfolio!.isProfitable ? Icons.trending_up : Icons.trending_down,
+                                    color: _portfolio!.isProfitable ? Colors.green : Colors.red,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _portfolio!.formattedPnlPercent,
+                                    style: TextStyle(
+                                      color: _portfolio!.isProfitable ? Colors.green : Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _buildPortfolioStat('Available', _portfolio!.formattedBalance, Colors.blue, textSecondary),
-                const SizedBox(width: 20),
-                _buildPortfolioStat('Invested', _portfolio!.formattedInvested, Colors.orange, textSecondary),
-              ],
-            ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            _buildPortfolioStat('Available', _portfolio!.formattedBalance, Colors.blue, textSecondary),
+                            const SizedBox(width: 20),
+                            _buildPortfolioStat('Invested', _portfolio!.formattedInvested, Colors.orange, textSecondary),
+                          ],
+                        ),
+                      ],
+                    ),
           ],
         ),
       ),
@@ -846,6 +951,44 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
     );
   }
 
+  Timer? _debounce;
+  List<Stock> _searchResults = [];
+  bool _isSearching = false;
+
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        _searchResults = [];
+        _isSearching = false;
+      } else {
+        _isSearching = true;
+      }
+    });
+
+    if (query.isNotEmpty) {
+      _debounce = Timer(const Duration(milliseconds: 500), () async {
+        try {
+          final results = await MarketsService.searchStocks(query);
+          if (mounted) {
+            setState(() {
+              _searchResults = results;
+              _isSearching = false;
+            });
+          }
+        } catch (e) {
+          print('Search error: $e');
+          if (mounted) {
+            setState(() => _isSearching = false);
+          }
+        }
+      });
+    }
+  }
+
   Widget _buildSearchBar(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -858,7 +1001,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
         controller: _searchController,
         style: TextStyle(color: textPrimary),
         decoration: InputDecoration(
-          hintText: 'Search stocks (e.g., RELIANCE, TCS)',
+          hintText: 'Search all Indian stocks (e.g. ZOMATO, MRF)',
           hintStyle: TextStyle(color: textSecondary),
           prefixIcon: Icon(Icons.search, color: textSecondary),
           border: InputBorder.none,
@@ -867,12 +1010,12 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                   icon: Icon(Icons.clear, color: textSecondary),
                   onPressed: () {
                     _searchController.clear();
-                    setState(() => _searchQuery = '');
+                    _onSearchChanged('');
                   },
                 )
               : null,
         ),
-        onChanged: (value) => setState(() => _searchQuery = value),
+        onChanged: _onSearchChanged,
       ),
     );
   }
@@ -880,31 +1023,36 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
   Widget _buildFilterButtons(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          // Gainers Button
-          Expanded(
-            child: _buildFilterButton(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            // All Button
+            _buildFilterButton(
+              label: 'All',
+              isSelected: _selectedFilter == 'all',
+              color: FinzoColors.brandSecondary,
+              onTap: () => setState(() => _selectedFilter = 'all'),
+            ),
+            const SizedBox(width: 8),
+            // Gainers Button
+            _buildFilterButton(
               label: '🚀 Gainers',
               isSelected: _selectedFilter == 'gainers',
               color: Colors.green,
               onTap: () => setState(() => _selectedFilter = 'gainers'),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Losers Button
-          Expanded(
-            child: _buildFilterButton(
+            const SizedBox(width: 8),
+            // Losers Button
+            _buildFilterButton(
               label: '📉 Losers',
               isSelected: _selectedFilter == 'losers',
               color: Colors.red,
               onTap: () => setState(() => _selectedFilter = 'losers'),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Market Cap Dropdown
-          Expanded(
-            child: Container(
+            const SizedBox(width: 8),
+            // Market Cap Dropdown
+            Container(
               height: 44,
               decoration: BoxDecoration(
                 color: _selectedFilter == 'marketcap' 
@@ -954,20 +1102,34 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   PopupMenuItem<String> _buildCapMenuItem(String value, String title, String subtitle) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return PopupMenuItem<String>(
       value: value,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          Text(
+            title, 
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            )
+          ),
+          Text(
+            subtitle, 
+            style: TextStyle(
+              fontSize: 11, 
+              color: isDark ? Colors.grey[400] : Colors.grey[600]
+            )
+          ),
         ],
       ),
     );
@@ -984,6 +1146,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
       enableHaptics: true,
       child: Container(
         height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
@@ -1008,23 +1171,29 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
 
   List<Stock> get _getFilteredStocks {
     if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      return _stocks.where((stock) =>
-        stock.symbol.toLowerCase().contains(query) ||
-        stock.name.toLowerCase().contains(query)
-      ).toList();
+      return _searchResults;
     }
 
     switch (_selectedFilter) {
+      case 'all':
+         // Sort by name or volume? Default alphabetical for now
+         return [..._stocks]..sort((a, b) => a.symbol.compareTo(b.symbol));
       case 'gainers':
-        return _marketOverview?.topGainers ?? [];
+        // Calculate gainers locally from the full list
+        final gainers = _stocks.where((s) => s.changePercent >= 0).toList();
+        gainers.sort((a, b) => b.changePercent.compareTo(a.changePercent));
+        return gainers;
       case 'losers':
-        return _marketOverview?.topLosers ?? [];
+        // Calculate losers locally from the full list
+        final losers = _stocks.where((s) => s.changePercent < 0).toList();
+        losers.sort((a, b) => a.changePercent.compareTo(b.changePercent)); // Most negative first
+        return losers;
       case 'marketcap':
-        // Return filtered stocks by market cap category from the full list
         return _getStocksByMarketCap(_selectedMarketCap);
       default:
-        return _marketOverview?.topGainers ?? [];
+        // Default to 'all' or 'gainers' depending on preference. 
+        // Let's default to 'all' so they see everything immediately.
+        return [..._stocks]..sort((a, b) => a.symbol.compareTo(b.symbol));
     }
   }
 
@@ -1081,6 +1250,10 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
       accentColor = Colors.orange;
     } else {
       switch (_selectedFilter) {
+        case 'all':
+          title = '📋 All Stocks';
+          accentColor = FinzoColors.brandAccent;
+          break;
         case 'gainers':
           title = '🚀 Top Gainers';
           accentColor = Colors.green;
