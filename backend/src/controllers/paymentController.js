@@ -4,16 +4,28 @@ const Group = require('../models/Group');
 const groupController = require('./groupController'); // Re-use settleUp logic if possible, or replicate safely
 
 // Initialize Razorpay
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+// Initialize Razorpay conditionally
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+} else {
+    console.warn("⚠️ Razorpay keys not found in .env. Payment routes will be disabled.");
+}
 
 // @desc    Create Razorpay Order
 // @route   POST /api/payment/create-order
 // @access  Private
 exports.createOrder = async (req, res) => {
     try {
+        if (!razorpay) {
+            return res.status(503).json({
+                success: false,
+                message: 'Payment service is not configured (missing keys)'
+            });
+        }
         console.log('createOrder hit with body:', req.body); // Debug Log
         const { amount, currency = 'INR', receipt, notes } = req.body;
 
@@ -52,6 +64,12 @@ exports.createOrder = async (req, res) => {
 // @access  Private
 exports.verifyPayment = async (req, res) => {
     try {
+        if (!razorpay) {
+            return res.status(503).json({
+                success: false,
+                message: 'Payment service is not configured (missing keys)'
+            });
+        }
         const {
             razorpay_order_id,
             razorpay_payment_id,
@@ -122,6 +140,12 @@ exports.verifyPayment = async (req, res) => {
 // @route   GET /api/payment/key
 // @access  Private
 exports.getRazorpayKey = (req, res) => {
+    if (!process.env.RAZORPAY_KEY_ID) {
+        return res.status(503).json({
+            success: false,
+            message: 'Razorpay key not configured'
+        });
+    }
     res.json({
         success: true,
         key: process.env.RAZORPAY_KEY_ID

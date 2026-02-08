@@ -152,8 +152,8 @@ def init_clients():
         print(f"🔑 Initializing Gemini with Key Prefix: {current_gemini_key[:10]}...")
         genai.configure(api_key=current_gemini_key)
         # Re-initialize the global gemini_model to use a supported 2.x model
-        gemini_model = genai.GenerativeModel("gemini-2.5-flash-lite")
-        print("✅ Initialized Gemini model (gemini-2.5-flash-lite)")
+        gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+        print("✅ Initialized Gemini model (gemini-2.5-flash)")
         
     except Exception as e:
         print(f"❌ Error initializing clients: {str(e)}")
@@ -302,73 +302,131 @@ def chat():
         if pc_client is None:
             init_clients()
         
-        # Retrieve relevant chunks from Pinecone
+        # Retrieve relevant chunks from Pinecone with Hybrid User Filtering
         print(f"🔍 Searching for: {query}")
         query_vec = embeddings.embed_query(query)
         
+        user_id = data.get('user_id')
+        realtime_context = data.get('context') # e.g. {"balance": 1000, "portfolio": 5000}
+        
+        # Construct Filter: (user_id == current_user) OR (user_id is generic/public)
+        # Note: Pinecone metadata filtering is precise.
+        # Strategy: We search generally. Then we filter in Python if strict user isolation is needed.
+        # But for RAG, getting "general" investing advice (no user_id) + "my" data (user_id=X) is ideal.
+        # If we filter by user_id=X only, we lose general knowledge.
+        
+        filter_dict = {}
+        if user_id:
+             # Ideally we want: user_id == X OR user_id exists: false
+             # Pinecone 'filter' doesn't support complex OR easily in free tier.
+             # So we will fetch more results (TOP_K * 2) and filter in memory.
+             top_k_fetch = TOP_K * 3
+        else:
+             top_k_fetch = TOP_K
+
         results = index.query(
             vector=query_vec,
-            top_k=TOP_K,
+            top_k=top_k_fetch,
             include_metadata=True
         )
         
         # Extract context
         context_chunks = []
         sources = []
+        
         for match in results.get("matches", []):
             if match["score"] < 0.25:
                 continue
-            if match.get("metadata"):
-                context_chunks.append(match["metadata"]["text"])
-                source = match["metadata"].get("source", "Unknown")
+                
+            meta = match.get("metadata", {})
+            doc_user_id = meta.get("user_id")
+            
+            # Hybrid Filtering Logic
+            # 1. If doc has NO user_id -> It's global knowledge -> KEEP
+            # 2. If doc has user_id == current_user -> It's my data -> KEEP
+            # 3. If doc has user_id != current_user -> It's someone else's -> DISCARD
+            
+            is_global = doc_user_id is None
+            is_mine = str(doc_user_id) == str(user_id) if user_id and doc_user_id else False
+            
+            if is_global or is_mine:
+                context_chunks.append(meta.get("text", ""))
+                source = meta.get("source", "Unknown")
                 if source not in sources:
                     sources.append(source)
+        
+        # Limit context size to avoid token limits
+        context_chunks = context_chunks[:7] # Top 7 relevant chunks
         
         # Determine if we have good context from documents
         has_document_context = len(context_chunks) > 0
         
-        # Generate answer using Gemini
+        # Construct Prompt
+        system_instruction = "You are F-Buddy AI, a friendly and helpful financial assistant."
+        
+        # Inject Real-Time Financial Context
+        financial_context_str = ""
+        if realtime_context:
+            financial_context_str = "CURRENT FINANCIAL STATUS (Real-time):\n"
+            for key, val in realtime_context.items():
+                # Format key for readability ("total_balance" -> "Total Balance")
+                nice_key = key.replace('_', ' ').title()
+                financial_context_str += f"- {nice_key}: {val}\n"
+            financial_context_str += "\nUse this real-time data to answer questions about affordability (e.g., 'Can I buy X?').\n"
+
+        context_block = ""
         if has_document_context:
-            # Primary: Answer from uploaded documents
-            context = "\n\n".join(context_chunks)
+            context_block = f"CONTEXT FROM DOCUMENTS/HISTORY:\n{chr(10).join(context_chunks)}\n"
             
             prompt = f"""
-You are F-Buddy AI, a friendly and helpful financial assistant.
+{system_instruction}
 
-CONTEXT FROM DOCUMENTS:
-{context}
+{financial_context_str}
+{context_block}
 
 USER QUESTION:
 {query}
 
 IMPORTANT RESPONSE RULES:
-1. Give a DIRECT, CONCISE answer in 2-4 sentences max
-2. NO asterisks (*), hashes (#), or markdown symbols
-3. NO phrases like "Based on the context" or "According to the documents"
-4. NO "In conclusion" or summary statements
-5. Use simple, conversational language
-6. If asking about numbers, give the direct figure
-7. Only add a brief disclaimer for major financial decisions
-8. If not about finance, politely say you only help with money topics
+1. Give a DIRECT, CONCISE answer in 2-4 sentences max.
+2. If the user asks if they can buy something, COMPARE the cost to their 'Wallet Balance' or 'Net Worth' derived from the Financial Status above.
+   - Example: "Yes, you have ₹50,000 balance." or "No, you only have ₹10,000."
+3. NO asterisks (*), hashes (#), or markdown symbols.
+4. NO phrases like "Based on the context" or "According to the documents".
+5. NO "In conclusion" or summary statements.
+6. Use simple, conversational language.
+7. Only add a brief disclaimer for major financial decisions.
 
 Answer directly:
 """
         else:
             # Fallback: No relevant documents found, use LLM's general finance knowledge
+            # Inject Real-Time Financial Context even in fallback
+            financial_context_str = ""
+            if realtime_context:
+                financial_context_str = "CURRENT FINANCIAL STATUS (Real-time):\n"
+                for key, val in realtime_context.items():
+                    nice_key = key.replace('_', ' ').title()
+                    financial_context_str += f"- {nice_key}: {val}\n"
+                financial_context_str += "\nUse this real-time data to answer questions about affordability.\n"
+
             prompt = f"""
 You are F-Buddy AI, a friendly financial assistant.
+
+{financial_context_str}
 
 USER QUESTION:
 {query}
 
 IMPORTANT RESPONSE RULES:
 1. Give a DIRECT, CONCISE answer in 2-4 sentences max
-2. NO asterisks (*), hashes (#), or markdown symbols
-3. NO phrases like "Based on my knowledge" or "Generally speaking"
-4. NO "In conclusion" or summary statements
-5. Use simple, conversational language
-6. Only add a brief disclaimer for major financial decisions
-7. If not about finance, politely say you only help with money topics
+2. Compare costs to 'Wallet Balance' if asked about affordability.
+3. NO asterisks (*), hashes (#), or markdown symbols
+4. NO phrases like "Based on my knowledge" or "Generally speaking"
+5. NO "In conclusion" or summary statements
+6. Use simple, conversational language
+7. Only add a brief disclaimer for major financial decisions
+8. If not about finance, politely say you only help with money topics
 
 Answer directly:
 """
