@@ -554,7 +554,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                 _useSimplifiedDebt = value;
                               });
                             },
-                            activeColor: FinzoTheme.brandAccent(context),
+                            activeThumbColor: FinzoTheme.brandAccent(context),
                           ),
                         ],
                       ),

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
 import '../providers/theme_provider.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/finzo_components.dart';
 
 class FeatureSelectionScreen extends StatelessWidget {
   const FeatureSelectionScreen({super.key});
@@ -38,7 +37,7 @@ class FeatureSelectionScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: FinzoSpacing.xs),
                         Text(
-                          user?.displayName ?? 'User',
+                          user?.name ?? 'User',
                           style: FinzoTypography.headlineMedium(
                             color: FinzoTheme.textPrimary(context),
                           ),
@@ -63,7 +62,7 @@ class FeatureSelectionScreen extends StatelessWidget {
                           ),
                           child: Center(
                             child: Text(
-                              (user?.displayName ?? 'U')[0].toUpperCase(),
+                              (user?.name ?? 'U')[0].toUpperCase(),
                               style: FinzoTypography.titleMedium(color: Colors.white),
                             ),
                           ),

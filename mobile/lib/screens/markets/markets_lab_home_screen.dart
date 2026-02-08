@@ -114,7 +114,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
     final textSecondary = FinzoTheme.textSecondary(context);
     
     // Brand copper/gold theme for Markets Lab (matching app theme)
-    final marketAccent = FinzoColors.brandSecondary;
+    const marketAccent = FinzoColors.brandSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -242,7 +242,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                           borderRadius: BorderRadius.circular(FinzoRadius.lg),
                           boxShadow: FinzoShadows.medium,
                         ),
-                        child: CircularProgressIndicator(
+                        child: const CircularProgressIndicator(
                           color: FinzoColors.brandSecondary,
                           strokeWidth: 3,
                         ),
@@ -631,7 +631,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
   }
 
   Widget _buildProFeaturesBar(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
-    final marketAccent = FinzoColors.brandSecondary;
+    const marketAccent = FinzoColors.brandSecondary;
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -165,7 +165,7 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> with Ticker
     final l10n = context.l10n;
     
     // Brand copper/gold theme for Finance Manager
-    final managerAccent = FinzoColors.brandSecondary;
+    const managerAccent = FinzoColors.brandSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
