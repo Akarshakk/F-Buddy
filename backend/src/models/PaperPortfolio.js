@@ -4,7 +4,7 @@ const { serializeDoc } = require('../utils/firestore');
 const COLLECTION_NAME = 'paper_portfolios';
 
 // Default starting virtual balance
-const DEFAULT_VIRTUAL_BALANCE = 1000000; // ₹10,00,000
+const DEFAULT_VIRTUAL_BALANCE = 100000; // ₹1,00,000
 
 // Portfolio schema
 const portfolioFields = {
@@ -19,7 +19,7 @@ const portfolioFields = {
 // Get or create portfolio for user
 const getOrCreatePortfolio = async (userId) => {
   const db = getDb();
-  
+
   // Try to find existing portfolio
   const snapshot = await db.collection(COLLECTION_NAME)
     .where('userId', '==', userId)
@@ -41,9 +41,9 @@ const getOrCreatePortfolio = async (userId) => {
   };
 
   const docRef = await db.collection(COLLECTION_NAME).add(portfolio);
-  return { 
-    id: docRef.id, 
-    ...portfolio, 
+  return {
+    id: docRef.id,
+    ...portfolio,
     createdAt: portfolio.createdAt.toISOString(),
     updatedAt: portfolio.updatedAt.toISOString()
   };
@@ -52,7 +52,7 @@ const getOrCreatePortfolio = async (userId) => {
 // Update portfolio after a trade
 const updatePortfolio = async (userId, updates) => {
   const db = getDb();
-  
+
   const snapshot = await db.collection(COLLECTION_NAME)
     .where('userId', '==', userId)
     .limit(1)
@@ -91,7 +91,7 @@ const executeBuyTrade = async (userId, symbol, stockName, quantity, price) => {
     const existing = holdings[existingHoldingIndex];
     const totalQuantity = existing.quantity + quantity;
     const avgPrice = ((existing.quantity * existing.avgPrice) + (quantity * price)) / totalQuantity;
-    
+
     holdings[existingHoldingIndex] = {
       ...existing,
       quantity: totalQuantity,
@@ -121,7 +121,7 @@ const executeBuyTrade = async (userId, symbol, stockName, quantity, price) => {
 const executeSellTrade = async (userId, symbol, quantity, price) => {
   const portfolio = await getOrCreatePortfolio(userId);
   const holdings = [...(portfolio.holdings || [])];
-  
+
   const holdingIndex = holdings.findIndex(h => h.symbol === symbol.toUpperCase());
 
   if (holdingIndex < 0) {
@@ -162,7 +162,7 @@ const executeSellTrade = async (userId, symbol, quantity, price) => {
 // Reset portfolio to initial state
 const resetPortfolio = async (userId) => {
   const db = getDb();
-  
+
   const snapshot = await db.collection(COLLECTION_NAME)
     .where('userId', '==', userId)
     .limit(1)
@@ -181,7 +181,7 @@ const resetPortfolio = async (userId) => {
   };
 
   await docRef.update(resetData);
-  
+
   const updatedDoc = await docRef.get();
   return serializeDoc(updatedDoc);
 };

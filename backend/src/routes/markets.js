@@ -19,6 +19,8 @@ const {
   compareStocks,
   getCandlestickData
 } = require('../controllers/marketsController');
+const { getBars, getSymbolInfo, searchSymbols } = require('../controllers/chartController');
+const { getStream } = require('../controllers/chartController');
 
 // Trade validation rules
 const tradeValidation = [
@@ -47,16 +49,24 @@ const watchlistValidation = [
 ];
 
 // PUBLIC ROUTES (no authentication required)
+// TradingView Datafeed API - Yahoo Finance only, stateless, no trading
+router.get('/chart/bars', getBars);
+router.get('/chart/symbol-info', getSymbolInfo);
+router.get('/chart/search', searchSymbols);
+router.get('/chart/stream', getStream);
 
+// Temporary Public for Debugging
+router.get('/stocks', getStocks);
+router.get('/overview', getMarketOverview);
 
 // Protected routes (authentication required)
 router.use(protect);
 
 // Market overview
-router.get('/overview', getMarketOverview);
+// router.get('/overview', getMarketOverview);
 
 // Stock routes
-router.get('/stocks', getStocks);
+// router.get('/stocks', getStocks);
 router.get('/stocks/:symbol', getStockDetail);
 router.get('/search', searchStocks);
 

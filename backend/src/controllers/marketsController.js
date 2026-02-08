@@ -1,435 +1,224 @@
 const PaperTrade = require('../models/PaperTrade');
 const PaperPortfolio = require('../models/PaperPortfolio');
 const Watchlist = require('../models/Watchlist');
+const yahooFinance = require('../config/yahooFinance');
+// const YahooFinance = require('yahoo-finance2').default; // Removed
+// const yahooFinance = new YahooFinance(); // Removed
 
-// ============================================================
-// INDIAN STOCK API INTEGRATION WITH CACHING
-// Architecture: IndianAPI → Backend (cache) → PaperTrade → Frontend
-// ============================================================
+// Popular Indian Stocks for "Get Stocks" list and Mock Gainers/Losers
+// Popular Indian Stocks (Nifty 50 + Next 50 + US Tech)
+const POPULAR_IND_STOCKS = [
+  // NIFTY 50
+  'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'KOTAKBANK.NS', 'LICI.NS',
+  'HINDUNILVR.NS', 'LT.NS', 'BAJFINANCE.NS', 'HCLTECH.NS', 'MARUTI.NS', 'SUNPHARMA.NS', 'ASIANPAINT.NS', 'TITAN.NS', 'AXISBANK.NS', 'ULTRACEMCO.NS',
+  'TATASTEEL.NS', 'NTPC.NS', 'M&M.NS', 'POWERGRID.NS', 'TATAMOTORS.NS', 'ADANIENT.NS', 'BAJAJFINSV.NS', 'WIPRO.NS', 'COALINDIA.NS', 'ONGC.NS',
+  'NESTLEIND.NS', 'JSWSTEEL.NS', 'TATACONSUM.NS', 'GRASIM.NS', 'ADANIPORTS.NS', 'EICHERMOT.NS', 'BPCL.NS', 'HINDALCO.NS', 'DRREDDY.NS', 'CIPLA.NS',
+  'DIVISLAB.NS', 'SBILIFE.NS', 'BRITANNIA.NS', 'APOLLOHOSP.NS', 'TECHM.NS', 'HEROMOTOCO.NS', 'UPL.NS', 'BAJAJ-AUTO.NS', 'TATACONSUM.NS', 'SHREECEM.NS',
 
-const INDIAN_API_KEY = process.env.INDIAN_API_KEY;
-const INDIAN_API_BASE_URL = process.env.INDIAN_API_BASE_URL || 'https://stock.indianapi.in';
+  // NIFTY NEXT 50 & ACTIVE LARGE/MIDCAPS
+  'ZOMATO.NS', 'PAYTM.NS', 'HAL.NS', 'BEL.NS', 'TRENT.NS', 'JIOFIN.NS', 'VBL.NS', 'CHOLAFIN.NS', 'SIEMENS.NS', 'DLF.NS',
+  'PIDILITIND.NS', 'IOC.NS', 'BANKBARODA.NS', 'GAIL.NS', 'RECLTD.NS', 'SHRIRAMFIN.NS', 'ADANIPOWER.NS', 'ADANIGREEN.NS', 'AMBUJACEM.NS', 'TVSMOTOR.NS',
+  'HAVELLS.NS', 'DABUR.NS', 'ABB.NS', 'VEDL.NS', 'GODREJCP.NS', 'INDUSINDBK.NS', 'NAUKRI.NS', 'ICICIGI.NS', 'SBICARD.NS', 'TATAPOWER.NS',
+  'IRCTC.NS', 'BOSCHLTD.NS', 'BERGEPAINT.NS', 'MUTHOOTFIN.NS', 'PIIND.NS', 'MOTHERSON.NS', 'LTIM.NS', 'ICICIPRULI.NS', 'MARICO.NS', 'CANBK.NS',
+  'POLYCAB.NS', 'SRF.NS', 'TORNTPHARM.NS', 'INDIGO.NS', 'PNB.NS', 'JINDALSTEL.NS', 'LUPIN.NS', 'AUROPHARMA.NS', 'TIINDIA.NS', 'ALKEM.NS',
+  'MAXHEALTH.NS', 'TATAELXSI.NS', 'COLPAL.NS', 'PERSISTENT.NS', 'MANKIND.NS', 'KPITTECH.NS', 'YESBANK.NS', 'IDFCFIRSTB.NS', 'PAGEIND.NS', 'OBEROIRLTY.NS',
+  'AU SMALL FINANCE BANK.NS', 'PATANJALI.NS', 'HINDZINC.NS', 'POLICYBZR.NS', 'BHEL.NS', 'MAHABANK.NS', 'UNIONBANK.NS', 'OIL.NS', 'CONCOR.NS', 'RVNL.NS',
+  'IRFC.NS', 'MAZDOCK.NS', 'COCHINSHIP.NS', 'MAPMYINDIA.NS', 'METROBRAND.NS', 'SOLARINDS.NS', 'KEI.NS', 'DIXON.NS', 'SYNGENE.NS', 'GMRINFRA.NS',
+  'IDEA.NS', 'NYKAA.NS', 'HONAUT.NS', 'ASTRAL.NS', 'ASHOKLEY.NS', 'CUMMINSIND.NS', 'LUPIN.NS', 'PETRONET.NS', 'PEL.NS', 'TATACOMM.NS', 'JSL.NS',
+  'GLAND.NS', 'HINDPETRO.NS', 'MFSL.NS', 'IPCALAB.NS', 'AUBANK.NS', 'VOLTAS.NS', 'CROMPTON.NS', 'LAURUSLABS.NS', 'BANDHANBNK.NS', 'BALKRISIND.NS',
+  'FEDERALBNK.NS', 'IDBI.NS', 'PRESTIGE.NS', 'APLLTD.NS', 'AJANTPHARM.NS', 'TATAINVEST.NS', 'NHPC.NS', 'SJVN.NS', 'MAHLOG.NS', 'CDSL.NS',
+  'BSE.NS', 'MCX.NS', 'IEX.NS', 'KAYNES.NS', 'EMUDHRA.NS', 'DATAPATTNS.NS', 'MAHINDCIE.NS', 'SWSOLAR.NS', 'SUZLON.NS', 'TRIDENT.NS',
+  'POONAWALLA.NS', 'HUDCO.NS', 'NBCC.NS', 'HUDCO.NS', 'HFCL.NS', 'GATEWAY.NS', 'DELHIVERY.NS', 'CARBORUNIV.NS', 'TIMKEN.NS', 'GRINDWELL.NS',
+  'DEEPAKNTR.NS', 'ESCORTS.NS', 'TATACHEM.NS', 'GUJGASLTD.NS', 'LINDEINDIA.NS', 'ALKYLAMINE.NS', 'VINATIORGA.NS', 'NAVINFLUOR.NS', 'PIIND.NS',
+  'RAMCOCEM.NS', 'JKCEMENT.NS', 'DALBHARAT.NS', 'STARHEALTH.NS', 'GOCOLOR.NS', 'SAPPHIRE.NS', 'DEVYANI.NS', 'RADICO.NS', 'UNOMINDA.NS', 'ENDURANCE.NS',
+  'SCHAEFFLER.NS', 'SKFINDIA.NS', 'BHARATFORG.NS', 'SONACOMS.NS', 'CRAFTSMAN.NS', 'JWL.NS', 'TITAGARH.NS', 'RKFORGE.NS', 'MINDACORP.NS', 'SUPRAJIT.NS',
+  'MAHSCOOTER.NS', 'PFC.NS', 'RECLTD.NS', 'L&TFH.NS', 'M&MFIN.NS', 'CHOLAHLDNG.NS', 'CREDITACC.NS', 'HOMEFIRST.NS', 'AAVAS.NS', 'CANFINHOME.NS',
+  'ABCAPITAL.NS', 'L&TIDPL.NS', 'GRNR.NS', 'ACE.NS', 'TIPSINDLTD.NS', 'SAREGAMA.NS', 'NAZARA.NS', 'PRINCEPIPE.NS', 'FINPIPE.NS', 'SUPREMEIND.NS',
+  'ASTRAL.NS', 'KAJARIACER.NS', 'CERA.NS', 'SOMANYCEMS.NS', 'CENTURYPLY.NS', 'GREENPANEL.NS', 'KAJARIACER.NS', 'BORORENEW.NS', 'AWL.NS', 'ADANIPOWER.NS',
+  'CGPOWER.NS', 'HBLPOWER.NS', 'GENUSPOWER.NS', 'JINDALSTEL.NS', 'TATASTEEL.NS', 'JSWSTEEL.NS', 'HINDALCO.NS', 'NATIONALUM.NS', 'HINDZINC.NS', 'VEDL.NS',
+  'NMDC.NS', 'KIOCL.NS', 'MOIL.NS', 'GPIL.NS', 'APLAPOLLO.NS', 'RATNAMANI.NS', 'WELCORP.NS', 'MASTEK.NS', 'SONATAW.NS', 'CYIENT.NS', 'ZENSARTECH.NS',
+  'BSOFT.NS', 'NEWGEN.NS', 'INTELLECT.NS', 'CEINFO.NS', 'TATAELXSI.NS', 'L&T'.replace('L&T', 'LT.NS'), 'BSE.NS', 'CDSL.NS', 'MCX.NS', 'CAMS.NS', 'KFINTECH.NS',
 
-// In-memory cache to reduce API calls (500 request limit)
+  // GLOBAL TECH (For benchmark)
+  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'BRK-B'
+];
+
+// Map of Base Symbol -> NSE Symbol (e.g., 'RELIANCE' -> 'RELIANCE.NS')
+const INDIAN_STOCK_MAP = new Map(
+  POPULAR_IND_STOCKS.map(s => [s.replace('.NS', ''), s])
+);
+
+// Helper to resolve symbol to NSE if applicable
+const resolveSymbol = (symbol) => {
+  const upper = symbol.toUpperCase();
+  // If we have a mapping for the base name (e.g. INFY -> INFY.NS), use it
+  if (INDIAN_STOCK_MAP.has(upper)) return INDIAN_STOCK_MAP.get(upper);
+  // If it already has .NS or .BO, leave it
+  if (upper.endsWith('.NS') || upper.endsWith('.BO')) return upper;
+  // Default: Return as is (might be US stock)
+  return upper;
+};
+
 const cache = {
   stocks: { data: null, timestamp: 0 },
-  stockDetails: {}, // { symbol: { data, timestamp } }
+  stockDetails: {},
   marketOverview: { data: null, timestamp: 0 }
 };
 
-// Cache duration: 5 minutes for stocks, 2 minutes for real-time prices
 const CACHE_DURATION = {
-  STOCKS_LIST: 5 * 60 * 1000,     // 5 minutes
-  STOCK_DETAIL: 2 * 60 * 1000,    // 2 minutes  
-  MARKET_OVERVIEW: 3 * 60 * 1000  // 3 minutes
+  STOCKS_LIST: 2 * 1000, // 2 seconds (aggressive for 1s poll)
+  STOCK_DETAIL: 1 * 1000, // 1 second (very aggressive)
+  MARKET_OVERVIEW: 5 * 1000 // Keep overview slightly longer to reduce load
 };
 
-// Helper: Fetch from Indian API
-const fetchFromIndianAPI = async (endpoint) => {
-  try {
-    const url = `${INDIAN_API_BASE_URL}${endpoint}`;
-    console.log(`[IndianAPI] Fetching: ${url}`);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Api-Key': INDIAN_API_KEY,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log(`[IndianAPI] Success: ${endpoint}`);
-    return data;
-  } catch (error) {
-    console.error(`[IndianAPI] Error fetching ${endpoint}:`, error.message);
-    throw error;
-  }
-};
-
-// Helper: Check if cache is valid
 const isCacheValid = (cacheEntry, duration) => {
   return cacheEntry && cacheEntry.data && (Date.now() - cacheEntry.timestamp < duration);
 };
 
-// Fallback mock data when API fails or for development
-const FALLBACK_STOCKS = {
-  'RELIANCE': { name: 'Reliance Industries Ltd', price: 2456.75, change: 1.25 },
-  'TCS': { name: 'Tata Consultancy Services', price: 3890.50, change: -0.45 },
-  'HDFCBANK': { name: 'HDFC Bank Ltd', price: 1678.30, change: 0.85 },
-  'INFY': { name: 'Infosys Ltd', price: 1542.20, change: 2.10 },
-  'ICICIBANK': { name: 'ICICI Bank Ltd', price: 1125.40, change: -0.32 },
-  'HINDUNILVR': { name: 'Hindustan Unilever Ltd', price: 2580.15, change: 0.65 },
-  'ITC': { name: 'ITC Ltd', price: 445.80, change: 1.15 },
-  'SBIN': { name: 'State Bank of India', price: 625.90, change: -1.20 },
-  'BHARTIARTL': { name: 'Bharti Airtel Ltd', price: 1485.60, change: 0.95 },
-  'KOTAKBANK': { name: 'Kotak Mahindra Bank', price: 1756.25, change: 0.45 },
-  'WIPRO': { name: 'Wipro Ltd', price: 485.30, change: -0.75 },
-  'AXISBANK': { name: 'Axis Bank Ltd', price: 1082.45, change: 1.35 },
-  'LT': { name: 'Larsen & Toubro Ltd', price: 3245.80, change: 0.55 },
-  'MARUTI': { name: 'Maruti Suzuki India', price: 10875.40, change: -0.25 },
-  'ASIANPAINT': { name: 'Asian Paints Ltd', price: 2890.60, change: 0.85 },
-  'TATAMOTORS': { name: 'Tata Motors Ltd', price: 785.25, change: 2.45 },
-  'SUNPHARMA': { name: 'Sun Pharmaceutical', price: 1245.70, change: -0.55 },
-  'TITAN': { name: 'Titan Company Ltd', price: 3125.90, change: 1.05 },
-  'BAJFINANCE': { name: 'Bajaj Finance Ltd', price: 6890.45, change: -1.15 },
-  'HCLTECH': { name: 'HCL Technologies', price: 1425.80, change: 0.95 }
-};
+// Helper: Normalize Yahoo Quote to App Format
+const normalizeYahooQuote = (q) => ({
+  symbol: q.symbol,
+  name: q.shortName || q.longName || q.symbol,
+  price: q.regularMarketPrice || 0,
+  currentPrice: q.regularMarketPrice || 0, // Alias for frontend compatibility
+  previousClose: q.regularMarketPreviousClose || 0,
+  change: q.regularMarketChange || 0,
+  changePercent: q.regularMarketChangePercent || 0,
+  dayHigh: q.regularMarketDayHigh || 0,
+  dayLow: q.regularMarketDayLow || 0,
+  volume: q.regularMarketVolume || 0,
+  marketCap: q.marketCap || 0,
+  pe: q.trailingPE || 0,
+  eps: q.epsTrailingTwelveMonths || 0,
+  weekHigh52: q.fiftyTwoWeekHigh || 0,
+  weekLow52: q.fiftyTwoWeekLow || 0,
+  exchange: q.exchange || 'NSE',
+  currency: q.currency || 'INR'
+});
 
-// Simple seeded random number generator for consistent mock data per symbol/timeframe
-const seededRandom = (seed) => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
-// Generate mock historical data for charts (fallback)
-// Uses symbol hash + timeframe to generate consistent but different data per timeframe
-const generateMockHistoricalData = (basePrice, days, symbol = 'DEFAULT', timeframe = '1M') => {
-  const data = [];
-  
-  // Create a seed based on symbol and timeframe for consistent but different data
-  let seed = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    seed += symbol.charCodeAt(i);
-  }
-  // Add timeframe to seed so different timeframes show different patterns
-  const timeframeSeed = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 };
-  seed += (timeframeSeed[timeframe] || 30) * 100;
-  
-  let currentPrice = basePrice * (0.9 + seededRandom(seed) * 0.2); // Start between 90-110% of base
-  const now = new Date();
-  
-  // Different volatility for different timeframes
-  const volatility = timeframe === '1D' ? 0.005 : (timeframe === '1W' ? 0.015 : 0.025);
-  // Different trend bias per symbol
-  const trendBias = (seededRandom(seed + 1000) - 0.5) * 0.01;
-
-  for (let i = days; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    
-    // Use seeded random for this data point
-    const pointSeed = seed + i * 17; // Different seed per day
-    const change = (seededRandom(pointSeed) - 0.48 + trendBias) * volatility;
-    currentPrice = currentPrice * (1 + change);
-    
-    // Ensure price doesn't go negative or too extreme
-    currentPrice = Math.max(currentPrice, basePrice * 0.5);
-    currentPrice = Math.min(currentPrice, basePrice * 1.5);
-    
-    const dailyVolatility = seededRandom(pointSeed + 1) * 0.02;
-    const open = currentPrice * (1 + (seededRandom(pointSeed + 2) - 0.5) * dailyVolatility);
-    const high = Math.max(open, currentPrice) * (1 + seededRandom(pointSeed + 3) * 0.015);
-    const low = Math.min(open, currentPrice) * (1 - seededRandom(pointSeed + 4) * 0.015);
-    const volume = Math.floor(seededRandom(pointSeed + 5) * 10000000) + 1000000;
-
-    data.push({
-      date: date.toISOString().split('T')[0],
-      timestamp: date.getTime(),
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(currentPrice.toFixed(2)),
-      volume
-    });
-  }
-
-  return data;
-};
-
-// @desc    Get list of all available stocks (with real API data)
+// @desc    Get list of all available stocks (Yahoo Finance)
 // @route   GET /api/markets/stocks
 // @access  Private
 exports.getStocks = async (req, res) => {
   try {
-    // Check cache first
     if (isCacheValid(cache.stocks, CACHE_DURATION.STOCKS_LIST)) {
-      console.log('[Cache] Returning cached stocks list');
-      return res.status(200).json({
-        success: true,
-        count: cache.stocks.data.length,
-        data: cache.stocks.data,
-        cached: true
-      });
+      return res.status(200).json({ success: true, count: cache.stocks.data.length, data: cache.stocks.data, cached: true });
     }
 
-    // Try to fetch from real API
-    let stocks = [];
-    try {
-      const apiData = await fetchFromIndianAPI('/trending');
-      
-      if (apiData && apiData.trending_stocks) {
-        stocks = apiData.trending_stocks.map(stock => ({
-          symbol: stock.symbol || stock.ticker,
-          name: stock.company_name || stock.name,
-          price: parseFloat(stock.price || stock.ltp || 0),
-          change: parseFloat(stock.change || 0),
-          changePercent: parseFloat(stock.percent_change || stock.change_percent || 0).toFixed(2)
-        }));
-      }
+    // Fetch quotes for popular stocks
+    const quotes = await yahooFinance.quote(POPULAR_IND_STOCKS);
+    const stocks = quotes.map(normalizeYahooQuote);
 
-      // Also fetch top gainers and losers to get more stocks
-      const [gainersData, losersData] = await Promise.all([
-        fetchFromIndianAPI('/NSE_top_gainers').catch(() => null),
-        fetchFromIndianAPI('/NSE_top_losers').catch(() => null)
-      ]);
-
-      if (gainersData && Array.isArray(gainersData)) {
-        gainersData.forEach(stock => {
-          if (!stocks.find(s => s.symbol === stock.symbol)) {
-            stocks.push({
-              symbol: stock.symbol,
-              name: stock.company_name || stock.name,
-              price: parseFloat(stock.ltp || stock.price || 0),
-              change: parseFloat(stock.change || 0),
-              changePercent: parseFloat(stock.percent_change || 0).toFixed(2)
-            });
-          }
-        });
-      }
-
-      if (losersData && Array.isArray(losersData)) {
-        losersData.forEach(stock => {
-          if (!stocks.find(s => s.symbol === stock.symbol)) {
-            stocks.push({
-              symbol: stock.symbol,
-              name: stock.company_name || stock.name,
-              price: parseFloat(stock.ltp || stock.price || 0),
-              change: parseFloat(stock.change || 0),
-              changePercent: parseFloat(stock.percent_change || 0).toFixed(2)
-            });
-          }
-        });
-      }
-
-    } catch (apiError) {
-      console.error('[IndianAPI] Falling back to mock data:', apiError.message);
-    }
-
-    // Fallback to mock data if API fails or returns empty
-    if (stocks.length === 0) {
-      stocks = Object.entries(FALLBACK_STOCKS).map(([symbol, data]) => ({
-        symbol,
-        name: data.name,
-        price: parseFloat((data.price * (1 + (Math.random() - 0.5) * 0.02)).toFixed(2)),
-        change: data.change + (Math.random() - 0.5) * 0.5,
-        changePercent: (data.change + (Math.random() - 0.5) * 0.5).toFixed(2)
-      }));
-    }
-
-    // Update cache
     cache.stocks = { data: stocks, timestamp: Date.now() };
-
-    res.status(200).json({
-      success: true,
-      count: stocks.length,
-      data: stocks,
-      cached: false
-    });
+    res.status(200).json({ success: true, count: stocks.length, data: stocks, cached: false });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching stocks',
-      error: error.message
-    });
+    console.error('getStocks Error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching stocks' });
   }
 };
 
-// @desc    Get stock details with price history
+// @desc    Get stock details with price history (Yahoo Finance)
 // @route   GET /api/markets/stocks/:symbol
 // @access  Private
 exports.getStockDetail = async (req, res) => {
   try {
     const { symbol } = req.params;
     const { timeframe = '1M' } = req.query;
-    const upperSymbol = symbol.toUpperCase();
-
-    // Check cache
-    const cacheKey = `${upperSymbol}_${timeframe}`;
-    if (cache.stockDetails[cacheKey] && isCacheValid(cache.stockDetails[cacheKey], CACHE_DURATION.STOCK_DETAIL)) {
-      console.log(`[Cache] Returning cached stock detail: ${upperSymbol}`);
-      return res.status(200).json({
-        success: true,
-        data: cache.stockDetails[cacheKey].data,
-        cached: true
-      });
-    }
+    const resolvedSymbol = resolveSymbol(symbol);
 
     let stockData = null;
-    let historicalData = [];
-
-    // Try to fetch from real API
     try {
-      // Fetch stock info
-      const stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(upperSymbol)}`);
-      
-      if (stockInfo) {
-        const currentPrice = parseFloat(stockInfo.currentPrice?.NSE || stockInfo.currentPrice?.BSE || stockInfo.price || 0);
-        const previousClose = parseFloat(stockInfo.previousClose || currentPrice * 0.99);
-        const change = currentPrice - previousClose;
-        const changePercent = ((change / previousClose) * 100);
+      const quote = await yahooFinance.quote(resolvedSymbol);
+      stockData = normalizeYahooQuote(quote);
 
-        stockData = {
-          symbol: upperSymbol,
-          name: stockInfo.companyName || stockInfo.name || upperSymbol,
-          currentPrice,
-          previousClose,
-          change: parseFloat(change.toFixed(2)),
-          changePercent: parseFloat(changePercent.toFixed(2)),
-          dayHigh: parseFloat(stockInfo.dayHigh || currentPrice * 1.02),
-          dayLow: parseFloat(stockInfo.dayLow || currentPrice * 0.98),
-          volume: parseInt(stockInfo.totalTradedVolume || stockInfo.volume || 0),
-          marketCap: stockInfo.marketCap || 'N/A',
-          pe: stockInfo.pe || 'N/A',
-          eps: stockInfo.eps || 'N/A',
-          weekHigh52: stockInfo['52weekHigh'] || stockInfo.yearHigh,
-          weekLow52: stockInfo['52weekLow'] || stockInfo.yearLow
-        };
+      // Fetch Historical Data
+      const end = new Date();
+      let start = new Date();
+      let interval = '1d';
 
-        // Try to get historical data
-        try {
-          const histData = await fetchFromIndianAPI(`/historical_data?stock_name=${encodeURIComponent(upperSymbol)}&period=${timeframe.toLowerCase()}`);
-          
-          if (histData && histData.datasets) {
-            historicalData = histData.datasets.map((point, index) => ({
-              date: point.date || new Date(Date.now() - (histData.datasets.length - index) * 86400000).toISOString().split('T')[0],
-              timestamp: new Date(point.date || Date.now() - (histData.datasets.length - index) * 86400000).getTime(),
-              open: parseFloat(point.open || point.close),
-              high: parseFloat(point.high || point.close),
-              low: parseFloat(point.low || point.close),
-              close: parseFloat(point.close || point.price),
-              volume: parseInt(point.volume || 0)
-            }));
-          }
-        } catch (histError) {
-          console.log('[IndianAPI] Historical data not available, using generated data');
-        }
-      }
-    } catch (apiError) {
-      console.error('[IndianAPI] Stock detail fetch failed:', apiError.message);
-    }
-
-    // Fallback to mock data
-    if (!stockData) {
-      const fallbackStock = FALLBACK_STOCKS[upperSymbol];
-      if (!fallbackStock) {
-        return res.status(404).json({
-          success: false,
-          message: `Stock ${upperSymbol} not found`
-        });
+      switch (timeframe) {
+        case '1D': start.setDate(start.getDate() - 1); interval = '15m'; break;
+        case '1W': start.setDate(start.getDate() - 7); interval = '1h'; break;
+        case '1M': start.setMonth(start.getMonth() - 1); interval = '1d'; break;
+        case '6M': start.setMonth(start.getMonth() - 6); interval = '1d'; break;
+        case '1Y': start.setFullYear(start.getFullYear() - 1); interval = '1wk'; break;
+        default: start.setMonth(start.getMonth() - 1);
       }
 
-      const currentPrice = parseFloat((fallbackStock.price * (1 + (Math.random() - 0.5) * 0.01)).toFixed(2));
-      const previousClose = fallbackStock.price;
-      const change = currentPrice - previousClose;
+      const queryOptions = { period1: start, period2: end, interval };
+      // Use chart() instead of historical()
+      const result = await yahooFinance.chart(resolvedSymbol, queryOptions);
 
-      stockData = {
-        symbol: upperSymbol,
-        name: fallbackStock.name,
-        currentPrice,
-        previousClose,
-        change: parseFloat(change.toFixed(2)),
-        changePercent: parseFloat(((change / previousClose) * 100).toFixed(2)),
-        dayHigh: currentPrice * 1.015,
-        dayLow: currentPrice * 0.985,
-        volume: Math.floor(Math.random() * 10000000) + 1000000,
-        marketCap: `₹${(currentPrice * (Math.random() * 1000 + 500)).toFixed(0)} Cr`
-      };
+      let historicalData = [];
+      if (result && result.quotes) {
+        historicalData = result.quotes.map(q => ({
+          date: q.date.toISOString().split('T')[0],
+          timestamp: new Date(q.date).getTime(),
+          open: q.open,
+          high: q.high,
+          low: q.low,
+          close: q.close,
+          volume: q.volume
+        }));
+      }
+
+      const responseData = { ...stockData, historicalData };
+      res.status(200).json({ success: true, data: responseData });
+    } catch (err) {
+      console.error('Info/History error for ' + resolvedSymbol + ':', err);
+      // Attempt to return at least the quote data if chart fails
+      if (stockData) {
+        console.log('Returning quote only due to chart failure');
+        return res.status(200).json({ success: true, data: { ...stockData, historicalData: [] } });
+      } else {
+        return res.status(404).json({ success: false, message: 'Stock data not found: ' + err.message });
+      }
     }
-
-    // Generate mock historical data if not available
-    if (historicalData.length === 0) {
-      const daysMap = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 };
-      const days = daysMap[timeframe] || 30;
-      historicalData = generateMockHistoricalData(stockData.currentPrice, days, upperSymbol, timeframe);
-    }
-
-    const responseData = {
-      ...stockData,
-      historicalData
-    };
-
-    // Update cache
-    cache.stockDetails[cacheKey] = { data: responseData, timestamp: Date.now() };
-
-    res.status(200).json({
-      success: true,
-      data: responseData,
-      cached: false
-    });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching stock details',
-      error: error.message
-    });
+    console.error('getStockDetail fatal error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching stock details' });
   }
 };
 
-// @desc    Search stocks by name or symbol
+// @desc    Search stocks by name or symbol (Yahoo Finance)
 // @route   GET /api/markets/search
 // @access  Private
 exports.searchStocks = async (req, res) => {
   try {
     const { q } = req.query;
+    if (!q || q.length < 2) return res.status(400).json({ success: false, message: 'Query too short' });
 
-    if (!q || q.length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Search query must be at least 2 characters'
-      });
-    }
+    const searchRes = await yahooFinance.search(q);
 
-    let results = [];
+    // 1. Filter for Indian stocks
+    const filteredQuotes = (searchRes.quotes || []).filter(q => {
+      if (!q.symbol) return false;
+      const s = q.symbol.toUpperCase();
+      const isIndian = s.endsWith('.NS') || s.endsWith('.BO');
+      const isIndex = s === '^NSEI' || s === '^BSESN';
+      return isIndian || isIndex;
+    });
 
-    // Try real API search
-    try {
-      const searchData = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(q)}`);
-      
-      if (searchData && searchData.companyName) {
-        results.push({
-          symbol: q.toUpperCase(),
-          name: searchData.companyName,
-          price: parseFloat(searchData.currentPrice?.NSE || searchData.currentPrice?.BSE || 0),
-          change: 0
-        });
+    // 2. Extract symbols
+    const symbols = filteredQuotes.map(q => q.symbol);
+
+    // 3. Fetch full real-time data for these symbols (Search API doesn't give price)
+    let fullQuotes = [];
+    if (symbols.length > 0) {
+      try {
+        fullQuotes = await yahooFinance.quote(symbols);
+      } catch (e) {
+        console.error('Search quote fetch failed:', e);
+        // Fallback to search results if quote fails (better than nothing)
+        fullQuotes = filteredQuotes;
       }
-    } catch (apiError) {
-      console.log('[IndianAPI] Search failed, using fallback');
     }
 
-    // Also search in cached/fallback stocks
-    const searchTerm = q.toLowerCase();
-    const fallbackResults = Object.entries(FALLBACK_STOCKS)
-      .filter(([symbol, data]) => 
-        symbol.toLowerCase().includes(searchTerm) || 
-        data.name.toLowerCase().includes(searchTerm)
-      )
-      .map(([symbol, data]) => ({
-        symbol,
-        name: data.name,
-        price: parseFloat((data.price * (1 + (Math.random() - 0.5) * 0.01)).toFixed(2)),
-        change: data.change
-      }));
+    const results = fullQuotes.map(normalizeYahooQuote);
 
-    // Merge results (API results first, then fallback)
-    results = [...results, ...fallbackResults.filter(f => !results.find(r => r.symbol === f.symbol))];
-
-    res.status(200).json({
-      success: true,
-      count: results.length,
-      data: results
-    });
+    res.status(200).json({ success: true, count: results.length, data: results });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error searching stocks',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error searching stocks' });
   }
 };
 
@@ -439,75 +228,45 @@ exports.searchStocks = async (req, res) => {
 exports.getPortfolio = async (req, res) => {
   try {
     const portfolio = await PaperPortfolio.getOrCreatePortfolio(req.user.id);
+    // Map holdings to resolved symbols (e.g. INFY -> INFY.NS) for fetching
+    const holdingSymbols = (portfolio.holdings || []).map(h => resolveSymbol(h.symbol));
 
-    // Calculate current values for holdings using latest prices
-    const holdingsWithCurrentValue = await Promise.all(
-      (portfolio.holdings || []).map(async (holding) => {
-        let currentPrice = holding.avgPrice;
+    // Batch fetch current prices
+    let quotes = [];
+    if (holdingSymbols.length > 0) {
+      try {
+        quotes = await yahooFinance.quote(holdingSymbols);
+      } catch (e) {
+        console.log('Portfolio quote fetch failed, trying individual');
+      }
+    }
 
-        // Try to get real price from multiple sources
-        try {
-          // 1. Check stock detail cache first
-          const cacheKey = `${holding.symbol}_1M`;
-          if (cache.stockDetails[cacheKey] && 
-              isCacheValid(cache.stockDetails[cacheKey], CACHE_DURATION.STOCK_DETAIL)) {
-            currentPrice = cache.stockDetails[cacheKey].data.currentPrice;
-          } else {
-            // 2. Try fetching from API
-            const stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(holding.symbol)}`);
-            if (stockInfo) {
-              // Extract price from various possible formats
-              if (stockInfo.currentPrice) {
-                const nsePrice = stockInfo.currentPrice.NSE || stockInfo.currentPrice.BSE;
-                if (nsePrice) {
-                  currentPrice = parseFloat(nsePrice.replace(/,/g, ''));
-                }
-              } else if (stockInfo.priceInfo && stockInfo.priceInfo.lastPrice) {
-                currentPrice = parseFloat(stockInfo.priceInfo.lastPrice);
-              } else if (stockInfo.lastPrice) {
-                currentPrice = parseFloat(stockInfo.lastPrice);
-              }
-            }
-          }
-        } catch (e) {
-          console.log(`[Portfolio] Could not fetch live price for ${holding.symbol}:`, e.message);
-        }
+    const holdingsWithCurrentValue = (portfolio.holdings || []).map(holding => {
+      // Find quote using the resolved symbol
+      const resolved = resolveSymbol(holding.symbol);
+      const quote = quotes.find(q => q.symbol === resolved);
+      const currentPrice = quote ? (quote.regularMarketPrice || holding.avgPrice) : holding.avgPrice;
 
-        // 3. Fallback: Add small variance to simulate market movement if price unchanged
-        if (currentPrice === holding.avgPrice) {
-          const fallback = FALLBACK_STOCKS[holding.symbol];
-          if (fallback) {
-            // Use fallback price with small random variance
-            currentPrice = parseFloat((fallback.price * (1 + (Math.random() - 0.5) * 0.03)).toFixed(2));
-          } else {
-            // Add small random variance (-1.5% to +1.5%) to avgPrice
-            currentPrice = parseFloat((holding.avgPrice * (1 + (Math.random() - 0.5) * 0.03)).toFixed(2));
-          }
-        }
+      const currentValue = holding.quantity * currentPrice;
+      const investedValue = holding.quantity * holding.avgPrice;
+      const pnl = currentValue - investedValue;
+      const pnlPercent = investedValue > 0 ? ((pnl / investedValue) * 100) : 0;
 
-        const currentValue = holding.quantity * currentPrice;
-        const investedValue = holding.quantity * holding.avgPrice;
-        const pnl = currentValue - investedValue;
-        const pnlPercent = ((pnl / investedValue) * 100).toFixed(2);
-
-        return {
-          ...holding,
-          currentPrice,
-          currentValue: parseFloat(currentValue.toFixed(2)),
-          investedValue: parseFloat(investedValue.toFixed(2)),
-          pnl: parseFloat(pnl.toFixed(2)),
-          pnlPercent: parseFloat(pnlPercent)
-        };
-      })
-    );
+      return {
+        ...holding,
+        currentPrice,
+        currentValue: parseFloat(currentValue.toFixed(2)),
+        investedValue: parseFloat(investedValue.toFixed(2)),
+        pnl: parseFloat(pnl.toFixed(2)),
+        pnlPercent: parseFloat(pnlPercent.toFixed(2))
+      };
+    });
 
     // Calculate totals
     const totalCurrentValue = holdingsWithCurrentValue.reduce((sum, h) => sum + h.currentValue, 0);
     const totalInvestedValue = holdingsWithCurrentValue.reduce((sum, h) => sum + h.investedValue, 0);
     const totalPnl = totalCurrentValue - totalInvestedValue;
-    const totalPnlPercent = totalInvestedValue > 0 
-      ? ((totalPnl / totalInvestedValue) * 100).toFixed(2) 
-      : 0;
+    const totalPnlPercent = totalInvestedValue > 0 ? ((totalPnl / totalInvestedValue) * 100) : 0;
 
     res.status(200).json({
       success: true,
@@ -518,18 +277,14 @@ exports.getPortfolio = async (req, res) => {
         totalInvested: parseFloat(totalInvestedValue.toFixed(2)),
         currentPortfolioValue: parseFloat(totalCurrentValue.toFixed(2)),
         totalPnl: parseFloat(totalPnl.toFixed(2)),
-        totalPnlPercent: parseFloat(totalPnlPercent),
+        totalPnlPercent: parseFloat(totalPnlPercent.toFixed(2)),
         netWorth: parseFloat((portfolio.virtualBalance + totalCurrentValue).toFixed(2)),
         createdAt: portfolio.createdAt,
         updatedAt: portfolio.updatedAt
       }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching portfolio',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching portfolio' });
   }
 };
 
@@ -539,80 +294,39 @@ exports.getPortfolio = async (req, res) => {
 exports.executeTrade = async (req, res) => {
   try {
     const { symbol, type, quantity } = req.body;
-    const upperSymbol = symbol.toUpperCase();
+    const rawSymbol = symbol.toUpperCase();
+    const resolvedSymbol = resolveSymbol(rawSymbol);
 
-    // Validation
-    if (!symbol || !type || !quantity) {
-      return res.status(400).json({
-        success: false,
-        message: 'Symbol, type (BUY/SELL), and quantity are required'
-      });
-    }
+    if (!symbol || !type || !quantity) return res.status(400).json({ success: false, message: 'Invalid input' });
+    if (!['BUY', 'SELL'].includes(type.toUpperCase())) return res.status(400).json({ success: false, message: 'Invalid type' });
 
-    if (!['BUY', 'SELL'].includes(type.toUpperCase())) {
-      return res.status(400).json({
-        success: false,
-        message: 'Type must be BUY or SELL'
-      });
-    }
-
-    if (quantity < 1 || !Number.isInteger(quantity)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Quantity must be a positive integer'
-      });
-    }
-
-    // Get current price (try real API first)
     let executionPrice = 0;
-    let stockName = upperSymbol;
+    let stockName = rawSymbol;
 
     try {
-      const stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(upperSymbol)}`);
-      if (stockInfo && stockInfo.currentPrice) {
-        executionPrice = parseFloat(stockInfo.currentPrice.NSE || stockInfo.currentPrice.BSE);
-        stockName = stockInfo.companyName || upperSymbol;
+      const quote = await yahooFinance.quote(resolvedSymbol);
+      if (quote) {
+        executionPrice = quote.regularMarketPrice;
+        stockName = quote.shortName || quote.longName || rawSymbol;
       }
     } catch (e) {
-      console.log('[Trade] Using fallback price for', upperSymbol);
+      console.error(`Trade price fetch failed for ${resolvedSymbol}:`, e);
     }
 
-    // Fallback to mock price
-    if (!executionPrice) {
-      const fallback = FALLBACK_STOCKS[upperSymbol];
-      if (!fallback) {
-        return res.status(404).json({
-          success: false,
-          message: `Stock ${upperSymbol} not found`
-        });
-      }
-      executionPrice = parseFloat((fallback.price * (1 + (Math.random() - 0.5) * 0.005)).toFixed(2));
-      stockName = fallback.name;
+    if (!executionPrice || executionPrice <= 0) {
+      return res.status(503).json({ success: false, message: 'Could not fetch live price for ' + resolvedSymbol });
     }
 
     let updatedPortfolio;
-
     if (type.toUpperCase() === 'BUY') {
-      updatedPortfolio = await PaperPortfolio.executeBuyTrade(
-        req.user.id,
-        upperSymbol,
-        stockName,
-        quantity,
-        executionPrice
-      );
+      updatedPortfolio = await PaperPortfolio.executeBuyTrade(req.user.id, resolvedSymbol, stockName, quantity, executionPrice);
     } else {
-      updatedPortfolio = await PaperPortfolio.executeSellTrade(
-        req.user.id,
-        upperSymbol,
-        quantity,
-        executionPrice
-      );
+      updatedPortfolio = await PaperPortfolio.executeSellTrade(req.user.id, resolvedSymbol, quantity, executionPrice);
     }
 
-    // Record the trade
-    const trade = await PaperTrade.createTrade({
+    await PaperTrade.createTrade({
       userId: req.user.id,
-      symbol: upperSymbol,
+      symbol: resolvedSymbol,
       stockName,
       type: type.toUpperCase(),
       quantity,
@@ -621,21 +335,11 @@ exports.executeTrade = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Successfully ${type.toUpperCase() === 'BUY' ? 'bought' : 'sold'} ${quantity} shares of ${upperSymbol} at ₹${executionPrice}`,
-      data: {
-        trade,
-        portfolio: {
-          virtualBalance: updatedPortfolio.virtualBalance,
-          totalInvested: updatedPortfolio.totalInvested,
-          holdingsCount: updatedPortfolio.holdings.length
-        }
-      }
+      message: `Successfully ${type.toUpperCase() === 'BUY' ? 'bought' : 'sold'} ${quantity} shares of ${resolvedSymbol} at ${executionPrice}`,
+      data: { portfolio: updatedPortfolio }
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -645,25 +349,15 @@ exports.executeTrade = async (req, res) => {
 exports.getTradeHistory = async (req, res) => {
   try {
     const { limit = 50, symbol } = req.query;
-
     let trades;
     if (symbol) {
       trades = await PaperTrade.getTradesBySymbol(req.user.id, symbol);
     } else {
       trades = await PaperTrade.getTradeHistory(req.user.id, { limit: parseInt(limit) });
     }
-
-    res.status(200).json({
-      success: true,
-      count: trades.length,
-      data: trades
-    });
+    res.status(200).json({ success: true, count: trades.length, data: trades });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching trade history',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching trade history' });
   }
 };
 
@@ -673,22 +367,9 @@ exports.getTradeHistory = async (req, res) => {
 exports.resetPortfolio = async (req, res) => {
   try {
     const portfolio = await PaperPortfolio.resetPortfolio(req.user.id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Portfolio reset successfully. Starting fresh with ₹10,00,000 virtual balance.',
-      data: {
-        virtualBalance: portfolio.virtualBalance,
-        holdings: portfolio.holdings,
-        totalInvested: portfolio.totalInvested
-      }
-    });
+    res.status(200).json({ success: true, message: 'Portfolio reset successfully', data: portfolio });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error resetting portfolio',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error resetting portfolio' });
   }
 };
 
@@ -697,260 +378,124 @@ exports.resetPortfolio = async (req, res) => {
 // @access  Private
 exports.getMarketOverview = async (req, res) => {
   try {
-    // Check cache
     if (isCacheValid(cache.marketOverview, CACHE_DURATION.MARKET_OVERVIEW)) {
-      console.log('[Cache] Returning cached market overview');
-      return res.status(200).json({
-        success: true,
-        data: cache.marketOverview.data,
-        cached: true
-      });
+      return res.status(200).json({ success: true, data: cache.marketOverview.data, cached: true });
     }
 
     let indices = [];
     let topGainers = [];
     let topLosers = [];
 
-    // Try to fetch real data
+    // 1. Fetch Indices
     try {
-      // Fetch trending/index data
-      const [trendingData, gainersData, losersData] = await Promise.all([
-        fetchFromIndianAPI('/trending').catch(() => null),
-        fetchFromIndianAPI('/NSE_top_gainers').catch(() => null),
-        fetchFromIndianAPI('/NSE_top_losers').catch(() => null)
-      ]);
+      const indexQuotes = await yahooFinance.quote(['^NSEI', '^BSESN', '^NSEBANK']);
+      indices = indexQuotes.map(normalizeYahooQuote).map(q => {
+        let name = q.symbol.replace('^', '');
+        if (q.symbol === '^NSEI') name = 'NIFTY 50';
+        if (q.symbol === '^BSESN') name = 'SENSEX';
+        if (q.symbol === '^NSEBANK') name = 'BANK NIFTY';
 
-      // Parse indices from trending data
-      if (trendingData) {
-        if (trendingData.index_data) {
-          indices = Object.entries(trendingData.index_data).map(([name, data]) => ({
-            name,
-            value: parseFloat(data.price || data.value || 0),
-            change: parseFloat(data.change || 0),
-            changePercent: parseFloat(data.percent_change || data.change_percent || 0).toFixed(2)
-          })).slice(0, 5);
-        }
-      }
+        return {
+          name,
+          value: q.price,
+          change: q.change,
+          changePercent: q.changePercent
+        };
+      });
+    } catch (e) { console.log('Index fetch failed'); }
 
-      // Top gainers
-      if (gainersData && Array.isArray(gainersData)) {
-        topGainers = gainersData.slice(0, 5).map(stock => ({
-          symbol: stock.symbol,
-          name: stock.company_name || stock.name || stock.symbol,
-          price: parseFloat(stock.ltp || stock.price || 0),
-          change: parseFloat(stock.change || 0),
-          changePercent: parseFloat(stock.percent_change || 0).toFixed(2)
-        }));
-      }
+    // 2. Fetch "Gainers/Losers" from our Popular list (since API doesn't support easily)
+    try {
+      const quotes = await yahooFinance.quote(POPULAR_IND_STOCKS);
+      const sorted = quotes.map(normalizeYahooQuote).sort((a, b) => b.changePercent - a.changePercent);
+      topGainers = sorted.slice(0, 5);
+      topLosers = sorted.slice(sorted.length - 5, sorted.length).reverse(); // Worst losers first
+    } catch (e) { console.log('Gainers/Losers fetch failed'); }
 
-      // Top losers
-      if (losersData && Array.isArray(losersData)) {
-        topLosers = losersData.slice(0, 5).map(stock => ({
-          symbol: stock.symbol,
-          name: stock.company_name || stock.name || stock.symbol,
-          price: parseFloat(stock.ltp || stock.price || 0),
-          change: parseFloat(stock.change || 0),
-          changePercent: parseFloat(stock.percent_change || 0).toFixed(2)
-        }));
-      }
+    const overviewData = { indices, topGainers, topLosers };
+    cache.marketOverview = { data: overviewData, timestamp: Date.now() };
 
-    } catch (apiError) {
-      console.error('[IndianAPI] Market overview fetch failed:', apiError.message);
-    }
-
-    // Fallback mock data
-    if (indices.length === 0) {
-      indices = [
-        { name: 'NIFTY 50', value: 22456.80 + (Math.random() - 0.5) * 200, change: (Math.random() - 0.5) * 150, changePercent: ((Math.random() - 0.5) * 1.5).toFixed(2) },
-        { name: 'SENSEX', value: 73856.45 + (Math.random() - 0.5) * 500, change: (Math.random() - 0.5) * 400, changePercent: ((Math.random() - 0.5) * 1.2).toFixed(2) },
-        { name: 'NIFTY BANK', value: 48234.60 + (Math.random() - 0.5) * 300, change: (Math.random() - 0.5) * 250, changePercent: ((Math.random() - 0.5) * 1.8).toFixed(2) }
-      ];
-    }
-
-    if (topGainers.length === 0 || topLosers.length === 0) {
-      const allStocks = Object.entries(FALLBACK_STOCKS).map(([symbol, data]) => ({
-        symbol,
-        name: data.name,
-        price: parseFloat((data.price * (1 + (Math.random() - 0.5) * 0.02)).toFixed(2)),
-        change: data.change + (Math.random() - 0.5) * 2,
-        changePercent: (data.change + (Math.random() - 0.5) * 2).toFixed(2)
-      }));
-
-      const sorted = [...allStocks].sort((a, b) => b.change - a.change);
-      if (topGainers.length === 0) topGainers = sorted.slice(0, 5);
-      if (topLosers.length === 0) topLosers = sorted.slice(-5).reverse();
-    }
-
-    const responseData = {
-      indices: indices.map(idx => ({
-        ...idx,
-        value: parseFloat(typeof idx.value === 'number' ? idx.value.toFixed(2) : idx.value),
-        change: parseFloat(typeof idx.change === 'number' ? idx.change.toFixed(2) : idx.change)
-      })),
-      topGainers,
-      topLosers,
-      marketStatus: 'OPEN',
-      lastUpdated: new Date().toISOString()
-    };
-
-    // Update cache
-    cache.marketOverview = { data: responseData, timestamp: Date.now() };
-
-    res.status(200).json({
-      success: true,
-      data: responseData,
-      cached: false
-    });
+    res.status(200).json({ success: true, data: overviewData });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching market overview',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching market overview' });
   }
 };
-// ============================================================
-// WATCHLIST ENDPOINTS
-// ============================================================
 
-// @desc    Get user's watchlist with current stock details
+// @desc    Get user's watchlist
 // @route   GET /api/markets/watchlist
 // @access  Private
 exports.getWatchlist = async (req, res) => {
   try {
     const watchlist = await Watchlist.getWatchlist(req.user.id);
-    
-    // Fetch current prices for all watchlisted stocks
-    const stocksWithDetails = await Promise.all(
-      (watchlist.stocks || []).map(async (item) => {
-        let currentPrice = 0;
-        let change = 0;
-        let changePercent = 0;
-        let dayHigh = 0;
-        let dayLow = 0;
+    const symbols = watchlist.stocks.map(s => resolveSymbol(s.symbol));
 
-        // Try to get real price
-        try {
-          const cacheKey = `${item.symbol}_1M`;
-          if (cache.stockDetails[cacheKey] && 
-              isCacheValid(cache.stockDetails[cacheKey], CACHE_DURATION.STOCK_DETAIL)) {
-            const cached = cache.stockDetails[cacheKey].data;
-            currentPrice = cached.currentPrice;
-            change = cached.change;
-            changePercent = cached.changePercent;
-            dayHigh = cached.dayHigh;
-            dayLow = cached.dayLow;
-          } else {
-            const stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(item.symbol)}`);
-            if (stockInfo) {
-              currentPrice = parseFloat(stockInfo.currentPrice?.NSE?.replace(/,/g, '') || 
-                                       stockInfo.currentPrice?.BSE?.replace(/,/g, '') || 0);
-              change = parseFloat(stockInfo.percentChange || 0);
-              changePercent = parseFloat(stockInfo.percentChange || 0);
-              dayHigh = parseFloat(stockInfo.dayHigh?.replace(/,/g, '') || currentPrice * 1.02);
-              dayLow = parseFloat(stockInfo.dayLow?.replace(/,/g, '') || currentPrice * 0.98);
-            }
-          }
-        } catch (e) {
-          // Use fallback
-          const fallback = FALLBACK_STOCKS[item.symbol];
-          if (fallback) {
-            currentPrice = parseFloat((fallback.price * (1 + (Math.random() - 0.5) * 0.02)).toFixed(2));
-            change = fallback.change;
-            changePercent = fallback.change;
-            dayHigh = currentPrice * 1.015;
-            dayLow = currentPrice * 0.985;
-          }
-        }
+    let quotes = [];
+    if (symbols.length > 0) {
+      try { quotes = await yahooFinance.quote(symbols); } catch (e) { }
+    }
 
-        return {
-          ...item,
-          currentPrice: parseFloat(currentPrice.toFixed(2)),
-          change: parseFloat(change.toFixed(2)),
-          changePercent: parseFloat(changePercent.toFixed(2)),
-          dayHigh: parseFloat(dayHigh.toFixed(2)),
-          dayLow: parseFloat(dayLow.toFixed(2))
-        };
-      })
-    );
+    // Merge existing data with live price
+    // Merge existing data with live price
+    const data = watchlist.stocks.map(stock => {
+      const resolved = resolveSymbol(stock.symbol);
+      const quote = quotes.find(q => q.symbol === resolved);
+      return {
+        symbol: stock.symbol,
+        stockName: stock.stockName || stock.symbol,
+        addedAt: stock.addedAt,
+        currentPrice: quote ? (quote.regularMarketPrice || 0) : 0,
+        change: quote ? (quote.regularMarketChange || 0) : 0,
+        changePercent: quote ? (quote.regularMarketChangePercent || 0) : 0,
+        dayHigh: quote ? (quote.regularMarketDayHigh || 0) : 0,
+        dayLow: quote ? (quote.regularMarketDayLow || 0) : 0
+      };
+    });
 
     res.status(200).json({
       success: true,
       data: {
         id: watchlist.id,
-        stocks: stocksWithDetails,
-        count: stocksWithDetails.length,
+        stocks: data,
+        count: data.length,
         updatedAt: watchlist.updatedAt
       }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching watchlist',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching watchlist' });
   }
 };
 
-// @desc    Add stock to watchlist
+// @desc    Add to watchlist
 // @route   POST /api/markets/watchlist/add
 // @access  Private
 exports.addToWatchlist = async (req, res) => {
   try {
-    const { symbol, stockName } = req.body;
+    const { symbol } = req.body;
+    const resolvedSymbol = resolveSymbol(symbol);
+    let stockName = symbol;
+    // Try to get name
+    try {
+      const quote = await yahooFinance.quote(resolvedSymbol);
+      stockName = quote.shortName || quote.longName || symbol;
+    } catch (e) { }
 
-    if (!symbol) {
-      return res.status(400).json({
-        success: false,
-        message: 'Symbol is required'
-      });
-    }
-
-    const watchlist = await Watchlist.addToWatchlist(
-      req.user.id, 
-      symbol, 
-      stockName || symbol
-    );
-
-    res.status(200).json({
-      success: true,
-      message: `${symbol.toUpperCase()} added to watchlist`,
-      data: watchlist
-    });
+    const updated = await Watchlist.addToWatchlist(req.user.id, symbol, stockName);
+    res.status(200).json({ success: true, message: 'Added to watchlist', data: updated });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Remove stock from watchlist
+// @desc    Remove from watchlist
 // @route   DELETE /api/markets/watchlist/:symbol
 // @access  Private
 exports.removeFromWatchlist = async (req, res) => {
   try {
     const { symbol } = req.params;
-
-    if (!symbol) {
-      return res.status(400).json({
-        success: false,
-        message: 'Symbol is required'
-      });
-    }
-
-    const watchlist = await Watchlist.removeFromWatchlist(req.user.id, symbol);
-
-    res.status(200).json({
-      success: true,
-      message: `${symbol.toUpperCase()} removed from watchlist`,
-      data: watchlist
-    });
+    await Watchlist.removeFromWatchlist(req.user.id, symbol);
+    res.status(200).json({ success: true, message: 'Removed from watchlist' });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -960,413 +505,93 @@ exports.removeFromWatchlist = async (req, res) => {
 exports.checkWatchlist = async (req, res) => {
   try {
     const { symbol } = req.params;
-    const isWatched = await Watchlist.isInWatchlist(req.user.id, symbol);
-
-    res.status(200).json({
-      success: true,
-      data: { isWatched, symbol: symbol.toUpperCase() }
-    });
+    const inWatchlist = await Watchlist.isInWatchlist(req.user.id, symbol);
+    res.status(200).json({ success: true, inWatchlist });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error checking watchlist' });
   }
 };
 
-// ============================================================
-// STOCK COMPARATOR ENDPOINTS
-// ============================================================
-
-// @desc    Compare multiple stocks
+// @desc    Compare stocks
 // @route   POST /api/markets/compare
 // @access  Private
 exports.compareStocks = async (req, res) => {
   try {
     const { symbols } = req.body;
+    if (!symbols || !Array.isArray(symbols)) return res.status(400).json({ success: false, message: 'Symbols array required' });
 
-    if (!symbols || !Array.isArray(symbols) || symbols.length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide at least 2 stock symbols to compare'
-      });
-    }
+    const resolvedSymbols = symbols.map(s => resolveSymbol(s));
+    const quotes = await yahooFinance.quote(resolvedSymbols);
 
-    if (symbols.length > 4) {
-      return res.status(400).json({
-        success: false,
-        message: 'Maximum 4 stocks can be compared at once'
-      });
-    }
+    const stocks = quotes.map(q => ({
+      symbol: q.symbol,
+      name: q.shortName || q.longName || q.symbol,
+      currentPrice: q.regularMarketPrice || 0,
+      change: q.regularMarketChange || 0,
+      changePercent: q.regularMarketChangePercent || 0,
+      dayHigh: q.regularMarketDayHigh || 0,
+      dayLow: q.regularMarketDayLow || 0,
+      yearHigh: q.fiftyTwoWeekHigh || 0,
+      yearLow: q.fiftyTwoWeekLow || 0,
+      marketCap: q.marketCap || 0,
+      pe: q.trailingPE || 0,
+      pb: q.priceToBook || 0,
+      eps: q.epsTrailingTwelveMonths || 0,
+      dividend: q.dividendYield || 0,
+      sector: q.sector || 'N/A', // quote might not have this, but let's try
+      industry: q.industry || 'N/A',
+      volume: q.regularMarketVolume || 0,
+      avgVolume: q.averageDailyVolume3Month || 0
+    }));
 
-    const stocksData = await Promise.all(
-      symbols.map(async (symbol) => {
-        try {
-          // Try to get real data from API
-          const stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(symbol)}`);
-          
-          if (stockInfo) {
-            const currentPrice = parseFloat(
-              stockInfo.currentPrice?.NSE?.replace(/,/g, '') || 
-              stockInfo.currentPrice?.BSE?.replace(/,/g, '') || 0
-            );
-            
-            return {
-              symbol: symbol.toUpperCase(),
-              name: stockInfo.companyName || symbol,
-              currentPrice,
-              change: parseFloat(stockInfo.percentChange || 0),
-              changePercent: parseFloat(stockInfo.percentChange || 0),
-              dayHigh: parseFloat(stockInfo.dayHigh?.replace(/,/g, '') || currentPrice * 1.02),
-              dayLow: parseFloat(stockInfo.dayLow?.replace(/,/g, '') || currentPrice * 0.98),
-              yearHigh: parseFloat(stockInfo['52WeekHighPrice']?.replace(/,/g, '') || currentPrice * 1.3),
-              yearLow: parseFloat(stockInfo['52WeekLowPrice']?.replace(/,/g, '') || currentPrice * 0.7),
-              marketCap: stockInfo.marketCap || 'N/A',
-              pe: parseFloat(stockInfo.peTTM || stockInfo.pe || 0),
-              pb: parseFloat(stockInfo.pbRatio || 0),
-              eps: parseFloat(stockInfo.eps || 0),
-              dividend: parseFloat(stockInfo.dividendYield || 0),
-              sector: stockInfo.sector || 'N/A',
-              industry: stockInfo.industry || 'N/A',
-              volume: parseInt(stockInfo.totalTradedVolume?.replace(/,/g, '') || 0),
-              avgVolume: parseInt(stockInfo.avgVolume || stockInfo.totalTradedVolume?.replace(/,/g, '') || 0)
-            };
-          }
-        } catch (e) {
-          console.log(`[Compare] API failed for ${symbol}, using fallback`);
-        }
-
-        // Fallback mock data
-        const fallback = FALLBACK_STOCKS[symbol.toUpperCase()];
-        if (fallback) {
-          const price = fallback.price * (1 + (Math.random() - 0.5) * 0.02);
-          return {
-            symbol: symbol.toUpperCase(),
-            name: fallback.name,
-            currentPrice: parseFloat(price.toFixed(2)),
-            change: fallback.change,
-            changePercent: fallback.change,
-            dayHigh: parseFloat((price * 1.015).toFixed(2)),
-            dayLow: parseFloat((price * 0.985).toFixed(2)),
-            yearHigh: parseFloat((price * 1.25).toFixed(2)),
-            yearLow: parseFloat((price * 0.75).toFixed(2)),
-            marketCap: 'N/A',
-            pe: parseFloat((15 + Math.random() * 20).toFixed(2)),
-            pb: parseFloat((1 + Math.random() * 4).toFixed(2)),
-            eps: parseFloat((price / (15 + Math.random() * 10)).toFixed(2)),
-            dividend: parseFloat((Math.random() * 3).toFixed(2)),
-            sector: 'N/A',
-            industry: 'N/A',
-            volume: Math.floor(Math.random() * 10000000),
-            avgVolume: Math.floor(Math.random() * 8000000)
-          };
-        }
-
-        return {
-          symbol: symbol.toUpperCase(),
-          name: symbol,
-          currentPrice: 0,
-          error: 'Stock not found'
-        };
-      })
-    );
-
-    // Calculate comparison metrics
-    const comparison = {
-      priceLeader: stocksData.reduce((a, b) => a.currentPrice > b.currentPrice ? a : b).symbol,
-      changeLeader: stocksData.reduce((a, b) => a.changePercent > b.changePercent ? a : b).symbol,
-      peLeader: stocksData.filter(s => s.pe > 0).reduce((a, b) => a.pe < b.pe ? a : b, stocksData[0])?.symbol,
-      volumeLeader: stocksData.reduce((a, b) => a.volume > b.volume ? a : b).symbol
+    const responseData = {
+      stocks,
+      comparison: {},
+      comparedAt: new Date().toISOString()
     };
 
-    res.status(200).json({
-      success: true,
-      data: {
-        stocks: stocksData,
-        comparison,
-        comparedAt: new Date().toISOString()
-      }
-    });
+    res.status(200).json({ success: true, data: responseData });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error comparing stocks',
-      error: error.message
-    });
+    console.error('compareStocks error:', error);
+    res.status(500).json({ success: false, message: 'Error comparing stocks' });
   }
 };
 
-// ============================================================
-// CANDLESTICK / OHLC DATA ENDPOINTS
-// ============================================================
-
-// @desc    Get OHLC candlestick data for a stock
+// @desc    Get candlestick data 
 // @route   GET /api/markets/stocks/:symbol/candles
 // @access  Private
 exports.getCandlestickData = async (req, res) => {
   try {
     const { symbol } = req.params;
-    const { timeframe = '1M', interval = 'daily' } = req.query;
+    const { range = '1mo', interval = '1d' } = req.query;
 
-    // Determine number of data points based on timeframe
-    const timeframeDays = {
-      '1D': 1,
-      '1W': 7,
-      '1M': 30,
-      '3M': 90,
-      '6M': 180,
-      '1Y': 365
-    };
-    const days = timeframeDays[timeframe] || 30;
+    const validIntervals = ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'];
+    const useInterval = validIntervals.includes(interval) ? interval : '1d';
 
-    let candles = [];
-    let stockInfo = null;
+    const end = new Date();
+    const start = new Date();
+    if (range.endsWith('d')) start.setDate(start.getDate() - parseInt(range));
+    else if (range.endsWith('w')) start.setDate(start.getDate() - parseInt(range) * 7);
+    else if (range.endsWith('mo') || range.endsWith('m')) start.setMonth(start.getMonth() - parseInt(range));
+    else if (range.endsWith('y')) start.setFullYear(start.getFullYear() - parseInt(range));
+    else start.setMonth(start.getMonth() - 1);
 
-    // Try to get real data
-    try {
-      stockInfo = await fetchFromIndianAPI(`/stock?name=${encodeURIComponent(symbol)}`);
-      
-      if (stockInfo && stockInfo.historicalDataDaily) {
-        // Parse real historical data
-        candles = stockInfo.historicalDataDaily
-          .slice(0, days)
-          .map(day => ({
-            date: day.date,
-            timestamp: new Date(day.date).getTime(),
-            open: parseFloat(day.open?.replace(/,/g, '') || 0),
-            high: parseFloat(day.high?.replace(/,/g, '') || 0),
-            low: parseFloat(day.low?.replace(/,/g, '') || 0),
-            close: parseFloat(day.close?.replace(/,/g, '') || 0),
-            volume: parseInt(day.volume?.replace(/,/g, '') || 0)
-          }))
-          .reverse(); // Oldest first
-      }
-    } catch (e) {
-      console.log(`[Candles] API failed for ${symbol}, generating mock data`);
+    const queryOptions = { period1: start, period2: end, interval: useInterval };
+    const result = await yahooFinance.chart(symbol, queryOptions);
+
+    let data = [];
+    if (result && result.quotes) {
+      data = result.quotes.map(q => ({
+        time: new Date(q.date).getTime(),
+        open: q.open,
+        high: q.high,
+        low: q.low,
+        close: q.close,
+        volume: q.volume
+      }));
     }
-
-    // Generate mock data if needed
-    if (candles.length === 0) {
-      const fallback = FALLBACK_STOCKS[symbol.toUpperCase()];
-      const basePrice = fallback?.price || 1000;
-      candles = generateMockHistoricalData(basePrice, days, symbol.toUpperCase(), timeframe);
-    }
-
-    // Detect candlestick patterns
-    const patterns = detectCandlestickPatterns(candles);
-
-    // Calculate technical indicators
-    const indicators = calculateTechnicalIndicators(candles);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        symbol: symbol.toUpperCase(),
-        timeframe,
-        interval,
-        candles,
-        patterns,
-        indicators,
-        dataPoints: candles.length
-      }
-    });
+    res.status(200).json({ success: true, data });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching candlestick data',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching candles' });
   }
-};
-
-// Helper: Detect common candlestick patterns
-const detectCandlestickPatterns = (candles) => {
-  const patterns = [];
-  
-  if (candles.length < 3) return patterns;
-
-  for (let i = 2; i < candles.length; i++) {
-    const curr = candles[i];
-    const prev = candles[i - 1];
-    const prev2 = candles[i - 2];
-    
-    const bodySize = Math.abs(curr.close - curr.open);
-    const upperWick = curr.high - Math.max(curr.open, curr.close);
-    const lowerWick = Math.min(curr.open, curr.close) - curr.low;
-    const isBullish = curr.close > curr.open;
-    const isBearish = curr.close < curr.open;
-
-    // Doji (open ≈ close)
-    if (bodySize < (curr.high - curr.low) * 0.1) {
-      patterns.push({
-        name: 'Doji',
-        type: 'neutral',
-        date: curr.date,
-        index: i,
-        significance: 'Indecision in market',
-        icon: '✚'
-      });
-    }
-
-    // Hammer (bullish reversal)
-    if (isBullish && lowerWick > bodySize * 2 && upperWick < bodySize * 0.5) {
-      patterns.push({
-        name: 'Hammer',
-        type: 'bullish',
-        date: curr.date,
-        index: i,
-        significance: 'Potential bullish reversal',
-        icon: '🔨'
-      });
-    }
-
-    // Shooting Star (bearish reversal)
-    if (isBearish && upperWick > bodySize * 2 && lowerWick < bodySize * 0.5) {
-      patterns.push({
-        name: 'Shooting Star',
-        type: 'bearish',
-        date: curr.date,
-        index: i,
-        significance: 'Potential bearish reversal',
-        icon: '⭐'
-      });
-    }
-
-    // Engulfing patterns
-    const prevBodySize = Math.abs(prev.close - prev.open);
-    const prevIsBullish = prev.close > prev.open;
-    
-    // Bullish Engulfing
-    if (isBullish && !prevIsBullish && 
-        curr.open < prev.close && curr.close > prev.open &&
-        bodySize > prevBodySize) {
-      patterns.push({
-        name: 'Bullish Engulfing',
-        type: 'bullish',
-        date: curr.date,
-        index: i,
-        significance: 'Strong bullish reversal signal',
-        icon: '📈'
-      });
-    }
-
-    // Bearish Engulfing
-    if (isBearish && prevIsBullish && 
-        curr.open > prev.close && curr.close < prev.open &&
-        bodySize > prevBodySize) {
-      patterns.push({
-        name: 'Bearish Engulfing',
-        type: 'bearish',
-        date: curr.date,
-        index: i,
-        significance: 'Strong bearish reversal signal',
-        icon: '📉'
-      });
-    }
-
-    // Morning Star (bullish)
-    if (i >= 2) {
-      const dayBefore = candles[i - 2];
-      const isSmallMiddle = Math.abs(prev.close - prev.open) < Math.abs(dayBefore.close - dayBefore.open) * 0.3;
-      if (dayBefore.close < dayBefore.open && // Day 1: bearish
-          isSmallMiddle && // Day 2: small body
-          isBullish && curr.close > (dayBefore.open + dayBefore.close) / 2) { // Day 3: bullish closing above midpoint
-        patterns.push({
-          name: 'Morning Star',
-          type: 'bullish',
-          date: curr.date,
-          index: i,
-          significance: 'Strong bullish reversal pattern',
-          icon: '🌅'
-        });
-      }
-    }
-
-    // Evening Star (bearish)
-    if (i >= 2) {
-      const dayBefore = candles[i - 2];
-      const isSmallMiddle = Math.abs(prev.close - prev.open) < Math.abs(dayBefore.close - dayBefore.open) * 0.3;
-      if (dayBefore.close > dayBefore.open && // Day 1: bullish
-          isSmallMiddle && // Day 2: small body
-          isBearish && curr.close < (dayBefore.open + dayBefore.close) / 2) { // Day 3: bearish closing below midpoint
-        patterns.push({
-          name: 'Evening Star',
-          type: 'bearish',
-          date: curr.date,
-          index: i,
-          significance: 'Strong bearish reversal pattern',
-          icon: '🌆'
-        });
-      }
-    }
-  }
-
-  // Return most recent patterns (max 10)
-  return patterns.slice(-10);
-};
-
-// Helper: Calculate basic technical indicators
-const calculateTechnicalIndicators = (candles) => {
-  if (candles.length < 14) {
-    return { sma20: null, sma50: null, rsi: null, macd: null };
-  }
-
-  const closes = candles.map(c => c.close);
-
-  // Simple Moving Averages
-  const sma = (data, period) => {
-    if (data.length < period) return null;
-    const slice = data.slice(-period);
-    return slice.reduce((a, b) => a + b, 0) / period;
-  };
-
-  // RSI calculation
-  const calculateRSI = (data, period = 14) => {
-    if (data.length < period + 1) return null;
-    
-    let gains = 0;
-    let losses = 0;
-    
-    for (let i = data.length - period; i < data.length; i++) {
-      const diff = data[i] - data[i - 1];
-      if (diff > 0) gains += diff;
-      else losses -= diff;
-    }
-    
-    const avgGain = gains / period;
-    const avgLoss = losses / period;
-    
-    if (avgLoss === 0) return 100;
-    const rs = avgGain / avgLoss;
-    return 100 - (100 / (1 + rs));
-  };
-
-  // EMA calculation
-  const ema = (data, period) => {
-    if (data.length < period) return null;
-    const k = 2 / (period + 1);
-    let emaValue = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
-    for (let i = period; i < data.length; i++) {
-      emaValue = data[i] * k + emaValue * (1 - k);
-    }
-    return emaValue;
-  };
-
-  const sma20 = sma(closes, 20);
-  const sma50 = sma(closes, Math.min(50, closes.length));
-  const rsi = calculateRSI(closes, 14);
-  const ema12 = ema(closes, 12);
-  const ema26 = ema(closes, Math.min(26, closes.length));
-  const macd = ema12 && ema26 ? ema12 - ema26 : null;
-
-  const currentPrice = closes[closes.length - 1];
-  
-  return {
-    sma20: sma20 ? parseFloat(sma20.toFixed(2)) : null,
-    sma50: sma50 ? parseFloat(sma50.toFixed(2)) : null,
-    rsi: rsi ? parseFloat(rsi.toFixed(2)) : null,
-    macd: macd ? parseFloat(macd.toFixed(2)) : null,
-    trend: currentPrice > (sma20 || currentPrice) ? 'bullish' : 'bearish',
-    rsiSignal: rsi ? (rsi > 70 ? 'overbought' : rsi < 30 ? 'oversold' : 'neutral') : null
-  };
 };

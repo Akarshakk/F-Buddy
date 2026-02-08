@@ -119,6 +119,7 @@ class SplitWiseProvider extends ChangeNotifier {
     required String paidBy,
     required String paidByName,
     required List<GroupExpenseSplit> splits,
+    required DateTime date,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -134,6 +135,7 @@ class SplitWiseProvider extends ChangeNotifier {
           'paidBy': paidBy,
           'paidByName': paidByName,
           'splits': splits.map((s) => s.toJson()).toList(),
+          'date': date.toIso8601String(),
         },
       );
 

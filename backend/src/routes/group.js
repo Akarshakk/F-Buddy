@@ -11,7 +11,9 @@ const {
     transferOwnership,
     settleUp,
     addExpense,
-    deleteGroupExpense
+    deleteGroupExpense,
+    sendMessage,
+    getMessages
 } = require('../controllers/groupController');
 const { protect } = require('../middleware/auth');
 
@@ -32,5 +34,9 @@ router.delete('/:id', deleteGroup);
 // Expense routes
 router.post('/:id/expenses', addExpense);
 router.delete('/:id/expenses/:expenseId', deleteGroupExpense);
+
+// Chat routes
+router.post('/:id/chat', sendMessage);
+router.get('/:id/chat', getMessages);
 
 module.exports = router;

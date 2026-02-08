@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../models/paper_portfolio.dart';
 import '../../models/stock.dart';
 import '../../services/markets_service.dart';
@@ -27,35 +28,48 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
     super.initState();
     _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     _loadData();
+    // Start silent refresh timer (3 seconds)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _loadData(silent: true);
+    });
   }
+
+  Timer? _refreshTimer;
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _loadData({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       final results = await Future.wait([
         MarketsService.getPortfolio(),
         MarketsService.getWatchlist(),
       ]);
-      setState(() {
-        _portfolio = results[0] as PaperPortfolio?;
-        _watchlist = results[1] as Watchlist?;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _portfolio = results[0] as PaperPortfolio?;
+          _watchlist = results[1] as Watchlist?;
+          if (!silent) _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted && !silent) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -65,7 +79,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
       builder: (context) => AlertDialog(
         title: const Text('Reset Portfolio?'),
         content: const Text(
-          'This will reset your virtual portfolio to ₹10,00,000 and remove all holdings. '
+          'This will reset your virtual portfolio to ₹1,00,000 and remove all holdings. '
           'This action cannot be undone.',
         ),
         actions: [
@@ -158,7 +172,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
           controller: _tabController,
           indicatorColor: Colors.orange,
           labelColor: Colors.orange,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: Theme.of(context).brightness == Brightness.dark 
+              ? Colors.grey[500] 
+              : Colors.grey,
           tabs: [
             Tab(
               child: Row(
@@ -265,17 +281,33 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.bookmark_border, size: 64, color: Colors.grey.shade400),
+                            Icon(
+                              Icons.bookmark_border, 
+                              size: 64, 
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.grey[700] 
+                                  : Colors.grey.shade400
+                            ),
                             const SizedBox(height: 16),
-                            const Text(
+                            Text(
                               'No stocks in watchlist',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                              style: TextStyle(
+                                fontSize: 18, 
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? Colors.white 
+                                    : Colors.black,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Tap "Add Stock" above or the bookmark icon on any stock',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade600),
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? Colors.grey[400] 
+                                    : Colors.grey.shade600,
+                              ),
                             ),
                           ],
                         ),
@@ -371,7 +403,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                           stock.stockName,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? Colors.grey[400] 
+                                : Colors.grey.shade600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -657,21 +691,30 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
               Icon(
                 Icons.inventory_2_outlined,
                 size: 64,
-                color: Colors.grey.shade400,
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.grey[700] 
+                    : Colors.grey.shade400,
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'No holdings yet',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
+                      : Colors.black,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Start your paper trading journey by buying some stocks!',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.grey[400] 
+                      : Colors.grey.shade600,
+                ),
               ),
             ],
           ),
@@ -743,7 +786,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                           holding.stockName,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? Colors.grey[400] 
+                                : Colors.grey.shade600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -798,7 +843,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
           label,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade600,
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.grey[400] 
+                : Colors.grey.shade600,
           ),
         ),
         const SizedBox(height: 2),
@@ -996,7 +1043,9 @@ class _AddStockSheetState extends State<_AddStockSheet> {
                 hintText: 'Search stocks by name or symbol...',
                 prefixIcon: const Icon(Icons.search, color: Colors.orange),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.grey[900] 
+                    : Colors.grey.shade100,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -1011,11 +1060,22 @@ class _AddStockSheetState extends State<_AddStockSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
+                Icon(
+                  Icons.info_outline, 
+                  size: 16, 
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.grey[400] 
+                      : Colors.grey.shade600
+                ),
+                const SizedBox(width: 4),
                 Text(
-                  'Tap to add/remove from watchlist',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  'Watchlist tracks live prices',
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[400] 
+                        : Colors.grey.shade600, 
+                    fontSize: 12
+                  ),
                 ),
               ],
             ),
@@ -1030,9 +1090,22 @@ class _AddStockSheetState extends State<_AddStockSheet> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+                            Icon(
+                              Icons.search_off, 
+                              size: 48, 
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.grey[700] 
+                                  : Colors.grey.shade400
+                            ),
                             const SizedBox(height: 8),
-                            Text('No stocks found', style: TextStyle(color: Colors.grey.shade600)),
+                            Text(
+                              'No stocks found', 
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? Colors.grey[400] 
+                                    : Colors.grey.shade600
+                              )
+                            ),
                           ],
                         ),
                       )
@@ -1076,7 +1149,12 @@ class _AddStockSheetState extends State<_AddStockSheet> {
                                 stock.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                  fontSize: 12, 
+                                  color: Theme.of(context).brightness == Brightness.dark 
+                                      ? Colors.grey[400] 
+                                      : Colors.grey.shade600
+                                ),
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,

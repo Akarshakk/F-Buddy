@@ -262,7 +262,7 @@ class SplitwiseGroupsTab extends StatelessWidget {
   void _showDeleteDialog(BuildContext context, dynamic group, SplitWiseProvider provider) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: FinzoTheme.surface(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(FinzoRadius.lg),
@@ -281,7 +281,7 @@ class SplitwiseGroupsTab extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel',
               style: FinzoTypography.labelMedium(
@@ -290,9 +290,19 @@ class SplitwiseGroupsTab extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () {
-              provider.deleteGroup(group.id);
-              Navigator.pop(context);
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              final success = await provider.deleteGroup(group.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success 
+                      ? 'Group deleted successfully' 
+                      : provider.errorMessage ?? 'Only the group creator can delete this group'),
+                    backgroundColor: success ? FinzoColors.success : FinzoColors.error,
+                  ),
+                );
+              }
             },
             child: Text(
               'Delete',

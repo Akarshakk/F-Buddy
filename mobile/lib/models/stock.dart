@@ -15,13 +15,24 @@ class Stock {
   });
 
   factory Stock.fromJson(Map<String, dynamic> json) {
-    return Stock(
-      symbol: json['symbol'] ?? '',
-      name: json['name'] ?? '',
-      price: (json['price'] ?? 0).toDouble(),
-      change: (json['change'] ?? 0).toDouble(),
-      changePercent: double.tryParse(json['changePercent']?.toString() ?? '0') ?? 0,
-    );
+    try {
+      return Stock(
+        symbol: json['symbol']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
+        change: double.tryParse(json['change']?.toString() ?? '0') ?? 0.0,
+        changePercent: double.tryParse(json['changePercent']?.toString() ?? '0') ?? 0.0,
+      );
+    } catch (e) {
+      print('Error parsing stock: ${json['symbol']} - $e');
+      return Stock(
+        symbol: json['symbol']?.toString() ?? 'ERR',
+        name: 'Parse Error',
+        price: 0,
+        change: 0,
+        changePercent: 0,
+      );
+    }
   }
 
   bool get isPositive => change >= 0;
@@ -61,16 +72,16 @@ class StockDetail {
 
   factory StockDetail.fromJson(Map<String, dynamic> json) {
     return StockDetail(
-      symbol: json['symbol'] ?? '',
-      name: json['name'] ?? '',
-      currentPrice: (json['currentPrice'] ?? 0).toDouble(),
-      previousClose: (json['previousClose'] ?? 0).toDouble(),
-      change: (json['change'] ?? 0).toDouble(),
-      changePercent: (json['changePercent'] ?? 0).toDouble(),
-      dayHigh: (json['dayHigh'] ?? 0).toDouble(),
-      dayLow: (json['dayLow'] ?? 0).toDouble(),
-      volume: json['volume'] ?? 0,
-      marketCap: json['marketCap'] ?? '',
+      symbol: json['symbol']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      currentPrice: double.tryParse((json['currentPrice'] ?? json['price'] ?? 0).toString()) ?? 0.0,
+      previousClose: double.tryParse((json['previousClose'] ?? 0).toString()) ?? 0.0,
+      change: double.tryParse((json['change'] ?? 0).toString()) ?? 0.0,
+      changePercent: double.tryParse((json['changePercent'] ?? 0).toString()) ?? 0.0,
+      dayHigh: double.tryParse((json['dayHigh'] ?? 0).toString()) ?? 0.0,
+      dayLow: double.tryParse((json['dayLow'] ?? 0).toString()) ?? 0.0,
+      volume: int.tryParse((json['volume'] ?? 0).toString()) ?? 0,
+      marketCap: json['marketCap']?.toString() ?? '',
       historicalData: (json['historicalData'] as List? ?? [])
           .map((e) => StockHistoryPoint.fromJson(e))
           .toList(),

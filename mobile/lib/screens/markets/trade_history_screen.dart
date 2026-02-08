@@ -156,6 +156,9 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark ? Colors.grey[400] : Colors.grey[600];
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -163,14 +166,15 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
           Icon(
             Icons.history,
             size: 80,
-            color: Colors.grey.shade400,
+            color: textSecondary?.withOpacity(0.5),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No trades yet',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
             ),
           ),
           const SizedBox(height: 8),
@@ -178,7 +182,7 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
             _filterType == 'ALL'
                 ? 'Start paper trading to see your history here!'
                 : 'No ${_filterType.toLowerCase()} orders found',
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: textSecondary),
           ),
         ],
       ),
@@ -243,7 +247,9 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
                         trade.stockName,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.grey[400] 
+                              : Colors.grey[600],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -267,7 +273,9 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
                       'Total',
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.grey[400] 
+                            : Colors.grey[500],
                       ),
                     ),
                   ],
@@ -297,7 +305,9 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Colors.grey.shade600,
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.grey[400] 
+                : Colors.grey[600],
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -356,7 +366,9 @@ class _TradeHistoryScreenState extends State<TradeHistoryScreen> {
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade600,
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.grey[400] 
+                    : Colors.grey[600],
               ),
             ),
           ],

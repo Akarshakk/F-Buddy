@@ -23,7 +23,11 @@ class MarketsService {
   /// Get list of all available stocks
   static Future<List<Stock>> getStocks() async {
     try {
+      print('[MarketsService] Fetching stocks from $_basePath/stocks');
       final response = await ApiService.get('$_basePath/stocks');
+      print('[MarketsService] Response success: ${response['success']}');
+      print('[MarketsService] Response data count: ${response['data']?.length}');
+      
       if (response['success'] == true && response['data'] != null) {
         return (response['data'] as List)
             .map((e) => Stock.fromJson(e))

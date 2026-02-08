@@ -35,7 +35,7 @@ class _TradeScreenState extends State<TradeScreen> {
 
   double get totalValue => _quantity * widget.currentPrice;
 
-  int get maxBuyQuantity => (widget.availableBalance / widget.currentPrice).floor();
+  int get maxBuyQuantity => widget.currentPrice > 0 ? (widget.availableBalance / widget.currentPrice).floor() : 0;
 
   int get maxQuantity => isBuy ? maxBuyQuantity : (widget.maxSellQuantity ?? 0);
 
@@ -55,8 +55,26 @@ class _TradeScreenState extends State<TradeScreen> {
     });
   }
 
+  void _setQuantity(int qty) {
+    int finalQty = qty;
+    if (finalQty > maxQuantity && maxQuantity > 0) {
+      finalQty = maxQuantity;
+    }
+    
+    _quantityController.text = finalQty.toString();
+    setState(() {
+      _quantity = finalQty;
+      _errorMessage = null;
+    });
+  }
+
   void _setQuantityPercent(double percent) {
-    final qty = (maxQuantity * percent).floor();
+    if (maxQuantity <= 0) return;
+    
+    // Ensure percent is a finite number between 0 and 1
+    final clampedPercent = percent.clamp(0.0, 1.0);
+    // Calculate quantity, ensuring maxQuantity is positive before multiplication
+    final qty = (maxQuantity > 0 && clampedPercent.isFinite ? maxQuantity * clampedPercent : 0.0).floor();
     _quantityController.text = qty.toString();
     setState(() {
       _quantity = qty;
@@ -92,10 +110,16 @@ class _TradeScreenState extends State<TradeScreen> {
   }
 
   void _showSuccessDialog(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+    final surfaceColor = isDark ? AppColorsDark.surface : Colors.white;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -111,16 +135,16 @@ class _TradeScreenState extends State<TradeScreen> {
             const SizedBox(height: 16),
             Text(
               isBuy ? '🎉 Purchase Successful!' : '✅ Sold Successfully!',
-              style: AppTextStyles.heading3,
+              style: AppTextStyles.heading3.copyWith(color: textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               message,
-              style: AppTextStyles.body2.copyWith(color: Colors.grey),
+              style: AppTextStyles.body2.copyWith(color: textSecondary),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -356,26 +380,21 @@ class _TradeScreenState extends State<TradeScreen> {
                 onChanged: _updateQuantity,
               ),
             ),
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
-                ),
-              ),
-            const SizedBox(height: 16),
-
             // Quick Select Buttons
+            Text(
+              'Quick Select',
+              style: AppTextStyles.caption.copyWith(color: textSecondary),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
-                _buildQuickSelectButton('25%', 0.25, accentColor, textSecondary),
+                _buildPercentButton('25%', 0.25, accentColor),
                 const SizedBox(width: 8),
-                _buildQuickSelectButton('50%', 0.50, accentColor, textSecondary),
+                _buildPercentButton('50%', 0.50, accentColor),
                 const SizedBox(width: 8),
-                _buildQuickSelectButton('75%', 0.75, accentColor, textSecondary),
+                _buildPercentButton('75%', 0.75, accentColor),
                 const SizedBox(width: 8),
-                _buildQuickSelectButton('MAX', 1.0, accentColor, textSecondary),
+                _buildPercentButton('MAX', 1.0, accentColor),
               ],
             ),
             const SizedBox(height: 24),
@@ -492,13 +511,32 @@ class _TradeScreenState extends State<TradeScreen> {
     );
   }
 
-  Widget _buildQuickSelectButton(String label, double percent, Color accentColor, Color textSecondary) {
+  Widget _buildFixedQuantityButton(int qty, Color accentColor) {
+    final bool isDisabled = maxQuantity <= 0;
+    
     return Expanded(
       child: OutlinedButton(
-        onPressed: maxQuantity > 0 ? () => _setQuantityPercent(percent) : null,
+        onPressed: isDisabled ? null : () => _setQuantity(qty),
         style: OutlinedButton.styleFrom(
           foregroundColor: accentColor,
-          side: BorderSide(color: accentColor.withOpacity(0.5)),
+          side: BorderSide(color: accentColor.withOpacity(isDisabled ? 0.1 : 0.5)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+        child: Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _buildPercentButton(String label, double percent, Color accentColor) {
+    final bool isDisabled = maxQuantity <= 0;
+    
+    return Expanded(
+      child: OutlinedButton(
+        onPressed: isDisabled ? null : () => _setQuantityPercent(percent),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: accentColor,
+          side: BorderSide(color: accentColor.withOpacity(isDisabled ? 0.1 : 0.5)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(vertical: 12),
         ),

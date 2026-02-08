@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import '../../config/theme.dart';
 import '../../models/stock.dart';
@@ -6,6 +7,8 @@ import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
 import 'trade_screen.dart';
 import 'candlestick_chart_screen.dart';
+import '../../widgets/candlestick_chart.dart';
+import '../../widgets/trading_view_chart.dart';
 
 class StockDetailScreen extends StatefulWidget {
   final String symbol;
@@ -35,7 +38,19 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     super.initState();
     _loadData();
     _checkWatchlist();
+    // Start silent refresh timer (1 second)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _loadData(silent: true);
+    });
   }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Timer? _refreshTimer;
 
   Future<void> _checkWatchlist() async {
     final isWatched = await MarketsService.isInWatchlist(widget.symbol);
@@ -113,20 +128,27 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     setState(() => _watchlistLoading = false);
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadData({bool silent = false}) async {
+    if (!silent) setState(() => _isLoading = true);
     
-    final results = await Future.wait([
-      MarketsService.getStockDetail(widget.symbol, timeframe: _selectedTimeframe),
-      MarketsService.getPortfolio(),
-    ]);
-    
-    if (mounted) {
-      setState(() {
-        _stockDetail = results[0] as StockDetail?;
-        _portfolio = results[1] as PaperPortfolio?;
-        _isLoading = false;
-      });
+    try {
+      final results = await Future.wait([
+        MarketsService.getStockDetail(widget.symbol, timeframe: _selectedTimeframe),
+        MarketsService.getPortfolio(),
+      ]);
+      
+      if (mounted) {
+        setState(() {
+          _stockDetail = results[0] as StockDetail?;
+          _portfolio = results[1] as PaperPortfolio?;
+          if (!silent) _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('[StockDetail] Error loading data: $e');
+      if (mounted && !silent) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -236,16 +258,16 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                         // Timeframe Selector
                         _buildTimeframeSelector(isDark, surfaceColor, primaryColor, textSecondary),
                         
-                        // Price Chart (Line)
-                        _buildPriceChart(isDark, surfaceColor, textPrimary, textSecondary),
-                        
-                        // Candlestick Chart
+                        // Price Trend Chart (Area)
+                        _buildPriceTrendSection(isDark, surfaceColor, textPrimary, textSecondary),
+
+                        // Main Candlestick Chart
                         _buildCandlestickChartSection(isDark, surfaceColor, textPrimary, textSecondary),
                         
+                        // Dedicated Volume Chart
+                        _buildVolumeSection(isDark, surfaceColor, textPrimary, textSecondary),
+
                         const SizedBox(height: 16),
-                        
-                        // Volume Chart
-                        _buildVolumeChart(isDark, surfaceColor, textPrimary, textSecondary),
                         
                         // Stock Stats
                         _buildStockStats(isDark, surfaceColor, textPrimary, textSecondary),
@@ -358,14 +380,16 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.deepOrange : Colors.transparent,
+                color: isSelected ? primaryColor : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: isSelected ? null : Border.all(color: textSecondary.withOpacity(0.3)),
               ),
               child: Text(
                 tf,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : textSecondary,
+                  color: isSelected 
+                      ? (isDark ? AppColorsDark.background : Colors.white)
+                      : textSecondary,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   fontSize: 14,
                 ),
@@ -377,31 +401,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     );
   }
 
-  Widget _buildPriceChart(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
-    final data = _stockDetail!.historicalData;
-    if (data.isEmpty) {
-      return Container(
-        height: 250,
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Center(
-          child: Text('No chart data available', style: TextStyle(color: textSecondary)),
-        ),
-      );
-    }
 
-    final minPrice = data.map((e) => e.low).reduce((a, b) => a < b ? a : b);
-    final maxPrice = data.map((e) => e.high).reduce((a, b) => a > b ? a : b);
-    final priceRange = maxPrice - minPrice;
-    final chartColor = _stockDetail!.isPositive ? Colors.green : Colors.red;
-
+  Widget _buildPriceTrendSection(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
     return Container(
-      height: 280,
-      margin: const EdgeInsets.all(16),
+      height: 220,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surfaceColor,
@@ -411,77 +415,22 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '📈 Price Chart',
+            '📉 Price Trend',
             style: AppTextStyles.body1.copyWith(
               color: textPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Expanded(
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: priceRange > 0 ? priceRange / 4 : 1,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: textSecondary.withOpacity(0.1),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 50,
-                      getTitlesWidget: (value, meta) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Text(
-                          '₹${value.toInt()}',
-                          style: TextStyle(color: textSecondary, fontSize: 10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: 0,
-                maxX: (data.length - 1).toDouble(),
-                minY: minPrice - (priceRange * 0.05),
-                maxY: maxPrice + (priceRange * 0.05),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: data.asMap().entries.map((e) {
-                      return FlSpot(e.key.toDouble(), e.value.close);
-                    }).toList(),
-                    isCurved: true,
-                    color: chartColor,
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: chartColor.withOpacity(0.1),
-                    ),
-                  ),
-                ],
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipItems: (touchedSpots) {
-                      return touchedSpots.map((spot) {
-                        final dataPoint = data[spot.x.toInt()];
-                        return LineTooltipItem(
-                          '₹${dataPoint.close.toStringAsFixed(2)}\n${dataPoint.date}',
-                          TextStyle(color: chartColor, fontWeight: FontWeight.bold),
-                        );
-                      }).toList();
-                    },
-                  ),
-                ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: TradingViewChart(
+                symbol: widget.symbol,
+                interval: _selectedTimeframe,
+                theme: isDark ? 'dark' : 'light',
+                type: 'area',
+                height: 160,
               ),
             ),
           ),
@@ -491,16 +440,9 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   }
 
   Widget _buildCandlestickChartSection(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
-    final data = _stockDetail!.historicalData;
-    if (data.isEmpty) return const SizedBox.shrink();
-
-    final minPrice = data.map((e) => e.low).reduce((a, b) => a < b ? a : b);
-    final maxPrice = data.map((e) => e.high).reduce((a, b) => a > b ? a : b);
-    final priceRange = maxPrice - minPrice;
-
     return Container(
-      height: 250,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 380,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surfaceColor,
@@ -510,6 +452,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '🕯️ Candlestick Chart',
@@ -518,100 +461,44 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('▲ Bull', style: TextStyle(color: Colors.green, fontSize: 10)),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('▼ Bear', style: TextStyle(color: Colors.red, fontSize: 10)),
+              IconButton(
+                icon: Icon(Icons.fullscreen, color: textSecondary),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CandlestickChartScreen(
+                        symbol: widget.symbol,
+                        stockName: widget.name,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Expanded(
-            child: _buildCandlestickChart(data, minPrice, maxPrice, priceRange, textSecondary),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: TradingViewChart(
+                symbol: widget.symbol,
+                interval: _selectedTimeframe,
+                theme: isDark ? 'dark' : 'light',
+                type: 'candlestick',
+                height: 300,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCandlestickChart(
-    List<StockHistoryPoint> data,
-    double minPrice,
-    double maxPrice,
-    double priceRange,
-    Color textSecondary,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final chartWidth = constraints.maxWidth - 60; // Reserve space for Y-axis
-        final chartHeight = constraints.maxHeight;
-        
-        // Calculate candle width to fit all candles in available width
-        final totalCandles = data.length;
-        final availableWidth = chartWidth - 10; // Some padding
-        final candleWidth = (availableWidth / totalCandles * 0.7).clamp(2.0, 12.0);
-        
-        return Row(
-          children: [
-            // Y-axis labels
-            SizedBox(
-              width: 55,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(5, (i) {
-                  final price = maxPrice - (priceRange * i / 4);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(
-                      '₹${price.toInt()}',
-                      style: TextStyle(color: textSecondary, fontSize: 10),
-                    ),
-                  );
-                }),
-              ),
-            ),
-            // Candlestick chart - full width, no scroll
-            Expanded(
-              child: CustomPaint(
-                size: Size(chartWidth, chartHeight),
-                painter: CandlestickPainter(
-                  data: data,
-                  minPrice: minPrice - (priceRange * 0.05),
-                  maxPrice: maxPrice + (priceRange * 0.05),
-                  candleWidth: candleWidth,
-                  chartWidth: chartWidth,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildVolumeChart(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
-    final data = _stockDetail!.historicalData;
-    if (data.isEmpty) return const SizedBox.shrink();
-
-    final maxVolume = data.map((e) => e.volume).reduce((a, b) => a > b ? a : b).toDouble();
-
+  Widget _buildVolumeSection(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
     return Container(
-      height: 150,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 180,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surfaceColor,
@@ -621,34 +508,22 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '📊 Volume',
+            '📊 Volume Analysis',
             style: AppTextStyles.body1.copyWith(
               color: textPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Expanded(
-            child: BarChart(
-              BarChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                barGroups: data.asMap().entries.map((e) {
-                  final isUp = e.key > 0 && data[e.key].close >= data[e.key - 1].close;
-                  return BarChartGroupData(
-                    x: e.key,
-                    barRods: [
-                      BarChartRodData(
-                        toY: e.value.volume.toDouble(),
-                        color: isUp ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5),
-                        width: data.length > 30 ? 2 : 6,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
-                      ),
-                    ],
-                  );
-                }).toList(),
-                maxY: maxVolume * 1.1,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: TradingViewChart(
+                symbol: widget.symbol,
+                interval: _selectedTimeframe,
+                theme: isDark ? 'dark' : 'light',
+                type: 'volume',
+                height: 120,
               ),
             ),
           ),
@@ -656,6 +531,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
       ),
     );
   }
+
 
   Widget _buildStockStats(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
     return Container(
@@ -678,44 +554,55 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildStatItem('Day High', '₹${_stockDetail!.dayHigh.toStringAsFixed(2)}', Colors.green, textSecondary)),
-              Expanded(child: _buildStatItem('Day Low', '₹${_stockDetail!.dayLow.toStringAsFixed(2)}', Colors.red, textSecondary)),
+              Expanded(child: _buildStatItem('Day High', '₹${_stockDetail!.dayHigh.toStringAsFixed(2)}', Colors.green, textPrimary, textSecondary)),
+              Expanded(child: _buildStatItem('Day Low', '₹${_stockDetail!.dayLow.toStringAsFixed(2)}', Colors.red, textPrimary, textSecondary)),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _buildStatItem('Prev Close', '₹${_stockDetail!.previousClose.toStringAsFixed(2)}', Colors.blue, textSecondary)),
-              Expanded(child: _buildStatItem('Volume', _formatVolume(_stockDetail!.volume), Colors.purple, textSecondary)),
+              Expanded(child: _buildStatItem('Prev Close', '₹${_stockDetail!.previousClose.toStringAsFixed(2)}', Colors.blue, textPrimary, textSecondary)),
+              Expanded(child: _buildStatItem('Volume', _formatLargeNumber(_stockDetail!.volume), Colors.purple, textPrimary, textSecondary)),
             ],
           ),
           const SizedBox(height: 12),
-          _buildStatItem('Market Cap', _stockDetail!.marketCap, Colors.orange, textSecondary),
+          _buildStatItem('Market Cap', _formatLargeNumber(_stockDetail!.marketCap), Colors.orange, textPrimary, textSecondary),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, Color color, Color textSecondary) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 36,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
+  Widget _buildStatItem(String label, String value, Color color, Color textPrimary, Color textSecondary) {
+    if (value == '0' || value == '0.00' || value == '₹0.00' || value.isEmpty || value == 'null') {
+      return const SizedBox(width: 0, height: 0);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 4,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: AppTextStyles.caption.copyWith(color: textSecondary)),
-            Text(value, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ],
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(label, style: AppTextStyles.caption.copyWith(color: textSecondary, fontSize: 10)),
+                Text(value, style: AppTextStyles.body1.copyWith(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -771,7 +658,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Quantity', style: AppTextStyles.caption.copyWith(color: textSecondary)),
-                    Text('${holding.quantity} shares', style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+                    Text('${holding.quantity} shares', style: AppTextStyles.body1.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -780,7 +667,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Avg Price', style: AppTextStyles.caption.copyWith(color: textSecondary)),
-                    Text(holding.formattedAvgPrice, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+                    Text(holding.formattedAvgPrice, style: AppTextStyles.body1.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -794,7 +681,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Invested', style: AppTextStyles.caption.copyWith(color: textSecondary)),
-                    Text(holding.formattedCurrentValue, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+                    Text(holding.formattedCurrentValue, style: AppTextStyles.body1.copyWith(color: textPrimary, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -952,120 +839,25 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     ).then((_) => _loadData());
   }
 
-  String _formatVolume(int volume) {
-    if (volume >= 10000000) {
-      return '${(volume / 10000000).toStringAsFixed(2)} Cr';
-    } else if (volume >= 100000) {
-      return '${(volume / 100000).toStringAsFixed(2)} L';
-    } else if (volume >= 1000) {
-      return '${(volume / 1000).toStringAsFixed(2)} K';
+  String _formatLargeNumber(dynamic value) {
+    if (value == null) return '0';
+    
+    double numValue;
+    if (value is num) {
+      numValue = value.toDouble();
+    } else {
+      numValue = double.tryParse(value.toString()) ?? 0;
     }
-    return volume.toString();
+
+    if (numValue >= 10000000) {
+      return '${(numValue / 10000000).toStringAsFixed(2)} Cr';
+    } else if (numValue >= 100000) {
+      return '${(numValue / 100000).toStringAsFixed(2)} L';
+    } else if (numValue >= 1000) {
+      return '${(numValue / 1000).toStringAsFixed(1)} K';
+    }
+    return numValue.toStringAsFixed(0);
   }
 }
 
-/// Custom painter for rendering candlestick chart
-class CandlestickPainter extends CustomPainter {
-  final List<StockHistoryPoint> data;
-  final double minPrice;
-  final double maxPrice;
-  final double candleWidth;
-  final double chartWidth;
-
-  CandlestickPainter({
-    required this.data,
-    required this.minPrice,
-    required this.maxPrice,
-    required this.candleWidth,
-    required this.chartWidth,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (data.isEmpty || size.height <= 0 || size.width <= 0) return;
-    
-    final priceRange = (maxPrice - minPrice).clamp(0.01, double.infinity);
-    
-    // Calculate spacing to spread candles across full width
-    final totalCandles = data.length;
-    final totalCandleSpace = chartWidth / totalCandles;
-
-    for (int i = 0; i < data.length; i++) {
-      final point = data[i];
-      // Position each candle evenly across the chart width
-      final x = (i * totalCandleSpace) + (totalCandleSpace / 2);
-
-      // Determine if bullish (green) or bearish (red)
-      final isBullish = point.close >= point.open;
-      final color = isBullish ? Colors.green : Colors.red;
-
-      // Calculate Y positions (inverted because canvas Y increases downward)
-      final normalizedHigh = ((point.high - minPrice) / priceRange).clamp(0.0, 1.0);
-      final normalizedLow = ((point.low - minPrice) / priceRange).clamp(0.0, 1.0);
-      final normalizedOpen = ((point.open - minPrice) / priceRange).clamp(0.0, 1.0);
-      final normalizedClose = ((point.close - minPrice) / priceRange).clamp(0.0, 1.0);
-      
-      final highY = size.height - (normalizedHigh * size.height);
-      final lowY = size.height - (normalizedLow * size.height);
-      final openY = size.height - (normalizedOpen * size.height);
-      final closeY = size.height - (normalizedClose * size.height);
-
-      // Draw the wick (high-low line)
-      final wickPaint = Paint()
-        ..color = color
-        ..strokeWidth = 1.0;
-      canvas.drawLine(Offset(x, highY), Offset(x, lowY), wickPaint);
-
-      // Draw the body (open-close rectangle)
-      final bodyTop = isBullish ? closeY : openY;
-      final bodyBottom = isBullish ? openY : closeY;
-      final bodyHeight = (bodyBottom - bodyTop).abs().clamp(1.0, double.infinity);
-
-      // Adjust candle width based on available space
-      final actualCandleWidth = (totalCandleSpace * 0.6).clamp(2.0, 12.0);
-
-      final bodyPaint = Paint()
-        ..color = color
-        ..style = PaintingStyle.fill;
-
-      final bodyRect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          x - actualCandleWidth / 2,
-          bodyTop,
-          actualCandleWidth,
-          bodyHeight,
-        ),
-        const Radius.circular(1),
-      );
-      canvas.drawRRect(bodyRect, bodyPaint);
-
-      // Draw border for hollow candles (bullish) when candles are large enough
-      if (isBullish && actualCandleWidth > 4) {
-        final borderPaint = Paint()
-          ..color = color.withOpacity(0.8)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.5;
-        canvas.drawRRect(bodyRect, borderPaint);
-      }
-    }
-
-    // Draw horizontal grid lines
-    final gridPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.2)
-      ..strokeWidth = 0.5;
-
-    for (int i = 0; i <= 4; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CandlestickPainter oldDelegate) {
-    return data != oldDelegate.data ||
-        minPrice != oldDelegate.minPrice ||
-        maxPrice != oldDelegate.maxPrice ||
-        candleWidth != oldDelegate.candleWidth ||
-        chartWidth != oldDelegate.chartWidth;
-  }
-}
+// CandlestickPainter moved to widgets/candlestick_chart.dart

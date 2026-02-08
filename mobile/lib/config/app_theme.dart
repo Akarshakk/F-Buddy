@@ -65,6 +65,12 @@ class FinzoColors {
     Color(0xFFF5F3EF),
     Color(0xFFE8E4DD),
   ];
+
+  // Specific gradient requested by user (Navy -> Gold)
+  static const List<Color> darkToGoldGradient = [
+    Color(0xFF1A1A2E),
+    Color(0xFFD4A574),
+  ];
 }
 
 /// App-wide color constants for Dark Theme - Spotify-inspired
@@ -125,6 +131,11 @@ class FinzoColorsDark {
   static const List<Color> cardGradient = [
     Color(0xFF1E1E1E),
     Color(0xFF161616),
+  ];
+
+  static const List<Color> darkToGoldGradient = [
+    Color(0xFF1A1A2E),
+    Color(0xFFD4A574),
   ];
 }
 
