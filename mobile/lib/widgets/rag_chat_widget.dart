@@ -5,12 +5,19 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../config/app_theme.dart';
 import '../services/rag_service.dart';
 import '../services/translation_service.dart';
+import '../services/markets_service.dart';
 import '../providers/language_provider.dart';
+import '../providers/analytics_provider.dart';
 import 'package:finzo/l10n/app_localizations.dart';
 
 /// Floating chat widget for RAG-based financial advisory
 class RagChatWidget extends StatefulWidget {
-  const RagChatWidget({super.key});
+  final bool isFullScreen;
+
+  const RagChatWidget({
+    super.key,
+    this.isFullScreen = false,
+  });
 
   @override
   State<RagChatWidget> createState() => _RagChatWidgetState();
@@ -191,8 +198,31 @@ class _RagChatWidgetState extends State<RagChatWidget>
         }
       }
 
-      // Get AI response
-      final response = await _ragService.chat(outbound);
+      // Gather financial context (Balance + Portfolio)
+      Map<String, dynamic> financialContext = {};
+      
+      try {
+        final analyticsProvider = context.read<AnalyticsProvider>();
+        // Ensure we have latest data
+        if (analyticsProvider.dashboardData == null) {
+           await analyticsProvider.fetchDashboardData();
+        }
+        final balance = analyticsProvider.dashboardData?.balance ?? 0.0;
+        financialContext['wallet_balance'] = '₹${balance.toStringAsFixed(2)}';
+        
+        // Fetch Portfolio
+        final portfolio = await MarketsService.getPortfolio();
+        if (portfolio != null) {
+          financialContext['portfolio_value'] = '₹${portfolio.currentPortfolioValue.toStringAsFixed(2)}';
+          financialContext['invested_amount'] = '₹${portfolio.totalInvested.toStringAsFixed(2)}';
+          financialContext['total_profit_loss'] = '₹${portfolio.totalPnl.toStringAsFixed(2)}';
+        }
+      } catch (e) {
+        print('[RagChat] Error gathering context: $e');
+      }
+
+      // Get AI response with context
+      final response = await _ragService.chat(outbound, context: financialContext);
 
       if (response.success) {
         String answerText = response.answer;
@@ -244,12 +274,21 @@ class _RagChatWidgetState extends State<RagChatWidget>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isFullScreen) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final backgroundColor = isDark ? AppColorsDark.background : Colors.white;
+      
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: SafeArea(
+          child: _buildChatInterface(context),
+        ),
+      );
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
     final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
-    final backgroundColor = isDark ? AppColorsDark.background : Colors.white;
-    final languageProvider = context.watch<LanguageProvider>();
-    final l10n = context.l10n;
 
     return Stack(
       children: [
@@ -275,180 +314,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
                       width: 1,
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      // Header
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [primaryColor, primaryColor.withOpacity(0.8)],
-                          ),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.smart_toy, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.t('ai_header'),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${context.l10n.t('language')}: ${languageProvider.displayName}',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white),
-                              onPressed: _toggleChat,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Messages
-                      Expanded(
-                        child: Container(
-                          color: backgroundColor,
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _messages.length,
-                            itemBuilder: (context, index) {
-                              return _buildMessageBubble(_messages[index]);
-                            },
-                          ),
-                        ),
-                      ),
-
-                      // Loading indicator
-                      if (_isLoading)
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 16),
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(primaryColor),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                context.l10n.t('thinking'),
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Input field
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          border: Border(
-                            top: BorderSide(
-                              color: primaryColor.withOpacity(0.2),
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _messageController,
-                                decoration: InputDecoration(
-                                  hintText: context.l10n.t('chat_hint_finance'),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                    borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                    borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                    borderSide: BorderSide(color: primaryColor),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  filled: true,
-                                  fillColor: backgroundColor,
-                                ),
-                                maxLines: null,
-                                textInputAction: TextInputAction.send,
-                                onSubmitted: (_) => _sendMessage(),
-                                enabled: !_isLoading,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Mic button for speech-to-text
-                            Container(
-                              decoration: BoxDecoration(
-                                color: _isListening 
-                                    ? Colors.red 
-                                    : primaryColor.withOpacity(0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: Icon(
-                                  _isListening ? Icons.mic : Icons.mic_none,
-                                  color: _isListening ? Colors.white : primaryColor,
-                                ),
-                                onPressed: _isLoading 
-                                    ? null 
-                                    : (_isListening ? _stopListening : _startListening),
-                                tooltip: _isListening ? 'Stop listening' : 'Speak',
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            // Send button
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [primaryColor, primaryColor.withOpacity(0.8)],
-                                ),
-                                shape: BoxShape.circle,
-                                ),
-                              child: IconButton(
-                                icon: const Icon(Icons.send, color: Colors.white),
-                                onPressed: _isLoading ? null : _sendMessage,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _buildChatInterface(context),
                 ),
               ),
             ),
@@ -465,6 +331,193 @@ class _RagChatWidgetState extends State<RagChatWidget>
               _isExpanded ? Icons.close : Icons.chat,
               color: Colors.white,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChatInterface(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
+    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
+    final backgroundColor = isDark ? AppColorsDark.background : Colors.white;
+    final languageProvider = context.watch<LanguageProvider>();
+    final l10n = context.l10n;
+
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryColor, primaryColor.withOpacity(0.8)],
+            ),
+            borderRadius: widget.isFullScreen 
+                ? null 
+                : const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.smart_toy, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.t('ai_header'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${context.l10n.t('language')}: ${languageProvider.displayName}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!widget.isFullScreen)
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: _toggleChat,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+        ),
+
+        // Messages
+        Expanded(
+          child: Container(
+            color: backgroundColor,
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                return _buildMessageBubble(_messages[index]);
+              },
+            ),
+          ),
+        ),
+
+        // Loading indicator
+        if (_isLoading)
+          Container(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(primaryColor),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  context.l10n.t('thinking'),
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Input field
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            border: Border(
+              top: BorderSide(
+                color: primaryColor.withOpacity(0.2),
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _messageController,
+                  decoration: InputDecoration(
+                    hintText: context.l10n.t('chat_hint_finance'),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: primaryColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    filled: true,
+                    fillColor: backgroundColor,
+                  ),
+                  maxLines: null,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _sendMessage(),
+                  enabled: !_isLoading,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Mic button for speech-to-text
+              Container(
+                decoration: BoxDecoration(
+                  color: _isListening 
+                      ? Colors.red 
+                      : primaryColor.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _isListening ? Icons.mic : Icons.mic_none,
+                    color: _isListening ? Colors.white : primaryColor,
+                  ),
+                  onPressed: _isLoading 
+                      ? null 
+                      : (_isListening ? _stopListening : _startListening),
+                  tooltip: _isListening ? 'Stop listening' : 'Speak',
+                ),
+              ),
+              const SizedBox(width: 4),
+              // Send button
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [primaryColor, primaryColor.withOpacity(0.8)],
+                  ),
+                  shape: BoxShape.circle,
+                  ),
+                child: IconButton(
+                  icon: const Icon(Icons.send, color: Colors.white),
+                  onPressed: _isLoading ? null : _sendMessage,
+                ),
+              ),
+            ],
           ),
         ),
       ],

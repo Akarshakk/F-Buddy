@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>TradingView Chart</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0">
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+      background-color: #1e1e1e;
+    }
+
+    #chart {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #d1d4dc;
+      font-family: sans-serif;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="chart"></div>
+  <div id="loading" class="spinner">Loading Data...</div>
+
+  <script>
+    const API_URL = 'http://localhost:5001/api/market';
+    const DEFAULT_SYMBOL = 'AAPL';
+
+    // --- Datafeed Implementation ---
+    const Datafeed = {
+      getHistory: async (symbol, resolution, from, to) => {
+        const url = `${API_URL}/history?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}`;
+        try {
+          const response = await fetch(url);
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            return result.data.map(bar => ({
+              time: bar.time / 1000, // TV Lightweight expects seconds
+              open: bar.open,
+              high: bar.high,
+              low: bar.low,
+              close: bar.close,
+              volume: bar.volume
+            }));
+          }
+          return [];
+        } catch (error) {
+          console.error('Fetch error:', error);
+          return [];
+        }
+      }
+    };
+
+    // --- Chart Initialization ---
+    const chartContainer = document.getElementById('chart');
+    const chart = LightweightCharts.createChart(chartContainer, {
+      layout: {
+        background: { type: 'solid', color: '#1e1e1e' },
+        textColor: '#d1d4dc',
+      },
+      grid: {
+        vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
+        horzLines: { color: 'rgba(42, 46, 57, 0.5)' },
+      },
+      rightPriceScale: {
+        borderColor: 'rgba(197, 203, 206, 0.8)',
+      },
+      timeScale: {
+        borderColor: 'rgba(197, 203, 206, 0.8)',
+        timeVisible: true,
+        secondsVisible: false,
+      },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderVisible: false,
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+    });
+
+    // --- Logic ---
+    let currentSymbol = DEFAULT_SYMBOL;
+    let isPolling = false;
+
+    async function loadChart(symbol) {
+      document.getElementById('loading').style.display = 'block';
+      currentSymbol = symbol;
+
+      // Initial load: Last 1 year
+      const to = Math.floor(Date.now() / 1000);
+      const from = to - (365 * 24 * 60 * 60);
+
+      const bars = await Datafeed.getHistory(symbol, 'D', from, to);
+
+      if (bars.length > 0) {
+        candleSeries.setData(bars);
+        chart.timeScale().fitContent();
+      }
+
+      document.getElementById('loading').style.display = 'none';
+      startPolling();
+    }
+
+    function startPolling() {
+      if (isPolling) return;
+      isPolling = true;
+
+      setInterval(async () => {
+        // Poll for latest data (last 2 days just to be sure we get the latest update)
+        const to = Math.floor(Date.now() / 1000);
+        const from = to - (2 * 24 * 60 * 60);
+
+        const bars = await Datafeed.getHistory(currentSymbol, 'D', from, to);
+        if (bars.length > 0) {
+          // Update only unique new bars or update existing last bar
+          const lastBar = bars[bars.length - 1];
+          candleSeries.update(lastBar);
+        }
+      }, 6000); // 6 seconds polling
+    }
+
+    // --- Flutter Interop ---
+    window.updateSymbol = (symbol) => {
+      loadChart(symbol);
+    }
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      chart.resize(chartContainer.clientWidth, chartContainer.clientHeight);
+    });
+
+    // Start
+    // Get symbol from URL param if present, else default
+    const urlParams = new URLSearchParams(window.location.search);
+    const symbol = urlParams.get('symbol') || DEFAULT_SYMBOL;
+    loadChart(symbol);
+
+  </script>
+</body>
+
+</html>

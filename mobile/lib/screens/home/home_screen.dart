@@ -16,6 +16,7 @@ import 'expenses_tab.dart';
 import 'add_expense_screen.dart';
 import 'profile_tab.dart';
 import 'live_finance_tracking_screen.dart';
+import '../../widgets/rag_chat_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,9 +113,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final tabs = [
       DashboardTab(
-        onNavigateToProfile: () => setState(() => _currentIndex = 2),
+        onNavigateToProfile: () => setState(() => _currentIndex = 3),
       ),
       const ExpensesTab(),
+      const RagChatWidget(isFullScreen: true),
       const ProfileTab(),
     ];
 
@@ -345,7 +347,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _buildNavItem(0, Icons.home_outlined, Icons.home_rounded, context.l10n.t('dashboard')),
                     _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long_rounded, context.l10n.t('expenses')),
                     const SizedBox(width: 60), // Space for FAB
-                    _buildNavItem(2, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('profile')),
+                    _buildNavItem(2, Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
+                    _buildNavItem(3, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('profile')),
                   ],
                 ),
               ),

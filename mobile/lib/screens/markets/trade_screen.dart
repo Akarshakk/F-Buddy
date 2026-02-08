@@ -100,13 +100,96 @@ class _TradeScreenState extends State<TradeScreen> {
       setState(() => _isLoading = false);
 
       if (response['success'] == true) {
-        _showSuccessDialog(response['message'] ?? 'Trade executed successfully');
+        if (response['orderQueued'] == true) {
+          _showQueuedDialog(response['message'] ?? 'Order Queued');
+        } else {
+          _showSuccessDialog(response['message'] ?? 'Trade executed successfully');
+        }
       } else {
         setState(() {
           _errorMessage = response['message'] ?? 'Failed to execute trade';
         });
       }
     }
+  }
+
+  void _showQueuedDialog(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+    final surfaceColor = isDark ? AppColorsDark.surface : Colors.white;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.access_time_filled, color: Colors.orange, size: 48),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Market Closed',
+              style: AppTextStyles.heading3.copyWith(color: textPrimary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: AppTextStyles.body2.copyWith(color: textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.blue, size: 16),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Order will execute at 09:15 AM',
+                      style: AppTextStyles.caption.copyWith(color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+             width: double.infinity,
+             child: ElevatedButton(
+               onPressed: () {
+                 Navigator.pop(context); // Close dialog
+                 Navigator.pop(context); // Go back
+               },
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: Colors.orange,
+                 padding: const EdgeInsets.symmetric(vertical: 12),
+                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+               ),
+               child: const Text('Got it'),
+             ),
+           ),
+        ],
+      ),
+    );
   }
 
   void _showSuccessDialog(String message) {

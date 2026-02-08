@@ -11,14 +11,19 @@ class RagService {
     return 'http://$serverIp:5002';
   }
 
-  /// Send a chat query to the RAG service
-  Future<RagResponse> chat(String query) async {
+  /// Send a chat query to the RAG service with optional context
+  Future<RagResponse> chat(String query, {Map<String, dynamic>? context}) async {
     try {
       print('[RAG] Sending query to $baseUrl/chat: $query');
+      final body = {
+        'query': query,
+        if (context != null) 'context': context,
+      };
+      
       final response = await http.post(
         Uri.parse('$baseUrl/chat'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'query': query}),
+        body: json.encode(body),
       ).timeout(
         const Duration(minutes: 5),
         onTimeout: () {
