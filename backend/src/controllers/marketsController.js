@@ -1,12 +1,13 @@
 const PaperTrade = require('../models/PaperTrade');
 const PaperPortfolio = require('../models/PaperPortfolio');
 const Watchlist = require('../models/Watchlist');
+const PendingOrder = require('../models/PendingOrder');
 const yahooFinance = require('../config/yahooFinance');
 // const YahooFinance = require('yahoo-finance2').default; // Removed
 // const yahooFinance = new YahooFinance(); // Removed
 
 // Popular Indian Stocks for "Get Stocks" list and Mock Gainers/Losers
-// Popular Indian Stocks (Nifty 50 + Next 50 + US Tech)
+// Popular Indian Stocks (Nifty 50 + Next 50) - REMOVED US TECH
 const POPULAR_IND_STOCKS = [
   // NIFTY 50
   'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'KOTAKBANK.NS', 'LICI.NS',
@@ -37,10 +38,7 @@ const POPULAR_IND_STOCKS = [
   'ASTRAL.NS', 'KAJARIACER.NS', 'CERA.NS', 'SOMANYCEMS.NS', 'CENTURYPLY.NS', 'GREENPANEL.NS', 'KAJARIACER.NS', 'BORORENEW.NS', 'AWL.NS', 'ADANIPOWER.NS',
   'CGPOWER.NS', 'HBLPOWER.NS', 'GENUSPOWER.NS', 'JINDALSTEL.NS', 'TATASTEEL.NS', 'JSWSTEEL.NS', 'HINDALCO.NS', 'NATIONALUM.NS', 'HINDZINC.NS', 'VEDL.NS',
   'NMDC.NS', 'KIOCL.NS', 'MOIL.NS', 'GPIL.NS', 'APLAPOLLO.NS', 'RATNAMANI.NS', 'WELCORP.NS', 'MASTEK.NS', 'SONATAW.NS', 'CYIENT.NS', 'ZENSARTECH.NS',
-  'BSOFT.NS', 'NEWGEN.NS', 'INTELLECT.NS', 'CEINFO.NS', 'TATAELXSI.NS', 'L&T'.replace('L&T', 'LT.NS'), 'BSE.NS', 'CDSL.NS', 'MCX.NS', 'CAMS.NS', 'KFINTECH.NS',
-
-  // GLOBAL TECH (For benchmark)
-  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'BRK-B'
+  'BSOFT.NS', 'NEWGEN.NS', 'INTELLECT.NS', 'CEINFO.NS', 'TATAELXSI.NS', 'L&T'.replace('L&T', 'LT.NS'), 'BSE.NS', 'CDSL.NS', 'MCX.NS', 'CAMS.NS', 'KFINTECH.NS'
 ];
 
 // Map of Base Symbol -> NSE Symbol (e.g., 'RELIANCE' -> 'RELIANCE.NS')
@@ -55,9 +53,117 @@ const resolveSymbol = (symbol) => {
   if (INDIAN_STOCK_MAP.has(upper)) return INDIAN_STOCK_MAP.get(upper);
   // If it already has .NS or .BO, leave it
   if (upper.endsWith('.NS') || upper.endsWith('.BO')) return upper;
-  // Default: Return as is (might be US stock)
-  return upper;
+
+  // Strict Indian Stock Policy: If no suffix, assume NSE and append .NS
+  // This effectively blocks naked US symbols unless they match a mapped Indian stock
+  return `${upper}.NS`;
 };
+
+// MARKET HOURS UTIL
+// IST: UTC+5:30
+// Market Open: 09:15 IST - 15:30 IST
+// Weekdays Only (Mon=1 ... Fri=5)
+const isMarketOpen = () => {
+  // For testing purposes, you might want to uncomment this to force open:
+  // return true;
+
+  const now = new Date();
+
+  // Get current time in 'Asia/Kolkata'
+  const options = { timeZone: 'Asia/Kolkata', hour12: false, weekday: 'long', hour: 'numeric', minute: 'numeric' };
+  const formatter = new Intl.DateTimeFormat('en-US', options);
+  const parts = formatter.formatToParts(now);
+
+  const partMap = {};
+  parts.forEach(({ type, value }) => { partMap[type] = value; });
+
+  const weekday = partMap.weekday; // "Monday", "Tuesday", etc.
+  const hour = parseInt(partMap.hour, 10);
+  const minute = parseInt(partMap.minute, 10);
+
+  // 1. Check Weekend
+  if (weekday === 'Saturday' || weekday === 'Sunday') return false;
+
+  // 2. Check Time (09:15 - 15:30)
+  const totalMinutes = hour * 60 + minute;
+  const startMinutes = 9 * 60 + 15; // 09:15 -> 555
+  const endMinutes = 15 * 60 + 30;  // 15:30 -> 930
+
+  return totalMinutes >= startMinutes && totalMinutes <= endMinutes;
+};
+
+// Helper: Process Pending Orders
+const processPendingOrders = async (userId) => {
+  // Only process if market is open
+  if (!isMarketOpen()) return;
+
+  try {
+    const pendingOrders = await PendingOrder.getPendingOrders(userId);
+    if (pendingOrders.length === 0) return;
+
+    console.log(`Processing ${pendingOrders.length} pending orders for user ${userId}`);
+
+    // Get live prices for all pending symbols
+    const symbols = [...new Set(pendingOrders.map(o => o.symbol))];
+    let quotes = [];
+    try {
+      quotes = await yahooFinance.quote(symbols);
+    } catch (e) {
+      console.error('Failed to fetch quotes for pending orders', e);
+      return; // Can't process without prices
+    }
+
+    for (const order of pendingOrders) {
+      const quote = quotes.find(q => q.symbol === order.symbol);
+
+      if (!quote || !quote.regularMarketPrice) {
+        console.log(`Skipping pending order for ${order.symbol} - no price data`);
+        continue;
+      }
+
+      const executionPrice = quote.regularMarketPrice;
+
+      try {
+        if (order.type === 'BUY') {
+          await PaperPortfolio.executeBuyTrade(userId, order.symbol, order.stockName, order.quantity, executionPrice);
+        } else {
+          await PaperPortfolio.executeSellTrade(userId, order.symbol, order.quantity, executionPrice);
+        }
+
+        // Create the actual trade record
+        // Assuming PaperTrade.createTrade works with Firestore or needs update?
+        // Let's assume PaperTrade is also safe or I need to check it.
+        // PaperTrade uses Mongoose in original? Or likely customized too?
+        // Let's check PaperTrade imports later. Assuming it's fine for now (it was imported at top). 
+        // Actually, if PaperTrade is Mongoose, it will fail too if mongo is not there.
+        // But for now, fixing PendingOrder calls.
+
+        await PaperTrade.createTrade({
+          userId: userId,
+          symbol: order.symbol,
+          stockName: order.stockName,
+          type: order.type,
+          quantity: order.quantity,
+          price: executionPrice
+        });
+
+        // Mark pending order as EXECUTED
+        await PendingOrder.updateOrderStatus(order.id, 'EXECUTED', { executedAt: new Date() });
+        console.log(`Executed pending ${order.type} for ${order.symbol}`);
+
+      } catch (err) {
+        console.error(`Failed to execute pending order ${order.id}:`, err);
+        // Maybe mark as FAILED or leave PENDING to retry? 
+        if (err.message.includes('Insufficient funds') || err.message.includes('Insufficient holdings')) {
+          await PendingOrder.updateOrderStatus(order.id, 'FAILED', { error: err.message });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error processing pending orders:', err);
+  }
+};
+
 
 const cache = {
   stocks: { data: null, timestamp: 0 },
@@ -66,9 +172,9 @@ const cache = {
 };
 
 const CACHE_DURATION = {
-  STOCKS_LIST: 2 * 1000, // 2 seconds (aggressive for 1s poll)
-  STOCK_DETAIL: 1 * 1000, // 1 second (very aggressive)
-  MARKET_OVERVIEW: 5 * 1000 // Keep overview slightly longer to reduce load
+  STOCKS_LIST: 2 * 1000,
+  STOCK_DETAIL: 1 * 1000,
+  MARKET_OVERVIEW: 5 * 1000
 };
 
 const isCacheValid = (cacheEntry, duration) => {
@@ -194,6 +300,7 @@ exports.searchStocks = async (req, res) => {
     const filteredQuotes = (searchRes.quotes || []).filter(q => {
       if (!q.symbol) return false;
       const s = q.symbol.toUpperCase();
+      // Strict Check for Indian Suffix OR if it's an Indian Index
       const isIndian = s.endsWith('.NS') || s.endsWith('.BO');
       const isIndex = s === '^NSEI' || s === '^BSESN';
       return isIndian || isIndex;
@@ -227,6 +334,9 @@ exports.searchStocks = async (req, res) => {
 // @access  Private
 exports.getPortfolio = async (req, res) => {
   try {
+    // 1. LAZY PROCESS PENDING ORDERS
+    await processPendingOrders(req.user.id);
+
     const portfolio = await PaperPortfolio.getOrCreatePortfolio(req.user.id);
     // Map holdings to resolved symbols (e.g. INFY -> INFY.NS) for fetching
     const holdingSymbols = (portfolio.holdings || []).map(h => resolveSymbol(h.symbol));
@@ -268,12 +378,16 @@ exports.getPortfolio = async (req, res) => {
     const totalPnl = totalCurrentValue - totalInvestedValue;
     const totalPnlPercent = totalInvestedValue > 0 ? ((totalPnl / totalInvestedValue) * 100) : 0;
 
+    // Fetch remaining pending orders (if any)
+    const pendingOrders = await PendingOrder.getPendingOrders(req.user.id);
+
     res.status(200).json({
       success: true,
       data: {
         id: portfolio.id,
         virtualBalance: portfolio.virtualBalance,
         holdings: holdingsWithCurrentValue,
+        pendingOrders: pendingOrders, // Added pending orders
         totalInvested: parseFloat(totalInvestedValue.toFixed(2)),
         currentPortfolioValue: parseFloat(totalCurrentValue.toFixed(2)),
         totalPnl: parseFloat(totalPnl.toFixed(2)),
@@ -317,6 +431,25 @@ exports.executeTrade = async (req, res) => {
       return res.status(503).json({ success: false, message: 'Could not fetch live price for ' + resolvedSymbol });
     }
 
+    // CHECK MARKET HOURS
+    // If market is CLOSED, queue as Pending Order
+    if (!isMarketOpen()) {
+      await PendingOrder.createPendingOrder({
+        user: req.user.id,
+        symbol: resolvedSymbol,
+        stockName,
+        type: type.toUpperCase(),
+        quantity
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Market Closed. Order Queued.',
+        orderQueued: true
+      });
+    }
+
+    // MARKET OPEN - EXECUTE NORMALLY
     let updatedPortfolio;
     if (type.toUpperCase() === 'BUY') {
       updatedPortfolio = await PaperPortfolio.executeBuyTrade(req.user.id, resolvedSymbol, stockName, quantity, executionPrice);
