@@ -3,33 +3,36 @@ import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../config/app_theme.dart';
-import '../services/rag_service.dart';
+import '../services/chat_service.dart';
 import '../services/translation_service.dart';
 import '../services/markets_service.dart';
+import '../services/portfolio_report_service.dart';
 import '../providers/language_provider.dart';
 import '../providers/analytics_provider.dart';
 import 'package:finzo/l10n/app_localizations.dart';
 
-/// Floating chat widget for RAG-based financial advisory
-class RagChatWidget extends StatefulWidget {
+/// Floating chat widget for AI-powered financial advisory
+class SmartChatWidget extends StatefulWidget {
   final bool isFullScreen;
 
-  const RagChatWidget({
+  const SmartChatWidget({
     super.key,
     this.isFullScreen = false,
+    this.onToggle,
   });
 
+  final ValueChanged<bool>? onToggle;
+
   @override
-  State<RagChatWidget> createState() => _RagChatWidgetState();
+  State<SmartChatWidget> createState() => _SmartChatWidgetState();
 }
 
-class _RagChatWidgetState extends State<RagChatWidget>
+class _SmartChatWidgetState extends State<SmartChatWidget>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   final List<ChatMessage> _messages = [];
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final RagService _ragService = RagService();
   final TranslationService _translationService = TranslationService.instance;
   bool _isLoading = false;
 
@@ -136,6 +139,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
         _animationController.reverse();
       }
     });
+    widget.onToggle?.call(_isExpanded);
   }
 
   void _addMessage(ChatMessage message) {
@@ -155,6 +159,43 @@ class _RagChatWidgetState extends State<RagChatWidget>
         );
       }
     });
+  }
+
+  /// Handle portfolio report generation triggered from chat
+  Future<void> _handleGenerateReport() async {
+    try {
+      // Fetch full portfolio data
+      final portfolio = await MarketsService.getPortfolio();
+      if (portfolio != null && portfolio.holdings.isNotEmpty) {
+        // Generate and open PDF report
+        await PortfolioReportService.generateAndPrintReport(portfolio);
+        _addMessage(
+          ChatMessage(
+            text: '✅ Report generated! Check your print/download dialog.',
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        );
+      } else {
+        _addMessage(
+          ChatMessage(
+            text: '📊 You need some holdings in your portfolio first to generate a report.',
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('[SmartChat] Error generating report: $e');
+      _addMessage(
+        ChatMessage(
+          text: '❌ Failed to generate report. Please try again.',
+          isUser: false,
+          timestamp: DateTime.now(),
+          isError: true,
+        ),
+      );
+    }
   }
 
   Future<void> _sendMessage() async {
@@ -201,28 +242,12 @@ class _RagChatWidgetState extends State<RagChatWidget>
       // Gather financial context (Balance + Portfolio)
       Map<String, dynamic> financialContext = {};
       
-      try {
-        final analyticsProvider = context.read<AnalyticsProvider>();
-        // Ensure we have latest data
-        if (analyticsProvider.dashboardData == null) {
-           await analyticsProvider.fetchDashboardData();
-        }
-        final balance = analyticsProvider.dashboardData?.balance ?? 0.0;
-        financialContext['wallet_balance'] = '₹${balance.toStringAsFixed(2)}';
-        
-        // Fetch Portfolio
-        final portfolio = await MarketsService.getPortfolio();
-        if (portfolio != null) {
-          financialContext['portfolio_value'] = '₹${portfolio.currentPortfolioValue.toStringAsFixed(2)}';
-          financialContext['invested_amount'] = '₹${portfolio.totalInvested.toStringAsFixed(2)}';
-          financialContext['total_profit_loss'] = '₹${portfolio.totalPnl.toStringAsFixed(2)}';
-        }
-      } catch (e) {
-        print('[RagChat] Error gathering context: $e');
-      }
+      // Strict Privacy Mode: We do NOT send any data snapshot upfront.
+      // Gemini will use tools (getBalance, getPortfolio, etc.) to fetch data on demand.
+      // This ensures minimum data exposure.
 
       // Get AI response with context
-      final response = await _ragService.chat(outbound, context: financialContext);
+      final response = await SmartChatService.chat(outbound, context: financialContext);
 
       if (response.success) {
         String answerText = response.answer;
@@ -248,6 +273,12 @@ class _RagChatWidgetState extends State<RagChatWidget>
             sources: response.sources,
           ),
         );
+
+        // Handle special actions
+        if (response.action == 'generatePortfolioReport') {
+          // Trigger portfolio report generation
+          _handleGenerateReport();
+        }
       } else {
         _addMessage(
           ChatMessage(
@@ -451,14 +482,15 @@ class _RagChatWidgetState extends State<RagChatWidget>
               ),
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _messageController,
-                  decoration: InputDecoration(
-                    hintText: context.l10n.t('chat_hint_finance'),
-                    border: OutlineInputBorder(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: context.l10n.t('chat_hint_finance'),
+                          border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                       borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
                     ),
@@ -483,7 +515,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
                   enabled: !_isLoading,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               // Mic button for speech-to-text
               Container(
                 decoration: BoxDecoration(
@@ -503,7 +535,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
                   tooltip: _isListening ? 'Stop listening' : 'Speak',
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 12),
               // Send button
               Container(
                 decoration: BoxDecoration(
@@ -528,13 +560,34 @@ class _RagChatWidgetState extends State<RagChatWidget>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = isDark ? AppColorsDark.primary : AppColors.primary;
     final textColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+    final surfaceColor = isDark ? AppColorsDark.surface : Colors.grey.shade200;
+
+    // Determine background color
+    Color bubbleColor;
+    if (message.isUser) {
+      bubbleColor = primaryColor;
+    } else if (message.isError) {
+      bubbleColor = isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50;
+    } else {
+      bubbleColor = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
+    }
+
+    // Determine text color
+    Color messageTextColor;
+    if (message.isUser) {
+      messageTextColor = Colors.white;
+    } else if (message.isError) {
+      messageTextColor = isDark ? Colors.red.shade200 : Colors.red.shade900;
+    } else {
+      messageTextColor = isDark ? Colors.white : Colors.black87;
+    }
 
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7,
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         child: Column(
           crossAxisAlignment:
@@ -543,9 +596,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: message.isUser
-                    ? primaryColor
-                    : (message.isError ? Colors.red.withOpacity(0.1) : Colors.grey.shade200),
+                color: bubbleColor,
                 borderRadius: BorderRadius.circular(16).copyWith(
                   bottomRight: message.isUser ? const Radius.circular(4) : null,
                   bottomLeft: !message.isUser ? const Radius.circular(4) : null,
@@ -554,7 +605,7 @@ class _RagChatWidgetState extends State<RagChatWidget>
               child: Text(
                 message.text,
                 style: TextStyle(
-                  color: message.isUser ? Colors.white : textColor,
+                  color: messageTextColor,
                   fontSize: 14,
                 ),
               ),

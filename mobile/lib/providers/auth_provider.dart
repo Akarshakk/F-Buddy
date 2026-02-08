@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/constants.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/biometric_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
@@ -11,11 +12,13 @@ class AuthProvider extends ChangeNotifier {
   User? _user;
   String? _errorMessage;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final BiometricService _biometricService = BiometricService();
 
   AuthStatus get status => _status;
   User? get user => _user;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
+  BiometricService get biometricService => _biometricService;
 
   // Check if user is logged in
   Future<void> checkAuthStatus() async {
@@ -95,6 +98,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> login({
     required String email,
     required String password,
+    bool saveForBiometric = false,
   }) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
@@ -114,6 +118,12 @@ class AuthProvider extends ChangeNotifier {
         await ApiService.saveToken(response['data']['token']);
         _user = User.fromJson(response['data']['user']);
         _status = AuthStatus.authenticated;
+        
+        // Save credentials for biometric login if requested
+        if (saveForBiometric) {
+          await _biometricService.saveCredentials(email: email, password: password);
+        }
+        
         notifyListeners();
         return true;
       } else {
@@ -122,6 +132,48 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _status = AuthStatus.error;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Login with biometric/device credentials
+  Future<bool> loginWithBiometric() async {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // First authenticate with biometrics/PIN
+      final authenticated = await _biometricService.authenticate(
+        reason: 'Authenticate to access Finzo',
+      );
+      
+      if (!authenticated) {
+        _status = AuthStatus.unauthenticated;
+        _errorMessage = 'Authentication cancelled';
+        notifyListeners();
+        return false;
+      }
+
+      // Get saved credentials
+      final credentials = await _biometricService.getSavedCredentials();
+      if (credentials == null) {
+        _status = AuthStatus.unauthenticated;
+        _errorMessage = 'No saved credentials found';
+        notifyListeners();
+        return false;
+      }
+
+      // Login with saved credentials
+      return await login(
+        email: credentials['email']!,
+        password: credentials['password']!,
+        saveForBiometric: false,
+      );
     } catch (e) {
       _errorMessage = e.toString();
       _status = AuthStatus.error;

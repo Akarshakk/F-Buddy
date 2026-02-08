@@ -73,13 +73,13 @@ class PortfolioReportService {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text('Finzo', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.orange800)),
-            pw.Text('Portfolio Performance Report', style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+            pw.Text('Portfolio Performance Report', style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
           ],
         ),
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            pw.Text('Generated', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+            pw.Text('Generated', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
             pw.Text(dateFormat.format(DateTime.now()), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           ],
         ),
@@ -218,7 +218,7 @@ class PortfolioReportService {
                     pw.Expanded(child: pw.Text(label, style: const pw.TextStyle(fontSize: 11))),
                     pw.Text(currencyFormat.format(value), style: const pw.TextStyle(fontSize: 11)),
                     pw.SizedBox(width: 8),
-                    pw.Text('$percent%', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Text('$percent%', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                   ],
                 ),
               );
@@ -264,8 +264,8 @@ class PortfolioReportService {
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text('Loss', style: pw.TextStyle(color: PdfColors.red700, fontSize: 10)),
-            pw.Text('Profit', style: pw.TextStyle(color: PdfColors.green700, fontSize: 10)),
+            pw.Text('Loss', style: const pw.TextStyle(color: PdfColors.red700, fontSize: 10)),
+            pw.Text('Profit', style: const pw.TextStyle(color: PdfColors.green700, fontSize: 10)),
           ],
         ),
         pw.Divider(color: PdfColors.grey300),
@@ -284,15 +284,15 @@ class PortfolioReportService {
                       if (!isProfitable) ...[
                         pw.Text(
                           currencyFormat.format(h.pnl), 
-                          style: pw.TextStyle(fontSize: 9, color: PdfColors.red700)
+                          style: const pw.TextStyle(fontSize: 9, color: PdfColors.red700)
                         ),
                         pw.SizedBox(width: 4),
                         pw.Container(
                           height: 12,
                           width: barWidth,
-                          decoration: pw.BoxDecoration(
+                          decoration: const pw.BoxDecoration(
                             color: PdfColors.red600,
-                            borderRadius: const pw.BorderRadius.only(
+                            borderRadius: pw.BorderRadius.only(
                               topLeft: pw.Radius.circular(2),
                               bottomLeft: pw.Radius.circular(2),
                             ),
@@ -311,9 +311,9 @@ class PortfolioReportService {
                         pw.Container(
                           height: 12,
                           width: barWidth,
-                          decoration: pw.BoxDecoration(
+                          decoration: const pw.BoxDecoration(
                             color: PdfColors.green600,
-                            borderRadius: const pw.BorderRadius.only(
+                            borderRadius: pw.BorderRadius.only(
                               topRight: pw.Radius.circular(2),
                               bottomRight: pw.Radius.circular(2),
                             ),
@@ -322,7 +322,7 @@ class PortfolioReportService {
                         pw.SizedBox(width: 4),
                         pw.Text(
                           currencyFormat.format(h.pnl), 
-                          style: pw.TextStyle(fontSize: 9, color: PdfColors.green700)
+                          style: const pw.TextStyle(fontSize: 9, color: PdfColors.green700)
                         ),
                       ],
                     ],
@@ -331,7 +331,7 @@ class PortfolioReportService {
               ],
             ),
           );
-        }).toList(),
+        }),
         pw.SizedBox(height: 4),
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.center,

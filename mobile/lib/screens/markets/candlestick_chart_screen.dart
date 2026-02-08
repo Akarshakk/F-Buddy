@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/stock.dart';
 import '../../services/markets_service.dart';
-import '../../widgets/candlestick_chart.dart';
 import '../../widgets/trading_view_chart.dart';
 
 class CandlestickChartScreen extends StatefulWidget {

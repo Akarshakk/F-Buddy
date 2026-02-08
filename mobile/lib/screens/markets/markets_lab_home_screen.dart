@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import '../../config/theme.dart' hide AppTextStyles;
 import '../../config/app_theme.dart';
 import '../../models/stock.dart';
 import '../../models/paper_portfolio.dart';

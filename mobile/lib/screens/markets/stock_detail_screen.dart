@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:fl_chart/fl_chart.dart';
 import '../../config/theme.dart';
 import '../../models/stock.dart';
 import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
 import 'trade_screen.dart';
 import 'candlestick_chart_screen.dart';
-import '../../widgets/candlestick_chart.dart';
 import '../../widgets/trading_view_chart.dart';
 
 class StockDetailScreen extends StatefulWidget {

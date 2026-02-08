@@ -10,14 +10,14 @@ class CandlestickChart extends StatelessWidget {
   final Color labelColor;
 
   const CandlestickChart({
-    Key? key,
+    super.key,
     required this.data,
     this.height = 300,
     this.bullColor = Colors.green,
     this.bearColor = Colors.red,
     this.gridColor = Colors.grey,
     this.labelColor = Colors.grey,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

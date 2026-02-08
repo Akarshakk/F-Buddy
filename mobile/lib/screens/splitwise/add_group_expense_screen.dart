@@ -326,13 +326,12 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
                               builder: (context, child) {
                                 return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: ColorScheme.dark( // Use dark scheme for picker dialog to match theme
+                                    colorScheme: const ColorScheme.dark( // Use dark scheme for picker dialog to match theme
                                       primary: FinzoColors.brandAccent,
                                       onPrimary: Colors.white,
-                                      surface: const Color(0xFF1E1E1E),
+                                      surface: Color(0xFF1E1E1E),
                                       onSurface: Colors.white,
-                                    ),
-                                    dialogBackgroundColor: const Color(0xFF1E1E1E),
+                                    ), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
                                   ),
                                   child: child!,
                                 );

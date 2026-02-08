@@ -14,7 +14,6 @@ import '../../providers/expense_provider.dart';
 import '../../providers/income_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/splitwise_provider.dart';
-import '../widgets/expense_card.dart';
 import '../widgets/summary_card.dart';
 import '../../l10n/app_localizations.dart';
 import 'add_income_screen.dart';
