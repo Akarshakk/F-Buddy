@@ -897,7 +897,7 @@ const functionHandlers = {
 
     async generatePortfolioReport(params, userId) {
         // Fetch portfolio data and return it with a flag for frontend to generate PDF
-        const portfolio = await PaperPortfolio.findByUser(userId);
+        const portfolio = await PaperPortfolio.getOrCreatePortfolio(userId);
 
         if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
             return {
