@@ -23,7 +23,7 @@ class ApiConstants {
   // 🔧 CHANGE THIS BASED ON YOUR PLATFORM:
   // For Web/Emulator: 'localhost'
   // For Physical Device: Your computer's IP (e.g., '10.176.182.25')
-  static const String _serverIp = '10.200.74.14'; // Your computer's IP for physical device
+  static const String _serverIp = 'localhost'; // Use localhost with 'adb reverse' for reliability
   static const String _serverPort = '5001'; // Backend runs on port 5001 (from .env)
 
   // Automatically detect platform and use correct URL
@@ -33,16 +33,20 @@ class ApiConstants {
       return 'http://localhost:$_serverPort/api';
     }
 
-    // For mobile platforms - use the configured IP
-    // Note: Android emulator needs 10.0.2.2 to reach host machine
-    // For physical devices, set _serverIp to your computer's IP
+    // For mobile platforms
+    // If _serverIp is localhost, it works for:
+    // 1. iOS Simulator (direct)
+    // 2. Android Physical Device (via 'adb reverse tcp:5001 tcp:5001')
+    // 3. Android Emulator (needs 10.0.2.2)
+    
     if (_serverIp == 'localhost' || _serverIp == '127.0.0.1') {
-      // This handles Android emulator - it needs 10.0.2.2
-      // iOS simulator works with localhost
-      return 'http://10.0.2.2:$_serverPort/api';
+      // We can't easily detect if we're on an emulator vs physical device here 
+      // without additional packages, but 10.0.2.2 is usually ONLY for emulator.
+      // For physical devices with adb reverse, 'localhost' is better.
+      // Since this is for debugging, we'll assume physical device if not on web/simulator.
+      return 'http://localhost:$_serverPort/api';
     }
 
-    // For real devices (physical Android/iOS) using computer's IP
     return 'http://$_serverIp:$_serverPort/api';
   }
 
