@@ -15,14 +15,14 @@ class AnimatedButton extends StatefulWidget {
   final double minScale;
   
   const AnimatedButton({
-    Key? key,
+    super.key,
     required this.onPressed,
     required this.child,
     this.duration = const Duration(milliseconds: 100),
     this.curve = Curves.easeOutCubic,
     this.enableHaptics = true,
     this.minScale = 0.95,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedButton> createState() => _AnimatedButtonState();
@@ -101,7 +101,7 @@ class AnimatedElevatedButton extends StatelessWidget {
   final bool enableHaptics;
 
   const AnimatedElevatedButton({
-    Key? key,
+    super.key,
     required this.onPressed,
     required this.label,
     this.backgroundColor,
@@ -111,7 +111,7 @@ class AnimatedElevatedButton extends StatelessWidget {
     this.borderRadius,
     this.icon,
     this.enableHaptics = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -176,14 +176,14 @@ class AnimatedIconButton extends StatelessWidget {
   final EdgeInsets padding;
 
   const AnimatedIconButton({
-    Key? key,
+    super.key,
     required this.onPressed,
     required this.icon,
     this.color,
     this.size = 24,
     this.enableHaptics = true,
     this.padding = const EdgeInsets.all(8),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

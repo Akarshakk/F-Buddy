@@ -11,23 +11,26 @@ This directory contains reusable Flutter widgets used across the Finzo app.
 
 ## Widgets
 
-### RagChatWidget
-**File**: `rag_chat_widget.dart`
+### SmartChatWidget
+**File**: `smart_chat_widget.dart`
 
-AI-powered financial advisory chatbot widget that appears in the Personal Finance Manager section.
+AI-powered financial chatbot widget that provides conversational CRUD operations.
 
 **Features:**
 - Floating action button (bottom-right)
 - Expandable chat interface
+- Full-screen mode for dedicated chat tab
+- Voice input (speech-to-text)
+- Multi-language support
 - Message bubbles (user/AI)
 - Typing indicator
-- Source attribution
 - Dark mode support
 - Smooth animations
+- Portfolio report generation
 
 **Usage:**
 ```dart
-import 'package:finzo/widgets/rag_chat_widget.dart';
+import 'package:finzo/widgets/smart_chat_widget.dart';
 
 // Add to any screen
 Stack(
@@ -36,18 +39,22 @@ Stack(
     YourContent(),
     
     // Floating chat widget
-    const RagChatWidget(),
+    const SmartChatWidget(),
   ],
 )
+
+// Or use in full-screen mode
+const SmartChatWidget(isFullScreen: true),
 ```
 
 **Backend Requirement:**
-Requires RAG service running on port 5002. See `RAG_FEATURE_GUIDE.md` for setup.
+Requires main backend with /api/chat endpoint. Uses Gemini API for NLP.
 
-**API Endpoints Used:**
-- `POST /chat` - Send query and get AI response
-- `GET /health` - Check service status
-- `GET /stats` - Get knowledge base statistics
+**Capabilities:**
+- READ: Get expenses, income, debts, portfolio, analytics
+- WRITE: Add/update/delete expenses, income, debts
+- ACTIONS: Generate portfolio report, set savings goals
+- GROUPS: Create groups, add members, manage expenses
 
 **State Management:**
 - Uses `StatefulWidget` with `SingleTickerProviderStateMixin`

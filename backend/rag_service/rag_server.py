@@ -8,6 +8,15 @@ import os
 import uuid
 import re
 import json
+import sys
+import io
+
+# Force UTF-8 encoding for stdout/stderr to handle emojis on Windows
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr.reconfigure(encoding='utf-8')
+
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS

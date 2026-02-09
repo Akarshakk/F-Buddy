@@ -22,7 +22,7 @@ class GroupDetailsScreen extends StatefulWidget {
 }
 
 class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTickerProviderStateMixin {
-  bool _useSimplifiedDebt = true;
+  final bool _useSimplifiedDebt = true;
   late Razorpay _razorpay;
   String? _razorpayKey;
   int _selectedTabIndex = 0;
@@ -48,8 +48,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
 
   @override
   void dispose() {
-    super.dispose();
     _razorpay.clear();
+    super.dispose();
   }
 
   // Pending settlement state
@@ -105,9 +105,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
     try {
       _pendingSettlement = settlement;
 
-      if (_razorpayKey == null) {
-        _razorpayKey = await ApiService.getRazorpayKey();
-      }
+      _razorpayKey ??= await ApiService.getRazorpayKey();
 
       if (_razorpayKey == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -277,7 +275,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
                   onPressed: _scanBill,
                   backgroundColor: FinzoColors.surfaceVariant,
                   label: Text('Scan', style: FinzoTypography.labelMedium(color: FinzoColors.textPrimary)),
-                  icon: Icon(Icons.camera_alt_outlined, color: FinzoColors.textPrimary),
+                  icon: const Icon(Icons.camera_alt_outlined, color: FinzoColors.textPrimary),
                 ),
               ),
               

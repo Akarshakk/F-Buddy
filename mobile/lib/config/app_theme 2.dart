@@ -763,10 +763,10 @@ class AppTextStyles {
 /// Alias for backward compatibility - box decorations
 class AppDecorations {
   static BoxDecoration gradientDecoration = BoxDecoration(
-    gradient: LinearGradient(
+    gradient: const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [FinzoColors.brandAccent, const Color(0xFFC13584)],
+      colors: [FinzoColors.brandAccent, Color(0xFFC13584)],
     ),
     borderRadius: BorderRadius.circular(FinzoRadius.lg),
     boxShadow: [

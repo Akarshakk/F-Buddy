@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/biometric_service.dart';
 import '../kyc/kyc_screen.dart';
 import 'email_verification_screen.dart';
 import 'register_screen.dart';
@@ -18,6 +19,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _canUseBiometric = false;
+  bool _hasSavedCredentials = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -37,6 +40,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
     _animationController.forward();
+    
+    // Check biometric availability after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkBiometricAvailability();
+    });
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final biometricService = BiometricService();
+    final isSupported = await biometricService.isDeviceSupported();
+    final hasCreds = await biometricService.hasSavedCredentials();
+    
+    if (mounted) {
+      setState(() {
+        _canUseBiometric = isSupported;
+        _hasSavedCredentials = hasCreds;
+      });
+      
+      // Auto-prompt biometric if credentials are saved (with small delay for UI to settle)
+      if (isSupported && hasCreds) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          _loginWithBiometric();
+        }
+      }
+    }
   }
 
   @override
@@ -45,6 +74,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loginWithBiometric() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.loginWithBiometric();
+    
+    if (!mounted) return;
+    
+    if (success) {
+      _navigateAfterLogin(authProvider);
+    }
   }
 
   Future<void> _login() async {
@@ -60,14 +100,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!mounted) return;
 
     if (success) {
-      // Check KYC Status
-      if (authProvider.user?.kycStatus != 'VERIFIED') {
-        Navigator.of(context).pushReplacement(
-           MaterialPageRoute(builder: (_) => KycScreen()),
-        );
-      } else {
-        Navigator.of(context).pushReplacementNamed('/home');
+      // Prompt to enable biometric if device supports it
+      if (_canUseBiometric) {
+        await _promptEnableBiometric();
       }
+      _navigateAfterLogin(authProvider);
     } else {
       // Check if the error is about email verification
       final errorMsg = authProvider.errorMessage ?? '';
@@ -97,6 +134,64 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       authProvider.clearError();
     }
   }
+
+  Future<void> _promptEnableBiometric() async {
+    final biometricService = BiometricService();
+    final alreadyEnabled = await biometricService.isBiometricEnabled();
+    
+    if (alreadyEnabled) return;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.lg)),
+        title: Row(
+          children: [
+            Icon(Icons.fingerprint, color: FinzoTheme.brandAccent(context)),
+            const SizedBox(width: FinzoSpacing.sm),
+            Text('Quick Login', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
+          ],
+        ),
+        content: Text(
+          'Enable fingerprint, Face ID, or PIN for faster login next time?',
+          style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Not Now', style: FinzoTypography.labelMedium(color: FinzoTheme.textSecondary(context))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: FinzoTheme.brandAccent(context),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FinzoRadius.sm)),
+            ),
+            child: Text('Enable', style: FinzoTypography.labelMedium(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true) {
+      await biometricService.saveCredentials(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    }
+  }
+
+  void _navigateAfterLogin(AuthProvider authProvider) {
+    if (authProvider.user?.kycStatus != 'VERIFIED') {
+      Navigator.of(context).pushReplacement(
+         MaterialPageRoute(builder: (_) => const KycScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -238,6 +333,42 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               },
                             ),
                             const SizedBox(height: FinzoSpacing.lg),
+                            
+                            // Biometric Login Button (shown if available and credentials saved)
+                            if (_canUseBiometric && _hasSavedCredentials)
+                              Consumer<AuthProvider>(
+                                builder: (context, auth, _) {
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: FinzoSpacing.lg),
+                                    child: OutlinedButton.icon(
+                                      onPressed: auth.status == AuthStatus.loading 
+                                          ? null 
+                                          : _loginWithBiometric,
+                                      icon: Icon(
+                                        Icons.fingerprint,
+                                        color: FinzoTheme.brandAccent(context),
+                                        size: 24,
+                                      ),
+                                      label: Text(
+                                        'Use Fingerprint / PIN',
+                                        style: FinzoTypography.labelLarge(
+                                          color: FinzoTheme.brandAccent(context),
+                                        ),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: FinzoSpacing.md),
+                                        side: BorderSide(
+                                          color: FinzoTheme.brandAccent(context),
+                                          width: 2,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(FinzoRadius.md),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             
                             // Divider with text
                             Row(

@@ -14,14 +14,14 @@ class TradingViewChart extends StatefulWidget {
   final double height;
 
   const TradingViewChart({
-    Key? key,
+    super.key,
     required this.symbol,
     this.interval = '1D',
     this.theme = 'dark',
     this.type = 'candlestick',
     this.comparisonSymbols,
     this.height = 360,
-  }) : super(key: key);
+  });
 
   @override
   State<TradingViewChart> createState() => _TradingViewChartState();

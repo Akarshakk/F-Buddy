@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import '../../config/theme.dart' hide AppTextStyles;
 import '../../config/app_theme.dart';
 import '../../models/stock.dart';
 import '../../models/paper_portfolio.dart';
 import '../../services/markets_service.dart';
-import '../../widgets/auto_translated_text.dart';
 import '../../widgets/animated_button.dart';
 import '../../l10n/app_localizations.dart';
 import 'stock_detail_screen.dart';
@@ -178,7 +176,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
     final textSecondary = FinzoTheme.textSecondary(context);
     
     // Brand copper/gold theme for Markets Lab (matching app theme)
-    final marketAccent = FinzoColors.brandSecondary;
+    const marketAccent = FinzoColors.brandSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -333,7 +331,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                           borderRadius: BorderRadius.circular(FinzoRadius.lg),
                           boxShadow: FinzoShadows.medium,
                         ),
-                        child: CircularProgressIndicator(
+                        child: const CircularProgressIndicator(
                           color: FinzoColors.brandSecondary,
                           strokeWidth: 3,
                         ),
@@ -738,7 +736,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
   }
 
   Widget _buildProFeaturesBar(bool isDark, Color surfaceColor, Color textPrimary, Color textSecondary) {
-    final marketAccent = FinzoColors.brandSecondary;
+    const marketAccent = FinzoColors.brandSecondary;
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -747,7 +745,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, color: marketAccent, size: 18),
+              const Icon(Icons.auto_awesome, color: marketAccent, size: 18),
               const SizedBox(width: 8),
               Text(
                 'Pro Tools',

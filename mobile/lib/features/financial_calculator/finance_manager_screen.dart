@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../config/app_theme.dart';
-import '../../widgets/rag_chat_widget.dart';
+import '../../widgets/smart_chat_widget.dart';
 import 'package:finzo/l10n/app_localizations.dart';
 import 'calculators/inflation_calculator.dart';
 import 'calculators/investment_return_calculator.dart';
@@ -165,7 +165,7 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> with Ticker
     final l10n = context.l10n;
     
     // Brand copper/gold theme for Finance Manager
-    final managerAccent = FinzoColors.brandSecondary;
+    const managerAccent = FinzoColors.brandSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -270,8 +270,8 @@ class _FinanceManagerScreenState extends State<FinanceManagerScreen> with Ticker
               ],
             ),
           ),
-          // RAG Chat Widget
-          const RagChatWidget(),
+          // Smart Chat Widget
+          const SmartChatWidget(),
         ],
       ),
     );

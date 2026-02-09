@@ -1,6 +1,5 @@
 import 'dart:ui_web' as ui_web;
 import 'dart:html' as html;
-import 'package:flutter/widgets.dart';
 
 class ChartPlatformUtils {
   static void registerView(String viewId, String symbol, String interval, String theme, String type, String baseUrl, {String symbols = ''}) {

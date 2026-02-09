@@ -324,7 +324,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProv
                child: const Text('Queued', style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
           ),
-        )).toList(),
+        )),
         const Divider(height: 32),
       ],
     );

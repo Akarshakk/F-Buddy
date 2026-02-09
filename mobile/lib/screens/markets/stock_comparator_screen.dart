@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/markets_service.dart';
-import '../../config/theme.dart';
 import '../../models/stock.dart';
 import '../../widgets/trading_view_chart.dart';
 

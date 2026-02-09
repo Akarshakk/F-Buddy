@@ -22,6 +22,9 @@ const createTransporter = () => {
                 user: process.env.SMTP_EMAIL,
                 pass: process.env.SMTP_PASSWORD,
             },
+            tls: {
+                rejectUnauthorized: false
+            }
         });
     } catch (error) {
         console.error('[MFA] Failed to create email transporter:', error.message);

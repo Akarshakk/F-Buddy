@@ -317,7 +317,7 @@ class _ProfileTabState extends State<ProfileTab> {
                         onTap: () {
                           if (user?.kycStatus != 'VERIFIED') {
                             Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => KycScreen()),
+                              MaterialPageRoute(builder: (_) => const KycScreen()),
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(

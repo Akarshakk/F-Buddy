@@ -202,13 +202,26 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
                     vertical: FinzoSpacing.md,
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildNavItem(0, Icons.groups_outlined, Icons.groups_rounded, context.l10n.t('groups'), splitAccent),
-                      _buildNavItem(1, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('friends'), splitAccent),
-                      const SizedBox(width: 50), // Space for FAB
-                      _buildNavItem(2, Icons.history_outlined, Icons.history_rounded, context.l10n.t('activity'), splitAccent),
-                      _buildNavItem(3, Icons.settings_outlined, Icons.settings_rounded, context.l10n.t('settings'), splitAccent),
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(0, Icons.groups_outlined, Icons.groups_rounded, context.l10n.t('groups'), splitAccent),
+                            _buildNavItem(1, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('friends'), splitAccent),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 50), // Explicit Gap for FAB
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(2, Icons.history_outlined, Icons.history_rounded, context.l10n.t('activity'), splitAccent),
+                            _buildNavItem(3, Icons.settings_outlined, Icons.settings_rounded, context.l10n.t('settings'), splitAccent),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),

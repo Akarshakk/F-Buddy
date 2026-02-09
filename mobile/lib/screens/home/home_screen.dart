@@ -16,7 +16,7 @@ import 'expenses_tab.dart';
 import 'add_expense_screen.dart';
 import 'profile_tab.dart';
 import 'live_finance_tracking_screen.dart';
-import '../../widgets/rag_chat_widget.dart';
+import '../../widgets/smart_chat_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _navController;
   late Animation<double> _fabScale;
   late Animation<double> _navSlide;
+  bool _isChatExpanded = false;
 
   @override
   void initState() {
@@ -116,7 +117,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         onNavigateToProfile: () => setState(() => _currentIndex = 3),
       ),
       const ExpensesTab(),
-      const RagChatWidget(isFullScreen: true),
+      SmartChatWidget(
+        isFullScreen: true,
+        onToggle: (expanded) {
+          setState(() {
+            _isChatExpanded = expanded;
+          });
+        },
+      ),
       const ProfileTab(),
     ];
 
@@ -146,15 +154,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
       bottomNavigationBar: _buildPremiumBottomNav(context),
-      floatingActionButton: AnimatedBuilder(
-        animation: _fabScale,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _fabScale.value,
-            child: _buildPremiumFAB(context),
-          );
-        },
-      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: (_isChatExpanded || _currentIndex == 2)
+          ? null 
+          : AnimatedBuilder(
+              animation: _fabScale,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _fabScale.value,
+                  child: _buildPremiumFAB(context),
+                );
+              },
+            ),
     );
   }
 
@@ -245,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               onPressed: () {
                 if (!isVerified) {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => KycScreen()),
+                    MaterialPageRoute(builder: (_) => const KycScreen()),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -321,6 +332,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return AnimatedBuilder(
       animation: _navSlide,
       builder: (context, child) {
+        final isFabVisible = !_isChatExpanded && _currentIndex != 2;
+        
         return Transform.translate(
           offset: Offset(0, _navSlide.value),
           child: Container(
@@ -342,14 +355,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   vertical: FinzoSpacing.md,
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildNavItem(0, Icons.home_outlined, Icons.home_rounded, context.l10n.t('dashboard')),
-                    _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long_rounded, context.l10n.t('expenses')),
-                    const SizedBox(width: 60), // Space for FAB
-                    _buildNavItem(2, Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
-                    _buildNavItem(3, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('profile')),
-                  ],
+                  children: isFabVisible 
+                  ? [
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildNavItem(0, Icons.home_outlined, Icons.home_rounded, context.l10n.t('dashboard')),
+                            _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long_rounded, context.l10n.t('expenses')),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 48), // Explicit Gap for FAB
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildNavItem(2, Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
+                            _buildNavItem(3, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('profile')),
+                          ],
+                        ),
+                      ),
+                    ]
+                  : [
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildNavItem(0, Icons.home_outlined, Icons.home_rounded, context.l10n.t('dashboard')),
+                            _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long_rounded, context.l10n.t('expenses')),
+                            _buildNavItem(2, Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
+                            _buildNavItem(3, Icons.person_outline_rounded, Icons.person_rounded, context.l10n.t('profile')),
+                          ],
+                        ),
+                      ),
+                    ],
                 ),
               ),
             ),

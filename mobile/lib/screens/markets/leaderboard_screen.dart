@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/markets_service.dart';
-import '../../config/theme.dart';
 
 // Leaderboard accent color (purple for competitive feel)
 const _leaderboardAccent = Color(0xFF6366F1);
@@ -308,7 +307,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 ),
                 Text(
                   'Top ${((userRank['rank'] / totalParticipants) * 100).toStringAsFixed(1)}% of traders',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: _leaderboardAccent,
                   ),
@@ -484,7 +483,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               backgroundColor: _leaderboardAccent.withOpacity(0.2),
               child: Text(
                 entry.username[0].toUpperCase(),
-                style: TextStyle(
+                style: const TextStyle(
                   color: _leaderboardAccent,
                   fontWeight: FontWeight.bold,
                 ),
