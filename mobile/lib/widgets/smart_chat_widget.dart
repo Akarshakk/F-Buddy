@@ -36,6 +36,10 @@ class _SmartChatWidgetState extends State<SmartChatWidget>
   final TranslationService _translationService = TranslationService.instance;
   bool _isLoading = false;
 
+  // Pending action for confirmation flow
+  String? _pendingAction;
+  Map<String, dynamic>? _pendingParams;
+
   // Speech to text
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
@@ -246,48 +250,110 @@ class _SmartChatWidgetState extends State<SmartChatWidget>
       // Gemini will use tools (getBalance, getPortfolio, etc.) to fetch data on demand.
       // This ensures minimum data exposure.
 
-      // Get AI response with context
-      final response = await SmartChatService.chat(outbound, context: financialContext);
+      // Build conversation history from previous messages (exclude welcome and error messages)
+      List<Map<String, String>> conversationHistory = [];
+      for (int i = 1; i < _messages.length; i++) { // Skip welcome message at index 0
+        final msg = _messages[i];
+        if (!msg.isError) {
+          conversationHistory.add({
+            'role': msg.isUser ? 'user' : 'assistant',
+            'content': msg.text,
+          });
+        }
+      }
 
-      if (response.success) {
-        String answerText = response.answer;
+      // Check if user is confirming a pending action
+      final lowerText = outbound.toLowerCase().trim();
+      final isConfirmation = _pendingAction != null && 
+          (lowerText == 'yes' || lowerText == 'confirm' || lowerText == 'ok' || 
+           lowerText == 'sure' || lowerText == 'go ahead' || lowerText == 'do it');
 
-        // Translate answer back to selected language if needed
+      if (isConfirmation && _pendingAction != null && _pendingParams != null) {
+        // Execute the pending action
+        final executeResult = await SmartChatService.executeAction(_pendingAction!, _pendingParams!);
+        
+        // Clear pending action
+        _pendingAction = null;
+        _pendingParams = null;
+        
+        String resultText = executeResult.message;
         if (selectedLang != AppLanguage.english) {
           try {
-            answerText = await _translationService.translate(
-              response.answer,
+            resultText = await _translationService.translate(
+              executeResult.message,
               source: AppLanguage.english,
               target: selectedLang,
             );
-          } catch (_) {
-            answerText = '${response.answer}\n\n${context.l10n.t('translation_unavailable')}';
-          }
+          } catch (_) {}
         }
-
+        
         _addMessage(
           ChatMessage(
-            text: answerText,
+            text: resultText,
             isUser: false,
             timestamp: DateTime.now(),
-            sources: response.sources,
           ),
         );
-
-        // Handle special actions
-        if (response.action == 'generatePortfolioReport') {
-          // Trigger portfolio report generation
-          _handleGenerateReport();
-        }
       } else {
-        _addMessage(
-          ChatMessage(
-            text: "${context.l10n.t('error_generic')} Error: ${response.message}",
-            isUser: false,
-            timestamp: DateTime.now(),
-            isError: true,
-          ),
+        // Clear any pending action if user sends something else
+        if (_pendingAction != null && !isConfirmation) {
+          _pendingAction = null;
+          _pendingParams = null;
+        }
+
+        // Get AI response with context and conversation history
+        final response = await SmartChatService.chat(
+          outbound, 
+          context: financialContext,
+          conversationHistory: conversationHistory,
         );
+
+        if (response.success) {
+          String answerText = response.answer;
+
+          // Translate answer back to selected language if needed
+          if (selectedLang != AppLanguage.english) {
+            try {
+              answerText = await _translationService.translate(
+                response.answer,
+                source: AppLanguage.english,
+                target: selectedLang,
+              );
+            } catch (_) {
+              answerText = '${response.answer}\n\n${context.l10n.t('translation_unavailable')}';
+            }
+          }
+
+          _addMessage(
+            ChatMessage(
+              text: answerText,
+              isUser: false,
+              timestamp: DateTime.now(),
+              sources: response.sources,
+            ),
+          );
+
+          // Store pending action if this is a confirmation request
+          if (response.needsConfirmation && response.action != null && response.params != null) {
+            _pendingAction = response.action;
+            _pendingParams = response.params;
+          }
+
+          // Handle special actions
+          if (response.action == 'generatePortfolioReport') {
+            // Trigger portfolio report generation
+            _handleGenerateReport();
+          }
+        } else {
+          _addMessage(
+            ChatMessage(
+              text: "${context.l10n.t('error_generic')} Error: ${response.message}",
+              isUser: false,
+              timestamp: DateTime.now(),
+              isError: true,
+            ),
+          );
+        }
       }
     } catch (e) {
       _addMessage(

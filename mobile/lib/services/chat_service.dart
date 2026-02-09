@@ -44,7 +44,7 @@ class SmartChatService {
   }
 
   /// Send a chat query - uses main backend, optionally enriched with RAG context
-  static Future<ChatResponse> chat(String query, {Map<String, dynamic>? context}) async {
+  static Future<ChatResponse> chat(String query, {Map<String, dynamic>? context, List<Map<String, String>>? conversationHistory}) async {
     try {
       final url = '${ApiConstants.baseUrl}/chat';
       print('[SmartChat] Sending query to $url: $query');
@@ -69,7 +69,8 @@ class SmartChatService {
         body: json.encode({
           'query': query,
           if (context != null) 'context': context,
-        if (ragContext != null) 'ragContext': ragContext, // Pass RAG knowledge to backend
+          if (ragContext != null) 'ragContext': ragContext,
+          if (conversationHistory != null) 'conversationHistory': conversationHistory,
         }),
       ).timeout(const Duration(seconds: 120)); // Increased for AI rate limits
 

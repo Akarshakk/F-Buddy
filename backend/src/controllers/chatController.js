@@ -1242,7 +1242,7 @@ const executeAction = async (action, params, userId) => {
 // Main chat endpoint
 exports.chat = async (req, res) => {
     try {
-        const { query, context, ragContext } = req.body;
+        const { query, context, ragContext, conversationHistory } = req.body;
 
         if (!query) {
             return res.status(400).json({ success: false, message: 'Query is required' });
@@ -1264,11 +1264,10 @@ exports.chat = async (req, res) => {
         }
 
         // List of models to try in order of preference
-        // Reverting to standard 1.5-flash for stability with new keys
+        // Using models available in the Gemini API console
         const modelsToTry = [
-            'gemini-1.5-flash-001',
-            'gemini-1.5-pro-001',
-            'gemini-2.0-flash-exp'
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite'
         ];
         let lastError = null;
 
@@ -1286,12 +1285,24 @@ exports.chat = async (req, res) => {
                         tools: [{ functionDeclarations }]
                     });
 
-                    const chat = model.startChat({
-                        history: [
-                            { role: 'user', parts: [{ text: contextStr }] },
-                            { role: 'model', parts: [{ text: 'Understood! I am Finzo, your personal finance assistant. I can only make changes to YOUR account - I cannot access or modify other users data. How can I help you today?' }] }
-                        ]
-                    });
+                    // Build chat history - start with system context
+                    const chatHistory = [
+                        { role: 'user', parts: [{ text: contextStr }] },
+                        { role: 'model', parts: [{ text: 'Understood! I am Finzo, your personal finance assistant. I can only make changes to YOUR account - I cannot access or modify other users data. How can I help you today?' }] }
+                    ];
+
+                    // Add conversation history from frontend if provided
+                    if (conversationHistory && Array.isArray(conversationHistory)) {
+                        for (const msg of conversationHistory) {
+                            if (msg.role === 'user' && msg.content) {
+                                chatHistory.push({ role: 'user', parts: [{ text: msg.content }] });
+                            } else if (msg.role === 'assistant' && msg.content) {
+                                chatHistory.push({ role: 'model', parts: [{ text: msg.content }] });
+                            }
+                        }
+                    }
+
+                    const chat = model.startChat({ history: chatHistory });
 
                     console.log(`[Chat] Attempting with model: ${modelName} (Attempt ${retryCount + 1})`);
                     const result = await chat.sendMessage(query);
